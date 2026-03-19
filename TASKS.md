@@ -48,6 +48,7 @@
 ### Phase 5b - SaaS Polish & UX
 - [x] #54 Staffing tab - remove Bench Report, add bench count indicator to heatmap
 - [ ] #55 Heatmap - optimized row density (50-60 employees)
+- [ ] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes)
 - [ ] #48 Left sidebar navigation to replace top tab bar
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
@@ -89,4 +90,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**28 complete [x] · 26 open [ ] · 54 tracked**
+**28 complete [x] · 27 open [ ] · 55 tracked**
