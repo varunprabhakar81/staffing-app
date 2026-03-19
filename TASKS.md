@@ -30,6 +30,9 @@
 - [x] #19 Drilldown - Needs Coverage
 - [x] #20 Drilldown - KPI Summary Cards (Headcount, Utilization, Bench, Demand)
 
+### Phase 4c - Heatmap
+- [ ] #42 Replace Utilization by Level and Cliffs charts with Interactive Availability Heatmap
+
 ### Phase 5 - Polish
 - [x] #21 Dark theme with minimalistic pastel color scheme
 - [x] #22 Styling - make it exec-presentable
