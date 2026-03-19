@@ -47,6 +47,7 @@
 
 ### Phase 5b - SaaS Polish & UX
 - [x] #54 Staffing tab - remove Bench Report, add bench count indicator to heatmap
+- [x] #51 Staffing tab - Bench Report as collapsible side panel (closed - superseded by #54)
 - [x] #55 Heatmap - optimized row density (50-60 employees)
 - [x] #58 Heatmap - complete virtual scrolling to show all 25+ employees
 - [ ] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes, row spacing)
@@ -92,4 +93,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**30 complete [x] · 27 open [ ] · 57 tracked**
+**31 complete [x] · 27 open [ ] · 58 tracked**
