@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node create-sample-data.js)",
+      "Bash(dir data:*)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(dir:*)"
+    ]
+  }
+}
