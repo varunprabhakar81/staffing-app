@@ -159,13 +159,6 @@ function renderKPIs(data) {
   // Bench: coral if anyone on bench, mint if zero
   document.getElementById('kpiBench').className = 'kpi-value ' + (benchCount > 0 ? 'danger' : 'ok');
 
-  // Bench indicator pill in heatmap header
-  const benchInd = document.getElementById('benchIndicator');
-  if (benchInd) {
-    benchInd.textContent = `Bench: ${benchCount}`;
-    benchInd.className   = 'chart-badge ' + (benchCount > 0 ? 'warn' : 'ok');
-  }
-
   // Demand: coral if unmet, yellow if partial only, mint if all met
   const uncovEl = document.getElementById('kpiUncovered');
   uncovEl.className = 'kpi-value ' + (
@@ -214,6 +207,19 @@ function renderOverviewStats(data, heatmapData) {
   if (unmetEl) {
     unmetEl.textContent = String(unmet);
     unmetEl.className = 'overview-stat-value ' + (unmet > 0 ? 'danger' : 'ok');
+  }
+
+  // Bench count (employees < 10h this week)
+  const benchCount = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
+  const benchEl    = document.getElementById('overviewBench');
+  const benchCard  = document.getElementById('overviewBenchCard');
+  if (benchEl) {
+    benchEl.textContent = String(benchCount);
+    benchEl.className   = 'overview-stat-value ' + (benchCount > 0 ? 'danger' : 'ok');
+  }
+  if (benchCard) {
+    benchCard.classList.toggle('overview-stat--bench-warn', benchCount > 0);
+    benchCard.classList.toggle('overview-stat--bench-ok',   benchCount === 0);
   }
 }
 

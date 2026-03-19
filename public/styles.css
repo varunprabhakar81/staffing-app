@@ -640,7 +640,7 @@ body {
   display: flex;
   gap: 16px;
   width: 100%;
-  max-width: 700px;
+  max-width: 940px;
 }
 
 .overview-stat-box {
@@ -652,7 +652,15 @@ body {
   text-align: center;
 }
 
-.overview-stat--blue { border-color: rgba(168,199,250,0.3); }
+.overview-stat--blue       { border-color: rgba(168,199,250,0.3); }
+.overview-stat--bench-warn { border-color: rgba(255,179,179,0.35); }
+.overview-stat--bench-ok   { border-color: rgba(168,230,207,0.35); }
+
+.overview-stat--clickable {
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.overview-stat--clickable:hover { background: rgba(168,199,250,0.05); }
 
 .overview-stat-value {
   font-size: 36px;
