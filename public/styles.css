@@ -1298,14 +1298,21 @@ body {
 }
 
 .hm-scroll-wrap {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: scroll;
   flex: 1;
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 4px;
-  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 #0F1117;
 }
+
+.hm-scroll-wrap::-webkit-scrollbar        { width: 6px; height: 6px; }
+.hm-scroll-wrap::-webkit-scrollbar-track  { background: #0F1117; border-radius: 3px; }
+.hm-scroll-wrap::-webkit-scrollbar-thumb  { background: #2E3250; border-radius: 3px; }
+.hm-scroll-wrap::-webkit-scrollbar-thumb:hover { background: #3A3F6B; }
 
 .hm-table {
   border-collapse: collapse;

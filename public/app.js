@@ -13,6 +13,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
+    // Re-render virtual scroll after tab layout settles (clientHeight was 0 while hidden)
+    if (tab === 'staffing') {
+      requestAnimationFrame(() => _vsRenderVisible());
+    }
     // Resize charts after tab becomes visible (fixes Chart.js sizing on hidden panels)
     if (tab === 'needs') {
       requestAnimationFrame(() => {
@@ -358,7 +362,7 @@ function _vsRenderVisible() {
   const totalH = y;
 
   const scrollTop = wrap.scrollTop;
-  const viewH     = wrap.clientHeight || 600;
+  const viewH     = wrap.clientHeight || 2000;
   const bufPx     = VS_BUFFER * VS_H_EMP;
   const visTop    = Math.max(0, scrollTop - bufPx);
   const visBot    = scrollTop + viewH + bufPx;
