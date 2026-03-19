@@ -242,7 +242,7 @@ function encodeAttr(s) {
 }
 
 // ── Virtual scroll constants & state ─────────────────────────────
-const VS_H_EMP   = 30;   // employee row height px
+const VS_H_EMP   = 28;   // employee row height px
 const VS_H_LEVEL = 20;   // level group header height px
 const VS_H_SUB   = 26;   // project sub-row height px
 const VS_BUFFER  = 8;    // extra rows rendered beyond viewport
