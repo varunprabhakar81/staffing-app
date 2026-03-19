@@ -1,1 +1,226 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staffing Intelligence | Resource Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-mark">S</div>
+        <div class="brand-text">
+          <span class="brand-title">Staffing Intelligence</span>
+          <span class="brand-sub">Resource Management Platform</span>
+        </div>
+      </div>
+      <div class="header-status" id="headerStatus">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Tab Navigation ──────────────────────────────────────────── -->
+  <nav class="tab-nav">
+    <div class="tab-nav-inner">
+      <button class="tab-btn active" data-tab="dashboard">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
+        Dashboard
+      </button>
+      <button class="tab-btn" data-tab="ask">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M6 6.5C6 5.4 6.9 4.5 8 4.5s2 .9 2 2c0 .8-.5 1.5-1.2 1.8L8 8.7V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="12" r=".75" fill="currentColor"/></svg>
+        Ask Claude
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Main Content ────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ── Dashboard Tab ───────────────────────────────────────────── -->
+    <div class="tab-panel active" id="tab-dashboard">
+
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Resource Overview</h2>
+          <p class="section-sub" id="dataTimestamp">Loading data…</p>
+        </div>
+        <button class="refresh-btn" onclick="loadDashboard()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh
+        </button>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon--blue">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 1114 0H3z" fill="currentColor"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpiHeadcount">—</div>
+            <div class="kpi-label">Total Headcount</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon--green">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-12v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpiUtilization">—</div>
+            <div class="kpi-label">Avg Utilization</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon--amber">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7v11h14V7L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 18V10h6v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpiBench">—</div>
+            <div class="kpi-label">On Bench</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon--red">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-11v4m0 3v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpiUncovered">—</div>
+            <div class="kpi-label">Open Demand Roles</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+
+        <!-- Utilization by Level (wide) -->
+        <div class="chart-card span-full">
+          <div class="chart-card-header">
+            <div>
+              <h3 class="chart-title">Utilization by Level</h3>
+              <p class="chart-sub">Average weekly hours vs 45h target · Current period</p>
+            </div>
+            <span class="chart-badge">Target: 80%</span>
+          </div>
+          <div class="chart-wrapper chart-wrapper--md">
+            <canvas id="chartUtilization"></canvas>
+          </div>
+        </div>
+
+        <!-- Cliffs (wide) -->
+        <div class="chart-card span-full">
+          <div class="chart-card-header">
+            <div>
+              <h3 class="chart-title">Project Roll-off Cliffs</h3>
+              <p class="chart-sub">Weekly booked vs available hours · Spikes indicate mass roll-offs</p>
+            </div>
+            <span class="chart-badge" id="cliffsBadge">—</span>
+          </div>
+          <div class="chart-wrapper chart-wrapper--md">
+            <canvas id="chartCliffs"></canvas>
+          </div>
+        </div>
+
+        <!-- Needs Coverage (half) -->
+        <div class="chart-card span-half">
+          <div class="chart-card-header">
+            <div>
+              <h3 class="chart-title">Needs Coverage</h3>
+              <p class="chart-sub">Open demand roles vs available supply</p>
+            </div>
+            <span class="chart-badge" id="coverageBadge">—</span>
+          </div>
+          <div class="coverage-layout">
+            <div class="chart-wrapper chart-wrapper--sm">
+              <canvas id="chartCoverage"></canvas>
+            </div>
+            <div class="coverage-table" id="coverageTable"></div>
+          </div>
+        </div>
+
+        <!-- Bench Report (half) -->
+        <div class="chart-card span-half">
+          <div class="chart-card-header">
+            <div>
+              <h3 class="chart-title">Bench Report</h3>
+              <p class="chart-sub">Employees under 10h this week · Grouped by skill</p>
+            </div>
+            <span class="chart-badge" id="benchBadge">—</span>
+          </div>
+          <div class="bench-content" id="benchContent"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Ask Claude Tab ──────────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-ask">
+      <div class="ask-container">
+
+        <div class="ask-hero">
+          <div class="ask-hero-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="1.5"/><path d="M12 13a4 4 0 118 0c0 1.6-1 2.9-2.4 3.5L16 17.5V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="23.5" r="1.25" fill="currentColor"/></svg>
+          </div>
+          <h2>Ask Claude</h2>
+          <p>Instant answers about your staffing data — utilization, coverage gaps, bench talent, and project conflicts.</p>
+        </div>
+
+        <div class="ask-examples">
+          <span class="examples-label">Try asking:</span>
+          <div class="examples-chips">
+            <button class="chip" onclick="setQuestion(this)">Who is available next week?</button>
+            <button class="chip" onclick="setQuestion(this)">Which projects are understaffed?</button>
+            <button class="chip" onclick="setQuestion(this)">Who has the highest utilization?</button>
+            <button class="chip" onclick="setQuestion(this)">Are there any upcoming staffing cliffs?</button>
+            <button class="chip" onclick="setQuestion(this)">Summarize the bench by skill set</button>
+          </div>
+        </div>
+
+        <div class="ask-input-group">
+          <textarea
+            id="askInput"
+            class="ask-textarea"
+            placeholder="Ask a question about your staffing data…"
+            rows="3"
+            onkeydown="handleAskKey(event)"
+          ></textarea>
+          <button class="ask-submit-btn" id="askSubmitBtn" onclick="submitQuestion()">
+            <span id="askBtnText">Ask Claude</span>
+            <svg id="askBtnSpinner" class="spinner hidden" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="10" fill="none"/></svg>
+          </button>
+        </div>
+
+        <div class="ask-response-card hidden" id="askResponseCard">
+          <div class="response-header">
+            <div class="response-label">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.25" stroke="#3b82f6" stroke-width="1.5"/><path d="M5 5.5c0-1 .9-1.75 2-1.75s2 .75 2 1.75c0 .7-.45 1.3-1.1 1.6L7 7.6V9" stroke="#3b82f6" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="11" r=".65" fill="#3b82f6"/></svg>
+              Claude's Answer
+            </div>
+            <button class="clear-btn" onclick="clearResponse()">✕ Clear</button>
+          </div>
+          <div class="response-body" id="askResponseBody"></div>
+        </div>
+
+        <div class="ask-error hidden" id="askError">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <span id="askErrorText"></span>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
