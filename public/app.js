@@ -330,6 +330,7 @@ function buildHeatmapTable(data) {
 
   // Restore previously expanded employees (survives data refresh)
   for (const empName of _hmExpanded) _applyExpand(empName, true);
+  _updateHmBulkBtns();
 }
 
 // ── Expand / Collapse helpers ─────────────────────────────────────
@@ -371,6 +372,38 @@ function toggleHmExpand(empName) {
     _hmExpanded.add(empName);
     _applyExpand(empName, true);
   }
+  _updateHmBulkBtns();
+}
+
+function _allEmpNames() {
+  return Array.from(document.querySelectorAll('.hm-chevron')).map(c => c.dataset.emp);
+}
+
+function _updateHmBulkBtns() {
+  const all = _allEmpNames();
+  const expandBtn   = document.getElementById('hmExpandAll');
+  const collapseBtn = document.getElementById('hmCollapseAll');
+  if (!expandBtn || !collapseBtn) return;
+  const allExpanded   = all.length > 0 && all.every(n => _hmExpanded.has(n));
+  const noneExpanded  = _hmExpanded.size === 0;
+  expandBtn.disabled   = allExpanded;
+  collapseBtn.disabled = noneExpanded;
+}
+
+function hmExpandAll() {
+  for (const name of _allEmpNames()) {
+    _hmExpanded.add(name);
+    _applyExpand(name, true);
+  }
+  _updateHmBulkBtns();
+}
+
+function hmCollapseAll() {
+  for (const name of _allEmpNames()) {
+    _hmExpanded.delete(name);
+    _applyExpand(name, false);
+  }
+  _updateHmBulkBtns();
 }
 
 // ── Heatmap Drilldown A: Cell click ──────────────────────────────

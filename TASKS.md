@@ -64,3 +64,4 @@
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
 - [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
 - [x] #42 Interactive Availability Heatmap (COMPLETE - already built)
+- [x] #45 Heatmap Expand All / Collapse All buttons (COMPLETE)

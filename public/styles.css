@@ -352,6 +352,27 @@ body {
 .chart-badge.danger { background: rgba(255,179,179,0.12); color: var(--coral); }
 .chart-badge.ok     { background: rgba(168,230,207,0.12); color: var(--mint); }
 
+.hm-bulk-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.hm-bulk-btn {
+  background: #2E3250;
+  color: #8892B0;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #3A3F6B;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.hm-bulk-btn:hover:not(:disabled) { color: #A8C7FA; }
+.hm-bulk-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .chart-wrapper { position: relative; }
 .chart-wrapper--md { height: 280px; }
 .chart-wrapper--sm { height: 220px; }
