@@ -70,52 +70,60 @@ const taper = (hi, lo, n) => [...Array(n).fill(hi), ...Array(15 - n).fill(lo)];
 
 // Supply rows — plain values only, no IDs or formulas
 // Columns: Employee Name (A), Skill Set (B), Project Assigned (C), weekly hours (D+)
+//
+// Utilization distribution (total per employee per week, consistent across all 15 weeks):
+//   0h  (bench)           : Ryan O'Brien, Aisha Kamara
+//   10h (very underutil.) : Ben Foster, Tom Nguyen
+//   20h (underutilized)   : Maya Johansson, Emily Walsh
+//   45h (fully utilized)  : Sarah Mitchell, James Okafor, Rachel Torres,
+//                           David Chen, Priya Sharma, Luke Bennett, Nina Patel
+//   50h (overbooked)      : Marcus Webb, Carlos Rivera
 const supplyRows = [
-  // Sarah Mitchell (Partner/MD) — 20 + 25 = 45
-  { name: 'Sarah Mitchell',  skillSet: 'NetSuite - Record to Report', project: 'Harrington Manufacturing – NetSuite ERP Implementation',   hours: w(20) },
-  { name: 'Sarah Mitchell',  skillSet: 'NetSuite - Record to Report', project: 'Crestline Energy – NetSuite ERP Assessment',               hours: w(25) },
-  // James Okafor (Senior Manager) — 30 + 15 = 45
-  { name: 'James Okafor',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',                hours: w(30) },
-  { name: 'James Okafor',    skillSet: 'NetSuite - Supply Chain',     project: 'Internal – Practice Development',                          hours: w(15) },
-  // Rachel Torres (Senior Manager) — 35 + 10 = 45
-  { name: 'Rachel Torres',   skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                    hours: w(35) },
-  { name: 'Rachel Torres',   skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',        hours: w(10) },
-  // David Chen (Manager) — 40 + 5 = 45
-  { name: 'David Chen',      skillSet: 'NetSuite - Procure to Pay',   project: 'Harrington Manufacturing – NetSuite ERP Implementation',   hours: w(40) },
-  { name: 'David Chen',      skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                         hours: w(5)  },
-  // Priya Sharma (Manager) — 40 + 5 = 45
-  { name: 'Priya Sharma',    skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                  hours: w(40) },
-  { name: 'Priya Sharma',    skillSet: 'NetSuite - Record to Report', project: 'Crestline Energy – NetSuite ERP Assessment',               hours: w(5)  },
-  // Marcus Webb (Manager) — 25 + 20 = 45
-  { name: 'Marcus Webb',     skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',        hours: w(25) },
-  { name: 'Marcus Webb',     skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',                hours: w(20) },
-  // Luke Bennett (Senior Consultant) — 30 + 15 = 45
-  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',                hours: w(30) },
-  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Vantage Distribution – Full Suite Implementation',        hours: w(15) },
-  // Nina Patel (Senior Consultant) — 35 + 10 = 45
-  { name: 'Nina Patel',      skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                    hours: w(35) },
-  { name: 'Nina Patel',      skillSet: 'NetSuite - Order to Cash',    project: 'Harrington Manufacturing – NetSuite ERP Implementation',   hours: w(10) },
-  // Carlos Rivera (Senior Consultant) — 40 + 5 = 45
-  { name: 'Carlos Rivera',   skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                         hours: w(40) },
-  { name: 'Carlos Rivera',   skillSet: 'NetSuite - Procure to Pay',   project: 'Internal – Practice Development',                          hours: w(5)  },
-  // Emily Walsh (Consultant) — 40 + taper = ~45 early weeks
-  { name: 'Emily Walsh',     skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                  hours: w(40) },
-  { name: 'Emily Walsh',     skillSet: 'NetSuite - Record to Report', project: 'Harrington Manufacturing – NetSuite ERP Implementation',   hours: taper(5, 0, 8) },
-  // Tom Nguyen (Consultant) — 40 + 5 = 45
-  { name: 'Tom Nguyen',      skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',                hours: w(40) },
-  { name: 'Tom Nguyen',      skillSet: 'NetSuite - Supply Chain',     project: 'Internal – Practice Development',                          hours: w(5)  },
-  // Aisha Kamara (Consultant) — 30 + 15 = 45
-  { name: 'Aisha Kamara',    skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                    hours: w(30) },
-  { name: 'Aisha Kamara',    skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',        hours: w(15) },
-  // Ben Foster (Analyst) — 40 + 5 = 45
-  { name: 'Ben Foster',      skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                         hours: w(40) },
-  { name: 'Ben Foster',      skillSet: 'NetSuite - Procure to Pay',   project: 'Harrington Manufacturing – NetSuite ERP Implementation',   hours: w(5)  },
-  // Maya Johansson (Analyst) — 40 + taper = ~45 early weeks
-  { name: 'Maya Johansson',  skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                  hours: w(40) },
-  { name: 'Maya Johansson',  skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                    hours: taper(5, 0, 6) },
-  // Ryan O'Brien (Analyst) — 40 + 5 = 45
-  { name: "Ryan O'Brien",    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',                hours: w(40) },
-  { name: "Ryan O'Brien",    skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',        hours: w(5)  },
+  // ── 45h — Sarah Mitchell (Partner/MD): 20 + 25 ──────────────────────────
+  { name: 'Sarah Mitchell',  skillSet: 'NetSuite - Record to Report', project: 'Harrington Manufacturing – NetSuite ERP Implementation',  hours: w(20) },
+  { name: 'Sarah Mitchell',  skillSet: 'NetSuite - Record to Report', project: 'Crestline Energy – NetSuite ERP Assessment',              hours: w(25) },
+  // ── 45h — James Okafor (Senior Manager): 30 + 15 ────────────────────────
+  { name: 'James Okafor',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(30) },
+  { name: 'James Okafor',    skillSet: 'NetSuite - Supply Chain',     project: 'Internal – Practice Development',                         hours: w(15) },
+  // ── 45h — Rachel Torres (Senior Manager): 35 + 10 ───────────────────────
+  { name: 'Rachel Torres',   skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                   hours: w(35) },
+  { name: 'Rachel Torres',   skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',       hours: w(10) },
+  // ── 45h — David Chen (Manager): 40 + 5 ──────────────────────────────────
+  { name: 'David Chen',      skillSet: 'NetSuite - Procure to Pay',   project: 'Harrington Manufacturing – NetSuite ERP Implementation',  hours: w(40) },
+  { name: 'David Chen',      skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                        hours: w(5)  },
+  // ── 45h — Priya Sharma (Manager): 40 + 5 ────────────────────────────────
+  { name: 'Priya Sharma',    skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                 hours: w(40) },
+  { name: 'Priya Sharma',    skillSet: 'NetSuite - Record to Report', project: 'Crestline Energy – NetSuite ERP Assessment',              hours: w(5)  },
+  // ── 50h — Marcus Webb (Manager): 30 + 20 ────────────────────────────────
+  { name: 'Marcus Webb',     skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',       hours: w(30) },
+  { name: 'Marcus Webb',     skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(20) },
+  // ── 45h — Luke Bennett (Senior Consultant): 30 + 15 ─────────────────────
+  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(30) },
+  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Vantage Distribution – Full Suite Implementation',       hours: w(15) },
+  // ── 45h — Nina Patel (Senior Consultant): 35 + 10 ───────────────────────
+  { name: 'Nina Patel',      skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                   hours: w(35) },
+  { name: 'Nina Patel',      skillSet: 'NetSuite - Order to Cash',    project: 'Harrington Manufacturing – NetSuite ERP Implementation',  hours: w(10) },
+  // ── 50h — Carlos Rivera (Senior Consultant): 45 + 5 ─────────────────────
+  { name: 'Carlos Rivera',   skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                        hours: w(45) },
+  { name: 'Carlos Rivera',   skillSet: 'NetSuite - Procure to Pay',   project: 'Internal – Practice Development',                         hours: w(5)  },
+  // ── 20h — Emily Walsh (Consultant): 16 + 4 ──────────────────────────────
+  { name: 'Emily Walsh',     skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                 hours: w(16) },
+  { name: 'Emily Walsh',     skillSet: 'NetSuite - Record to Report', project: 'Harrington Manufacturing – NetSuite ERP Implementation',  hours: w(4)  },
+  // ── 10h — Tom Nguyen (Consultant): 8 + 2 ────────────────────────────────
+  { name: 'Tom Nguyen',      skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(8)  },
+  { name: 'Tom Nguyen',      skillSet: 'NetSuite - Supply Chain',     project: 'Internal – Practice Development',                         hours: w(2)  },
+  // ── 0h  — Aisha Kamara (Consultant): 0 + 0 (bench) ──────────────────────
+  { name: 'Aisha Kamara',    skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                   hours: w(0)  },
+  { name: 'Aisha Kamara',    skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',       hours: w(0)  },
+  // ── 10h — Ben Foster (Analyst): 8 + 2 ───────────────────────────────────
+  { name: 'Ben Foster',      skillSet: 'NetSuite - Procure to Pay',   project: 'Summit Healthcare – P2P Upgrade',                        hours: w(8)  },
+  { name: 'Ben Foster',      skillSet: 'NetSuite - Procure to Pay',   project: 'Harrington Manufacturing – NetSuite ERP Implementation',  hours: w(2)  },
+  // ── 20h — Maya Johansson (Analyst): 16 + 4 ──────────────────────────────
+  { name: 'Maya Johansson',  skillSet: 'NetSuite - Record to Report', project: 'Meridian Financial – R2R Consolidation',                 hours: w(16) },
+  { name: 'Maya Johansson',  skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                   hours: w(4)  },
+  // ── 0h  — Ryan O'Brien (Analyst): 0 + 0 (bench) ─────────────────────────
+  { name: "Ryan O'Brien",    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(0)  },
+  { name: "Ryan O'Brien",    skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',       hours: w(0)  },
 ];
 
 // Demand — 8 open roles, plain values only
