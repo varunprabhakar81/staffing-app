@@ -119,6 +119,7 @@ const BLUE   = 'FF2F5496';
 const STRIPE = 'FFE9EFF7';
 const YELLOW = 'FFFFF2CC';
 const GREY   = 'FFD9D9D9';
+const SILVER = 'FFF2F2F2';
 
 function styleHeader(row) {
   row.eachCell(cell => {
