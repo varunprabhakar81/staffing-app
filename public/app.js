@@ -642,6 +642,17 @@ function renderCoverageChart(coverage) {
   badge.textContent = total ? `${total} open roles` : 'No open roles';
   badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
 
+  // Register a custom positioner that places the tooltip outside the donut ring
+  if (!Chart.Tooltip.positioners.donutOuter) {
+    Chart.Tooltip.positioners.donutOuter = function(elements) {
+      if (!elements.length) return false;
+      const arc = elements[0].element;
+      const midAngle = (arc.startAngle + arc.endAngle) / 2;
+      const r = arc.outerRadius + 20;
+      return { x: arc.x + Math.cos(midAngle) * r, y: arc.y + Math.sin(midAngle) * r };
+    };
+  }
+
   charts.coverage = new Chart(document.getElementById('chartCoverage'), {
     type: 'doughnut',
     data: {
@@ -663,10 +674,12 @@ function renderCoverageChart(coverage) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          position: 'donutOuter',
           backgroundColor: '#22263A',
           titleColor: '#FFFFFF',
           bodyColor: '#CCD6F6',
           padding: 10,
+          caretSize: 4,
           displayColors: false,
           callbacks: {
             title() { return ''; },
