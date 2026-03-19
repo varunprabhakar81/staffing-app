@@ -24,25 +24,25 @@
 - [x] #15 Wire Q&A to backend and display responses
 
 ### Phase 5 - Polish
-- [ ] #33 Dark theme with minimalistic pastel color scheme
-- [ ] #16 Styling - make it exec-presentable
-- [ ] #17 Auto-refresh when Excel file changes
-- [ ] #18 Test with real data, fix edge cases
+- [ ] #16 Dark theme with minimalistic pastel color scheme
+- [ ] #17 Styling - make it exec-presentable
+- [ ] #18 Auto-refresh when Excel file changes
+- [ ] #19 Test with real data, fix edge cases
 
 ### Phase 6 - Testing
-- [ ] #19 Functional Testing - verify all dashboard charts render correctly
-- [ ] #20 Functional Testing - verify Q&A returns accurate answers
-- [ ] #21 Functional Testing - verify Excel dropdowns and data validation
-- [ ] #22 Functional Testing - verify color coding logic in Supply tab
-- [ ] #23 Technical Testing - verify API error handling and edge cases
-- [ ] #24 Technical Testing - verify app handles missing or malformed Excel data
-- [ ] #25 Technical Testing - performance testing with large datasets
-- [ ] #26 UAT - exec team reviews dashboard with real data
-- [ ] #27 UAT - staffing team tests Q&A with real resourcing questions
-- [ ] #28 UAT - sign off and move to Phase 7
+- [ ] #20 Functional Testing - verify all dashboard charts render correctly
+- [ ] #21 Functional Testing - verify Q&A returns accurate answers
+- [ ] #22 Functional Testing - verify Excel dropdowns and data validation
+- [ ] #23 Functional Testing - verify color coding logic in Supply tab
+- [ ] #24 Technical Testing - verify API error handling and edge cases
+- [ ] #25 Technical Testing - verify app handles missing or malformed Excel data
+- [ ] #26 Technical Testing - performance testing with large datasets
+- [ ] #27 UAT - exec team reviews dashboard with real data
+- [ ] #28 UAT - staffing team tests Q&A with real resourcing questions
+- [ ] #29 UAT - sign off and move to Phase 7
 
 ### Phase 7 - Database Enhancement
-- [ ] #29 Set up SQLite schema mirroring all Excel tabs
-- [ ] #30 Build Excel to SQLite import script
-- [ ] #31 Swap backend data layer from Excel to SQLite
-- [ ] #32 Test and validate parity with Phase 1
+- [ ] #30 Set up SQLite schema mirroring all Excel tabs
+- [ ] #31 Build Excel to SQLite import script
+- [ ] #32 Swap backend data layer from Excel to SQLite
+- [ ] #33 Test and validate parity with Phase 1
