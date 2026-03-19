@@ -1628,7 +1628,7 @@ body {
 
 /* Donut external tooltip */
 #donutTip {
-  position: absolute;
+  position: fixed;
   background: #22263A;
   border: 1px solid #2E3250;
   border-radius: 6px;
@@ -1638,7 +1638,6 @@ body {
   pointer-events: none;
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.12s ease;
   box-shadow: 0 4px 14px rgba(0,0,0,0.45);
   z-index: 200;
 }

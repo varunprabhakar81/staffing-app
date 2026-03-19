@@ -666,7 +666,7 @@ function renderCoverageChart(coverage) {
 
     if (tooltip.opacity === 0) { hideDonutTip(); return; }
 
-    const item  = tooltip.dataPoints && tooltip.dataPoints[0];
+    const item = tooltip.dataPoints && tooltip.dataPoints[0];
     if (!item) { hideDonutTip(); return; }
 
     const label = item.label;
@@ -679,28 +679,37 @@ function renderCoverageChart(coverage) {
       `<span style="color:#fff;font-weight:600">${label}:</span>` +
       `<span style="color:#CCD6F6;margin-left:4px">${value}</span>`;
 
-    // Position: use canvas bounding rect + arc midpoint angle to place
-    // tooltip outside the ring on the correct side
-    const canvas = chart.canvas;
-    const rect   = canvas.getBoundingClientRect();
-    const meta   = chart.getDatasetMeta(0);
-    const arc    = meta.data[item.dataIndex];
-    const mid    = (arc.startAngle + arc.endAngle) / 2;
-    // Push 24px beyond outer radius in the direction of the arc midpoint
-    const r      = arc.outerRadius + 24;
-    const arcX   = arc.x + Math.cos(mid) * r;
-    const arcY   = arc.y + Math.sin(mid) * r;
-    // Convert canvas-local coords to page coords
-    const pageX = rect.left + window.scrollX + arcX;
-    const pageY = rect.top  + window.scrollY + arcY;
+    // Make visible (but off-screen) so we can measure its width
+    tip.style.opacity = '1';
+    tip.style.left    = '-9999px';
+    tip.style.top     = '-9999px';
+    tip.style.transform = '';
 
-    tip.style.opacity   = '1';
-    // Offset tip so it doesn't straddle the anchor point
-    tip.style.transform = mid > Math.PI / 2 && mid < 3 * Math.PI / 2
-      ? 'translate(-100%, -50%)'   // left half of donut → tip extends left
-      : 'translate(0%, -50%)';     // right half of donut → tip extends right
-    tip.style.left = pageX + 'px';
-    tip.style.top  = pageY + 'px';
+    const tipW  = tip.offsetWidth;
+    const tipH  = tip.offsetHeight;
+    const MARGIN = 10;
+    const canvasRect = chart.canvas.getBoundingClientRect();
+
+    // Anchor point: Chart.js caretX/Y are canvas-local; convert to viewport coords
+    const anchorX = canvasRect.left + tooltip.caretX;
+    const anchorY = canvasRect.top  + tooltip.caretY;
+
+    // Try right of anchor first; fall back to left if it clips the viewport
+    let left = anchorX + MARGIN;
+    if (left + tipW > window.innerWidth - MARGIN) {
+      left = anchorX - tipW - MARGIN;
+    }
+    // Clamp so it never goes off the left edge either
+    left = Math.max(MARGIN, left);
+
+    // Vertically centre on the anchor; clamp top/bottom
+    let top = anchorY - tipH / 2;
+    top = Math.max(MARGIN, Math.min(top, window.innerHeight - tipH - MARGIN));
+
+    // position: fixed so viewport coords are correct
+    tip.style.position = 'fixed';
+    tip.style.left     = left + 'px';
+    tip.style.top      = top  + 'px';
   }
 
   // Hide tip when mouse leaves the canvas
