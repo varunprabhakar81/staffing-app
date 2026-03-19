@@ -457,8 +457,7 @@ function buildHeatmapTable(data) {
     <div class="hm-controls-row">
       <span></span>
       <div class="hm-pill-btns">
-        <button id="hmExpandAll" class="hm-pill-btn" onclick="hmExpandAll()">⊞ Expand All</button>
-        <button id="hmCollapseAll" class="hm-pill-btn" onclick="hmCollapseAll()" disabled>⊟ Collapse All</button>
+        <button id="hmToggleAll" class="hm-pill-btn hm-toggle-expand" onclick="hmToggleAll()">⊞ Expand All</button>
       </div>
     </div>
     <div class="hm-scroll-wrap" onscroll="hmVsScroll()">
@@ -491,23 +490,29 @@ function toggleHmExpand(empName) {
 }
 
 function _updateHmPillBtns() {
-  const expandBtn   = document.getElementById('hmExpandAll');
-  const collapseBtn = document.getElementById('hmCollapseAll');
-  if (!expandBtn || !collapseBtn) return;
+  const btn = document.getElementById('hmToggleAll');
+  if (!btn) return;
   const allNames = _vsData ? _vsData.employees.map(e => e.name) : [];
-  expandBtn.disabled   = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
-  collapseBtn.disabled = _hmExpanded.size === 0;
+  const allExpanded = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
+  if (allExpanded) {
+    btn.textContent = '⊟ Collapse All';
+    btn.classList.remove('hm-toggle-expand');
+    btn.classList.add('hm-toggle-collapse');
+  } else {
+    btn.textContent = '⊞ Expand All';
+    btn.classList.remove('hm-toggle-collapse');
+    btn.classList.add('hm-toggle-expand');
+  }
 }
 
-function hmExpandAll() {
-  if (_vsData) for (const emp of _vsData.employees) _hmExpanded.add(emp.name);
-  _buildVsAllRows();
-  _vsRenderVisible();
-  _updateHmPillBtns();
-}
-
-function hmCollapseAll() {
-  _hmExpanded.clear();
+function hmToggleAll() {
+  const allNames = _vsData ? _vsData.employees.map(e => e.name) : [];
+  const allExpanded = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
+  if (allExpanded) {
+    _hmExpanded.clear();
+  } else {
+    for (const emp of (_vsData ? _vsData.employees : [])) _hmExpanded.add(emp.name);
+  }
   _buildVsAllRows();
   _vsRenderVisible();
   _updateHmPillBtns();
