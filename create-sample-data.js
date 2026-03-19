@@ -5,8 +5,7 @@ const OUTPUT_PATH = path.join(__dirname, 'data', 'resourcing.xlsx');
 
 // ── Master data ────────────────────────────────────────────────────────────
 
-// Employees: id used as VLOOKUP key in Supply and Demand tabs
-// Col A = Emp ID, Col B = Employee Name, Col C = Level
+// Employee Master: Col A = Emp ID (VLOOKUP key), Col B = Employee Name, Col C = Level
 const employees = [
   { id: 'E01', name: 'Sarah Mitchell',  level: 'Partner/MD'        },
   { id: 'E02', name: 'James Okafor',    level: 'Senior Manager'     },
@@ -25,8 +24,7 @@ const employees = [
   { id: 'E15', name: "Ryan O'Brien",    level: 'Analyst'            },
 ];
 
-// Skills: id used as VLOOKUP key in Supply and Demand tabs
-// Col A = Skill ID, Col B = Skill Set
+// Skills Master: Col A = Skill ID (VLOOKUP key), Col B = Skill Set
 const skills = [
   { id: 'S01', skillSet: 'NetSuite - Record to Report' },
   { id: 'S02', skillSet: 'NetSuite - Procure to Pay'   },
@@ -34,7 +32,17 @@ const skills = [
   { id: 'S04', skillSet: 'NetSuite - Supply Chain'     },
 ];
 
-// Lookup helpers (for formula result caching)
+// Resource Levels: Col A = Level (single column, used as VLOOKUP key in Demand)
+const resourceLevels = [
+  'Analyst',
+  'Consultant',
+  'Senior Consultant',
+  'Manager',
+  'Senior Manager',
+  'Partner/MD',
+];
+
+// Lookup helpers (for VLOOKUP result caching)
 const empById   = Object.fromEntries(employees.map(e => [e.id, e]));
 const skillById = Object.fromEntries(skills.map(s => [s.id, s]));
 
@@ -48,9 +56,10 @@ const WEEKS = [
 const w     = (h)         => Array(15).fill(h);
 const taper = (hi, lo, n) => [...Array(n).fill(hi), ...Array(15 - n).fill(lo)];
 
-// Supply rows — empId & skillId are stored as keys; VLOOKUP resolves display values
-// Columns: Emp ID (A), Employee Name (B=VLOOKUP), Skill ID (C), Skill Set (D=VLOOKUP),
-//          Project Assigned (E), Week cols (F+)
+// Supply rows
+// Emp ID (A) → VLOOKUP → Employee Name (B)
+// Skill ID (C) → VLOOKUP → Skill Set (D)
+// Project Assigned (E), weekly hours (F+)
 const supplyRows = [
   // Sarah Mitchell (E01) — 20 + 25 = 45
   { empId: 'E01', skillId: 'S01', project: 'Harrington Manufacturing – ERP Implementation',   hours: w(20) },
@@ -100,17 +109,17 @@ const supplyRows = [
 ];
 
 // Demand — 8 open roles
-// empId = reference employee whose Level is returned by VLOOKUP (col C)
-// skillId = key whose Skill Set is returned by VLOOKUP (col E)
+// levelKey: level text stored as VLOOKUP key against Resource Levels col A
+// skillId: Skill ID stored as VLOOKUP key against Skills Master col A
 const demandData = [
-  { project: 'Harrington Manufacturing – ERP Implementation',    empId: 'E07', skillId: 'S01', startDate: '04/01/2026', endDate: '06/30/2026' },
-  { project: 'Clearwater Retail – O2C Optimization',             empId: 'E10', skillId: 'S03', startDate: '04/01/2026', endDate: '05/31/2026' },
-  { project: 'Pinnacle Logistics – Supply Chain Rollout',        empId: 'E13', skillId: 'S04', startDate: '03/21/2026', endDate: '06/27/2026' },
-  { project: 'Meridian Financial – R2R Consolidation',           empId: 'E04', skillId: 'S01', startDate: '05/01/2026', endDate: '07/31/2026' },
-  { project: 'Summit Healthcare – P2P Upgrade',                  empId: 'E08', skillId: 'S02', startDate: '04/15/2026', endDate: '07/15/2026' },
-  { project: 'Vantage Distribution – Full Suite Implementation', empId: 'E11', skillId: 'S02', startDate: '04/01/2026', endDate: '06/30/2026' },
-  { project: 'Apex Pharma – NetSuite ERP Assessment',            empId: 'E02', skillId: 'S01', startDate: '05/15/2026', endDate: '08/31/2026' },
-  { project: 'Internal – Pre-Sales Support',                     empId: 'E14', skillId: 'S03', startDate: '03/21/2026', endDate: '05/30/2026' },
+  { project: 'Harrington Manufacturing – ERP Implementation',    levelKey: 'Senior Consultant', skillId: 'S01', startDate: '04/01/2026', endDate: '06/30/2026' },
+  { project: 'Clearwater Retail – O2C Optimization',             levelKey: 'Consultant',         skillId: 'S03', startDate: '04/01/2026', endDate: '05/31/2026' },
+  { project: 'Pinnacle Logistics – Supply Chain Rollout',        levelKey: 'Analyst',            skillId: 'S04', startDate: '03/21/2026', endDate: '06/27/2026' },
+  { project: 'Meridian Financial – R2R Consolidation',           levelKey: 'Manager',            skillId: 'S01', startDate: '05/01/2026', endDate: '07/31/2026' },
+  { project: 'Summit Healthcare – P2P Upgrade',                  levelKey: 'Senior Consultant',  skillId: 'S02', startDate: '04/15/2026', endDate: '07/15/2026' },
+  { project: 'Vantage Distribution – Full Suite Implementation', levelKey: 'Consultant',         skillId: 'S02', startDate: '04/01/2026', endDate: '06/30/2026' },
+  { project: 'Apex Pharma – NetSuite ERP Assessment',            levelKey: 'Senior Manager',     skillId: 'S01', startDate: '05/15/2026', endDate: '08/31/2026' },
+  { project: 'Internal – Pre-Sales Support',                     levelKey: 'Analyst',            skillId: 'S03', startDate: '03/21/2026', endDate: '05/30/2026' },
 ];
 
 // ── Styling helpers ─────────────────────────────────────────────────────────
@@ -119,7 +128,7 @@ const BLUE   = 'FF2F5496';
 const STRIPE = 'FFE9EFF7';
 const YELLOW = 'FFFFF2CC';
 const GREY   = 'FFD9D9D9';
-const SILVER = 'FFF2F2F2';
+const SILVER = 'FFF2F2F2'; // key/input columns
 
 function styleHeader(row) {
   row.eachCell(cell => {
@@ -142,6 +151,10 @@ function stripeRow(row, cols) {
   }
 }
 
+function silverCell(cell) {
+  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SILVER } };
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 async function createResourcingFile() {
@@ -149,13 +162,17 @@ async function createResourcingFile() {
   workbook.creator = 'Staffing App';
   workbook.created = new Date();
 
-  // Tab order: Supply → Demand → Employees → Skills
+  // Tab order: Supply → Demand → Employee Master → Skills Master → Resource Levels
 
   // ── Tab 1: Supply ─────────────────────────────────────────────────────────
-  // Columns: Employee Name (A), Skill Set (B), Project Assigned (C), Week cols (D+)
+  // Emp ID (A, key) → Employee Name (B, VLOOKUP from Employee Master col A)
+  // Skill ID (C, key) → Skill Set (D, VLOOKUP from Skills Master col A)
+  // Project Assigned (E), weekly hours (F+)
   const supplySheet = workbook.addWorksheet('Supply');
   supplySheet.columns = [
+    { header: 'Emp ID',           key: 'empId',    width: 10 },
     { header: 'Employee Name',    key: 'empName',  width: 24 },
+    { header: 'Skill ID',         key: 'skillId',  width: 10 },
     { header: 'Skill Set',        key: 'skillSet', width: 34 },
     { header: 'Project Assigned', key: 'project',  width: 48 },
     ...WEEKS.map(wk => ({
@@ -165,17 +182,26 @@ async function createResourcingFile() {
     })),
   ];
   styleHeader(supplySheet.getRow(1));
-  supplySheet.views = [{ state: 'frozen', xSplit: 3, ySplit: 1 }];
+  supplySheet.views = [{ state: 'frozen', xSplit: 5, ySplit: 1 }];
 
   for (const sr of supplyRows) {
+    const r   = supplySheet.rowCount + 1;
     const emp = empById[sr.empId];
     const sk  = skillById[sr.skillId];
 
-    const row = supplySheet.addRow({
-      empName:  emp.name,
-      skillSet: sk.skillSet,
-      project:  sr.project,
-    });
+    const row = supplySheet.addRow({ empId: sr.empId, skillId: sr.skillId, project: sr.project });
+
+    // Employee Name: VLOOKUP pulling from Employee Master column A
+    row.getCell('empName').value = {
+      formula: `=VLOOKUP(A${r},'Employee Master'!$A:$B,2,FALSE)`,
+      result:  emp.name,
+    };
+
+    // Skill Set: VLOOKUP pulling from Skills Master column A
+    row.getCell('skillSet').value = {
+      formula: `=VLOOKUP(C${r},'Skills Master'!$A:$B,2,FALSE)`,
+      result:  sk.skillSet,
+    };
 
     // Weekly hours
     WEEKS.forEach((wk, i) => {
@@ -189,44 +215,64 @@ async function createResourcingFile() {
       }
     });
 
+    silverCell(row.getCell('empId'));
+    silverCell(row.getCell('skillId'));
     stripeRow(row, ['empName', 'skillSet', 'project']);
   }
 
   // ── Tab 2: Demand ─────────────────────────────────────────────────────────
-  // Columns: Project/Client Name (A), Resource Level (B), Resource Skill Set (C),
-  //          Start Date (D), End Date (E)
+  // Project/Client Name (A)
+  // Level Key (B, key — level text) → Resource Level (C, VLOOKUP from Resource Levels col A)
+  // Skill ID (D, key) → Resource Skill Set (E, VLOOKUP from Skills Master col A)
+  // Start Date (F), End Date (G)
   const demandSheet = workbook.addWorksheet('Demand');
   demandSheet.columns = [
-    { header: 'Project/Client Name',  key: 'project',   width: 48 },
-    { header: 'Resource Level',       key: 'level',     width: 20 },
-    { header: 'Resource Skill Set',   key: 'skillSet',  width: 34 },
-    { header: 'Start Date',           key: 'startDate', width: 14 },
-    { header: 'End Date',             key: 'endDate',   width: 14 },
+    { header: 'Project/Client Name',  key: 'project',    width: 48 },
+    { header: 'Level Key',            key: 'levelKey',   width: 20 },
+    { header: 'Resource Level',       key: 'level',      width: 20 },
+    { header: 'Skill ID',             key: 'skillId',    width: 10 },
+    { header: 'Resource Skill Set',   key: 'skillSet',   width: 34 },
+    { header: 'Start Date',           key: 'startDate',  width: 14 },
+    { header: 'End Date',             key: 'endDate',    width: 14 },
   ];
   styleHeader(demandSheet.getRow(1));
   demandSheet.views = [{ state: 'frozen', ySplit: 1 }];
 
   for (const d of demandData) {
-    const emp = empById[d.empId];
-    const sk  = skillById[d.skillId];
+    const r  = demandSheet.rowCount + 1;
+    const sk = skillById[d.skillId];
 
     const row = demandSheet.addRow({
       project:   d.project,
-      level:     emp.level,
-      skillSet:  sk.skillSet,
+      levelKey:  d.levelKey,
+      skillId:   d.skillId,
       startDate: d.startDate,
       endDate:   d.endDate,
     });
 
+    // Resource Level: VLOOKUP pulling from Resource Levels column A
+    row.getCell('level').value = {
+      formula: `=VLOOKUP(B${r},'Resource Levels'!$A:$A,1,FALSE)`,
+      result:  d.levelKey,
+    };
+
+    // Resource Skill Set: VLOOKUP pulling from Skills Master column A
+    row.getCell('skillSet').value = {
+      formula: `=VLOOKUP(D${r},'Skills Master'!$A:$B,2,FALSE)`,
+      result:  sk.skillSet,
+    };
+
     row.getCell('startDate').alignment = { horizontal: 'center' };
     row.getCell('endDate').alignment   = { horizontal: 'center' };
 
+    silverCell(row.getCell('levelKey'));
+    silverCell(row.getCell('skillId'));
     stripeRow(row, ['project', 'level', 'skillSet', 'startDate', 'endDate']);
   }
 
-  // ── Tab 3: Employees ──────────────────────────────────────────────────────
+  // ── Tab 3: Employee Master ────────────────────────────────────────────────
   // Col A = Emp ID (VLOOKUP key), Col B = Employee Name, Col C = Level
-  const empSheet = workbook.addWorksheet('Employees');
+  const empSheet = workbook.addWorksheet('Employee Master');
   empSheet.columns = [
     { header: 'Emp ID',        key: 'id',    width: 10 },
     { header: 'Employee Name', key: 'name',  width: 24 },
@@ -237,13 +283,13 @@ async function createResourcingFile() {
 
   for (const emp of employees) {
     const row = empSheet.addRow(emp);
-    row.getCell('id').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SILVER } };
+    silverCell(row.getCell('id'));
     stripeRow(row, ['name', 'level']);
   }
 
-  // ── Tab 4: Skills ─────────────────────────────────────────────────────────
+  // ── Tab 4: Skills Master ──────────────────────────────────────────────────
   // Col A = Skill ID (VLOOKUP key), Col B = Skill Set
-  const skillSheet = workbook.addWorksheet('Skills');
+  const skillSheet = workbook.addWorksheet('Skills Master');
   skillSheet.columns = [
     { header: 'Skill ID',  key: 'id',       width: 10 },
     { header: 'Skill Set', key: 'skillSet', width: 36 },
@@ -253,8 +299,22 @@ async function createResourcingFile() {
 
   for (const s of skills) {
     const row = skillSheet.addRow(s);
-    row.getCell('id').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SILVER } };
+    silverCell(row.getCell('id'));
     stripeRow(row, ['skillSet']);
+  }
+
+  // ── Tab 5: Resource Levels ────────────────────────────────────────────────
+  // Col A = Level (VLOOKUP key used by Demand tab)
+  const levelsSheet = workbook.addWorksheet('Resource Levels');
+  levelsSheet.columns = [
+    { header: 'Level', key: 'level', width: 22 },
+  ];
+  styleHeader(levelsSheet.getRow(1));
+  levelsSheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+  for (const level of resourceLevels) {
+    const row = levelsSheet.addRow({ level });
+    stripeRow(row, ['level']);
   }
 
   // ── Write ─────────────────────────────────────────────────────────────────
