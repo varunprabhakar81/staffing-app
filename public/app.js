@@ -652,7 +652,7 @@ function renderCoverageChart(coverage) {
           ? ['#2E3250', '#2E3250', '#2E3250']
           : ['#A8E6CF', '#FFF3A3', '#FFB3B3'],
         borderWidth: 0,
-        hoverOffset: 6,
+        hoverOffset: 0,
       }],
     },
     options: {
@@ -660,6 +660,8 @@ function renderCoverageChart(coverage) {
       maintainAspectRatio: false,
       devicePixelRatio: window.devicePixelRatio || 2,
       cutout: '62%',
+      animation: { animateRotate: true, animateScale: false },
+      hover: { mode: null },
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
