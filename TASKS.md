@@ -32,6 +32,13 @@
 
 ### Phase 4c - Heatmap
 - [x] #42 Replace Utilization by Level and Cliffs charts with Interactive Availability Heatmap
+- [x] #45 Heatmap Expand All / Collapse All buttons
+
+### Phase 4d - Real Data
+- [x] #44 Import real staffing data from Staffing_Data.xlsx
+
+### Phase 4e - Layout & UX
+- [x] #47 Dashboard layout redesign - viewport optimization and compact KPI strip
 
 ### Phase 5 - Polish
 - [x] #33 Dark theme with minimalistic pastel color scheme
@@ -63,5 +70,7 @@
 ### Phase 9 - Advanced Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
 - [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
-- [x] #42 Interactive Availability Heatmap (COMPLETE - already built)
-- [x] #45 Heatmap Expand All / Collapse All buttons (COMPLETE)
+- [ ] #43 Toggl Track integration for automatic time tracking
+
+### Phase 10 - Navigation & UX
+- [ ] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs

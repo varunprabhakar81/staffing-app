@@ -1,3 +1,26 @@
 node_modules/
 .env
 data/resourcing.xlsx
+data/Staffing_Data.xlsx
+data/~$*.xlsx
+
+# Diagnostic scripts and one-time utility scripts
+*_diagnostic*.js
+*_diag*.js
+bench_*.js
+diagnose*.js
+fix-*.js
+step*.js
+check_api.js
+kill_*.js
+full-reset.js
+reset-*.js
+raw_supply_check.js
+create-github-issues.js
+update-issue-descriptions.js
+manage-project-board.js
+
+# Log and output files
+*.log
+*_out.txt
+*.txt
