@@ -493,8 +493,10 @@ function _updateHmPillBtns() {
   const btn = document.getElementById('hmToggleAll');
   if (!btn) return;
   const allNames = _vsData ? _vsData.employees.map(e => e.name) : [];
-  const allExpanded = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
-  if (allExpanded) {
+  // Show "Collapse All" when any row is expanded (mixed or all expanded)
+  // Show "Expand All" only when nothing is expanded
+  const anyExpanded = _hmExpanded.size > 0;
+  if (anyExpanded) {
     btn.textContent = '⊟ Collapse All';
     btn.classList.remove('hm-toggle-expand');
     btn.classList.add('hm-toggle-collapse');
@@ -506,9 +508,8 @@ function _updateHmPillBtns() {
 }
 
 function hmToggleAll() {
-  const allNames = _vsData ? _vsData.employees.map(e => e.name) : [];
-  const allExpanded = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
-  if (allExpanded) {
+  const anyExpanded = _hmExpanded.size > 0;
+  if (anyExpanded) {
     _hmExpanded.clear();
   } else {
     for (const emp of (_vsData ? _vsData.employees : [])) _hmExpanded.add(emp.name);
