@@ -45,6 +45,14 @@
 ### Phase 5 - Navigation & UX
 - [x] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs
 
+### Phase 5b - SaaS Polish & UX
+- [ ] #48 Left sidebar navigation to replace top tab bar
+- [ ] #49 Overview tab - fill empty space with meaningful content
+- [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
+- [ ] #51 Staffing tab - Bench Report as collapsible side panel
+- [ ] #52 Ask Claude - dynamic suggested questions based on current data
+- [ ] #53 Header improvements - notifications, user avatar, search and date range
+
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
 - [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
@@ -80,4 +88,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**27 complete [x] · 20 open [ ] · 47 total**
+**27 complete [x] · 26 open [ ] · 53 total**
