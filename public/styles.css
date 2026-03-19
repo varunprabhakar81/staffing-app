@@ -356,6 +356,13 @@ body {
 .chart-wrapper--md { height: 280px; }
 .chart-wrapper--sm { height: 220px; }
 
+/* Explicit canvas sizing prevents blurry rendering on high-DPI displays */
+.chart-wrapper canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* ── Coverage Layout ────────────────────────────────────────────── */
 .coverage-layout {
   display: grid;

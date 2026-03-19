@@ -2,6 +2,9 @@
 
 'use strict';
 
+// ── Fix Chart.js resolution on high-DPI / Retina displays ─────────
+Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
+
 // ── Tab switching ─────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -519,6 +522,7 @@ function renderCoverageChart(coverage) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      devicePixelRatio: window.devicePixelRatio || 2,
       cutout: '60%',
       plugins: {
         legend: {
