@@ -49,7 +49,8 @@
 - [x] #51 Staffing tab - Bench Report as collapsible side panel (superseded by #54)
 - [x] #54 Staffing tab - remove Bench Report, add bench count indicator to heatmap
 - [x] #55 Heatmap - optimized row density (50-60 employees)
-- [ ] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes)
+- [ ] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes, row spacing)
+- [ ] #58 Heatmap - complete virtual scrolling to show all 25+ employees
 - [ ] #57 Move Bench Report snapshot to Overview tab as 4th stat card
 - [ ] #48 Left sidebar navigation to replace top tab bar
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
@@ -92,4 +93,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**30 complete [x] · 27 open [ ] · 57 tracked**
+**30 complete [x] · 28 open [ ] · 58 tracked**
