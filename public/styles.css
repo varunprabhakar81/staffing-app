@@ -365,15 +365,27 @@ body {
 }
 
 .coverage-table {
+  overflow-x: auto;
   overflow-y: auto;
   max-height: 220px;
 }
 
 .coverage-table table {
   width: 100%;
+  min-width: 300px;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed;
 }
+
+.coverage-table th:nth-child(1),
+.coverage-table td:nth-child(1) { width: 32%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coverage-table th:nth-child(2),
+.coverage-table td:nth-child(2) { width: 26%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coverage-table th:nth-child(3),
+.coverage-table td:nth-child(3) { width: 18%; }
+.coverage-table th:nth-child(4),
+.coverage-table td:nth-child(4) { width: 24%; }
 
 .coverage-table th {
   text-align: left;

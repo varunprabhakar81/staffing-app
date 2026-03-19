@@ -124,11 +124,22 @@ function renderKPIs(data) {
       `${summary.fully_met || 0} met · ${summary.partially_met || 0} partial · ${summary.unmet || 0} unmet`;
   }
 
-  const utilEl = document.getElementById('kpiUtilization');
-  utilEl.className = 'kpi-value ' + (avgUtil > 95 ? 'danger' : avgUtil > 80 ? 'warn' : 'ok');
+  // Headcount: neutral white
+  document.getElementById('kpiHeadcount').className = 'kpi-value';
 
+  // Utilization: mint 90-100%, yellow 70-89%, coral <70%
+  const utilEl = document.getElementById('kpiUtilization');
+  utilEl.className = 'kpi-value ' + (avgUtil >= 90 ? 'ok' : avgUtil >= 70 ? 'warn' : 'danger');
+
+  // Bench: coral if anyone on bench, mint if zero
+  document.getElementById('kpiBench').className = 'kpi-value ' + (benchCount > 0 ? 'danger' : 'ok');
+
+  // Demand: coral if unmet, yellow if partial only, mint if all met
   const uncovEl = document.getElementById('kpiUncovered');
-  uncovEl.className = 'kpi-value ' + ((summary.unmet || 0) > 0 ? 'warn' : 'ok');
+  uncovEl.className = 'kpi-value ' + (
+    (summary.unmet || 0) > 0       ? 'danger' :
+    (summary.partially_met || 0) > 0 ? 'warn'   : 'ok'
+  );
 }
 
 // ── Utilization by Level ──────────────────────────────────────────
@@ -144,8 +155,6 @@ function renderUtilizationChart(levels) {
     return '#FFB3B3';
   });
 
-  const bgColors = barColors.map(c => c + '33');
-
   charts.utilization = new Chart(document.getElementById('chartUtilization'), {
     type: 'bar',
     data: {
@@ -155,9 +164,9 @@ function renderUtilizationChart(levels) {
           type: 'bar',
           label: 'Utilization %',
           data: levels.map(l => l.utilizationPct),
-          backgroundColor: bgColors,
+          backgroundColor: barColors,
           borderColor: barColors,
-          borderWidth: 2,
+          borderWidth: 0,
           borderRadius: 6,
           borderSkipped: false,
         },
@@ -237,10 +246,13 @@ function renderCliffsChart(cliffs) {
   if (charts.cliffs) charts.cliffs.destroy();
   if (!cliffs || !cliffs.length) return;
 
-  const available = cliffs.map(c => c.totalAvailableHours);
-  const booked    = cliffs.map(c => c.totalBookedHours);
+  const booked   = cliffs.map(c => c.totalBookedHours);
+  // Capacity = headcount × 45 (stable flat line); derive from employee list already loaded
+  const totalCapacity = (rawData.employees.length || 0) * 45;
+  const capacity = cliffs.map(() => totalCapacity);
 
-  const deltas = available.map((v, i) => i === 0 ? 0 : Math.max(0, v - available[i - 1]));
+  // Cliffs = weeks where booked hours DROP significantly (projects ending, people rolling off)
+  const deltas = booked.map((v, i) => i === 0 ? 0 : Math.max(0, booked[i - 1] - v));
   const CLIFF_THRESHOLD = 40;
   const spikeWeeks = new Set(
     deltas.map((d, i) => (d >= CLIFF_THRESHOLD ? i : -1)).filter(i => i >= 0)
@@ -248,7 +260,7 @@ function renderCliffsChart(cliffs) {
 
   const spikeCount = spikeWeeks.size;
   const badge = document.getElementById('cliffsBadge');
-  badge.textContent = spikeCount > 0 ? `${spikeCount} spike week${spikeCount > 1 ? 's' : ''}` : 'No major spikes';
+  badge.textContent = spikeCount > 0 ? `${spikeCount} roll-off week${spikeCount > 1 ? 's' : ''}` : 'No major roll-offs';
   badge.className = 'chart-badge ' + (spikeCount > 0 ? 'warn' : 'ok');
 
   const labels = cliffs.map(c => fmtWeek(c.week));
@@ -262,8 +274,20 @@ function renderCliffsChart(cliffs) {
       labels,
       datasets: [
         {
-          label: 'Available Hours',
-          data: available,
+          label: 'Total Capacity',
+          data: capacity,
+          borderColor: '#2E3250',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [4, 3],
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+        },
+        {
+          label: 'Booked Hours',
+          data: booked,
           borderColor: '#A8C7FA',
           backgroundColor: 'rgba(168,199,250,0.15)',
           borderWidth: 2.5,
@@ -273,18 +297,6 @@ function renderCliffsChart(cliffs) {
           pointBorderColor: pointColors,
           pointRadius: pointRadii,
           pointHoverRadius: 8,
-        },
-        {
-          label: 'Booked Hours',
-          data: booked,
-          borderColor: '#2E3250',
-          backgroundColor: 'transparent',
-          borderWidth: 1.5,
-          borderDash: [4, 3],
-          fill: false,
-          tension: 0.35,
-          pointRadius: 0,
-          pointHoverRadius: 5,
         },
       ],
     },
@@ -465,7 +477,7 @@ function renderBenchReport(benchReport) {
           <div class="bench-avatar">${initials}</div>
           <div class="bench-emp-info">
             <div class="bench-emp-name">${emp.name}</div>
-            <div class="bench-emp-sub">Avg ${emp.avgHours}h/wk</div>
+            <div class="bench-emp-sub">${emp.recentWeekHours}h this week</div>
           </div>
           <div class="bench-hours">
             <div class="bench-hours-value" style="color:${barColor}">${emp.recentWeekHours}h</div>

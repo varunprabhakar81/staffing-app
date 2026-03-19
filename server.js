@@ -115,41 +115,55 @@ app.get('/api/dashboard', async (req, res) => {
 
   // ── b. Bench Report ──────────────────────────────────────────────────────
   // Use the current week: the first week-ending date on or after today.
-  // The spreadsheet spans months into the future; using the last column
-  // was wrong — it checked hours 3+ months out instead of this week.
   const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
   const today    = new Date(); today.setHours(0, 0, 0, 0);
-  const thisYear = today.getFullYear();
+
+  // Helper: parse a week key like "Week ending 3/21" into a Date
+  function parseWkLabel(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+
   let currentWeek = weekKeys[0] || null;
   for (const wk of weekKeys) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    if (!m) continue;
-    const wkDate = new Date(thisYear, parseInt(m[1]) - 1, parseInt(m[2]));
-    if (wkDate >= today) { currentWeek = wk; break; }
+    const wkDate = parseWkLabel(wk);
+    if (wkDate && wkDate >= today) { currentWeek = wk; break; }
   }
   const recentWeek = currentWeek;
 
-  // Sum hours per employee for the current week
+  // Sum hours per employee for the current week (from supply rows)
   const recentTotals = {};
   for (const row of supply) {
     const name = row.employeeName;
     recentTotals[name] = (recentTotals[name] || 0) + ((row.weeklyHours[recentWeek] || 0));
   }
 
-  // Group bench/low employees by skill set
+  // Build lookup maps for bench
+  const empAverageMap = Object.fromEntries(empAverages.map(e => [e.name, e]));
+  const empSkillMap   = {};
+  for (const row of supply) {
+    if (row.employeeName && !empSkillMap[row.employeeName]) empSkillMap[row.employeeName] = row.skillSet;
+  }
+
+  // Group bench employees by skill — iterate ALL employees from Employee Master so
+  // people with no supply rows (0h this week) are also included
   const benchBySkill = {};
-  for (const emp of empAverages) {
-    const recentHrs = recentTotals[emp.name] || 0;
+  for (const emp of employees) {
+    const name = emp.employeeName;
+    if (!name) continue;
+    const recentHrs = recentTotals[name] || 0;
     if (recentHrs < 10) {
-      const skill = emp.skillSet || 'Unknown';
+      const skill = empSkillMap[name] || 'Unknown';
+      const avgHrs = empAverageMap[name] ? empAverageMap[name].avgHours : 0;
       if (!benchBySkill[skill]) benchBySkill[skill] = [];
-      benchBySkill[skill].push({ name: emp.name, recentWeekHours: recentHrs, avgHours: emp.avgHours });
+      benchBySkill[skill].push({ name, recentWeekHours: recentHrs, avgHours: avgHrs });
     }
   }
   const benchReport = Object.entries(benchBySkill).map(([skillSet, emps]) => ({ skillSet, employees: emps }));
 
   // ── c. Cliffs ────────────────────────────────────────────────────────────
-  // For each week: total available hours = sum of (45 - bookedHours) per employee, floored at 0
+  // For each week: booked = sum of hours per employee; capacity = headcount × 45 (flat)
+  const cliffHeadcount = empAverages.length;
   const cliffs = weekKeys.map(week => {
     let totalBooked    = 0;
     let totalAvailable = 0;
@@ -158,17 +172,22 @@ app.get('/api/dashboard', async (req, res) => {
       totalBooked    += booked;
       totalAvailable += Math.max(0, 45 - booked);
     }
-    return { week, totalBookedHours: Math.round(totalBooked), totalAvailableHours: Math.round(totalAvailable) };
+    return {
+      week,
+      totalBookedHours:    Math.round(totalBooked),
+      totalAvailableHours: Math.round(totalAvailable),
+      totalCapacityHours:  cliffHeadcount * 45,
+    };
   });
 
   // ── d. Needs Coverage ────────────────────────────────────────────────────
   // For each demand role, match employees by level+skillSet and check weekly
   // availability against the demand's hoursPerWeek over its date range.
 
-  // Parse a "Week ending M/D" key into a Date (year 2026)
+  // Parse a "Week ending M/D" key into a Date
   function parseWeekKey(wk) {
     const m = wk.match(/(\d+)\/(\d+)/);
-    return m ? new Date(2026, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
   }
 
   // Parse a demand date string "MM/DD/YYYY" into a Date
