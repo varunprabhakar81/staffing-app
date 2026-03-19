@@ -39,14 +39,21 @@
 
 ### Phase 4e - Layout & UX
 - [x] #47 Dashboard layout redesign - viewport optimization and compact KPI strip
-
-### Phase 5 - Polish
 - [x] #33 Dark theme with minimalistic pastel color scheme
 - [x] #16 Styling - make it exec-presentable
+
+### Phase 5 - Navigation & UX
+- [ ] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs
+
+### Phase 6 - Core Features
+- [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
+- [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
 - [ ] #17 Auto-refresh when Excel file changes
+
+### Phase 7 - Polish & Real Data
 - [ ] #18 Test with real data, fix edge cases
 
-### Phase 6 - Testing
+### Phase 8 - Testing
 - [ ] #19 Functional Testing - verify all dashboard charts render correctly
 - [ ] #20 Functional Testing - verify Q&A returns accurate answers
 - [ ] #21 Functional Testing - verify Excel dropdowns and data validation
@@ -54,23 +61,23 @@
 - [ ] #23 Technical Testing - verify API error handling and edge cases
 - [ ] #24 Technical Testing - verify app handles missing or malformed Excel data
 - [ ] #25 Technical Testing - performance testing with large datasets
+
+### Phase 9 - UAT
 - [ ] #26 UAT - exec team reviews dashboard with real data
 - [ ] #27 UAT - staffing team tests Q&A with real resourcing questions
-- [ ] #28 UAT - sign off and move to Phase 7
+- [ ] #28 UAT - sign off and move to next phase
 
-### Phase 7 - Database Enhancement
+### Phase 10 - Database Enhancement
 - [ ] #29 Set up SQLite schema mirroring all Excel tabs
 - [ ] #30 Build Excel to SQLite import script
 - [ ] #31 Swap backend data layer from Excel to SQLite
-- [ ] #32 Test and validate parity with Phase 1
+- [ ] #32 Test and validate parity
 
-### Phase 8 - Deployment
+### Phase 11 - Deployment
 - [ ] #38 Deploy app to Railway for internal team access
 
-### Phase 9 - Advanced Features
-- [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
-- [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
+### Phase 12 - Developer Experience
 - [ ] #43 Toggl Track integration for automatic time tracking
 
-### Phase 10 - Navigation & UX
-- [ ] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs
+---
+**18 complete [x] · 21 open [ ] · 39 total**
