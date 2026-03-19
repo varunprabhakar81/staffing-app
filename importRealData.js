@@ -211,6 +211,11 @@ async function main() {
       sr.employeeName, sr.level, sr.skillSet, sr.projectAssigned,
       ...WEEK_LABELS.map(wk => sr.weeklyHours[wk]),
     ];
+    // Level: VLOOKUP from Employee Master (preserves formula for resource managers)
+    supplySheet.getCell(`B${rowNum}`).value = {
+      formula: `=VLOOKUP(A${rowNum},'Employee Master'!$A:$B,2,FALSE)`,
+      result:  sr.level,
+    };
     // Apply fill color to each week cell
     WEEK_LABELS.forEach((wk, wi) => {
       const h    = sr.weeklyHours[wk];
@@ -220,6 +225,36 @@ async function main() {
     row.commit();
   });
   console.log(`  Supply:          wrote ${supplyRows.length} rows`);
+
+  // Always re-apply dropdowns after writing data to preserve Excel usability for resource managers
+  const projLastRow  = allProjects.length + 1; // header row 1 + data
+  supplySheet.dataValidations.add('C2:C500', {
+    type: 'list', allowBlank: true,
+    formulae: ["'Skills Master'!$A$2:$A$10"],
+  });
+  supplySheet.dataValidations.add('D2:D500', {
+    type: 'list', allowBlank: true,
+    formulae: [`'Project Master'!$B$2:$B$${projLastRow}`],
+  });
+  console.log('  Supply:          re-applied Level VLOOKUP + Skill Set / Project dropdowns');
+
+  // ── Demand tab — data validation only (data rows left unchanged) ──────────
+  const demandSheet = tgtWb.getWorksheet('Demand');
+  if (demandSheet) {
+    demandSheet.dataValidations.add('A2:A500', {
+      type: 'list', allowBlank: true,
+      formulae: [`'Project Master'!$B$2:$B$${projLastRow}`],
+    });
+    demandSheet.dataValidations.add('B2:B500', {
+      type: 'list', allowBlank: true,
+      formulae: ["'Resource Levels'!$A$2:$A$10"],
+    });
+    demandSheet.dataValidations.add('C2:C500', {
+      type: 'list', allowBlank: true,
+      formulae: ["'Skills Master'!$A$2:$A$10"],
+    });
+    console.log('  Demand:          re-applied Project / Resource Level / Skill Set dropdowns');
+  }
 
   // ── Save ─────────────────────────────────────────────────────────
   await tgtWb.xlsx.writeFile(TARGET_FILE);
