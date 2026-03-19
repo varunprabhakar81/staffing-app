@@ -137,13 +137,14 @@ function renderUtilizationChart(levels) {
   if (!levels || !levels.length) return;
 
   const barColors = levels.map(l => {
-    if (l.utilizationPct >= 100) return '#ef4444';
-    if (l.utilizationPct >= 85)  return '#f59e0b';
-    if (l.utilizationPct >= 60)  return '#3b82f6';
-    return '#10b981';
+    if (l.utilizationPct > 100)  return '#FF8A80';
+    if (l.utilizationPct === 100) return '#A8E6CF';
+    if (l.utilizationPct >= 90)  return '#A8C7FA';
+    if (l.utilizationPct >= 40)  return '#FFF3A3';
+    return '#FFB3B3';
   });
 
-  const bgColors = barColors.map(c => c + '22');
+  const bgColors = barColors.map(c => c + '33');
 
   charts.utilization = new Chart(document.getElementById('chartUtilization'), {
     type: 'bar',
@@ -164,7 +165,7 @@ function renderUtilizationChart(levels) {
           type: 'line',
           label: 'Target (80%)',
           data: levels.map(() => 80),
-          borderColor: '#10b981',
+          borderColor: '#A8E6CF',
           borderDash: [6, 4],
           borderWidth: 2,
           pointRadius: 0,
@@ -191,12 +192,12 @@ function renderUtilizationChart(levels) {
           display: true,
           position: 'top',
           align: 'end',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#64748b', boxWidth: 12, usePointStyle: true },
+          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', boxWidth: 12, usePointStyle: true },
         },
         tooltip: {
-          backgroundColor: '#0f172a',
-          titleColor: '#e2e8f0',
-          bodyColor: '#94a3b8',
+          backgroundColor: '#22263A',
+          titleColor: '#FFFFFF',
+          bodyColor: '#8892B0',
           padding: 12,
           callbacks: {
             title: ctx => ctx[0].label,
@@ -217,12 +218,12 @@ function renderUtilizationChart(levels) {
         y: {
           beginAtZero: true,
           max: 130,
-          ticks: { callback: v => `${v}%`, color: '#94a3b8', font: { family: 'Inter', size: 11 }, stepSize: 20 },
-          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => `${v}%`, color: '#8892B0', font: { family: 'Inter', size: 11 }, stepSize: 20 },
+          grid: { color: '#2E3250' },
           border: { display: false },
         },
         x: {
-          ticks: { color: '#334155', font: { family: 'Inter', size: 12, weight: '500' } },
+          ticks: { color: '#8892B0', font: { family: 'Inter', size: 12, weight: '500' } },
           grid: { display: false },
           border: { display: false },
         },
@@ -252,7 +253,7 @@ function renderCliffsChart(cliffs) {
 
   const labels = cliffs.map(c => fmtWeek(c.week));
 
-  const pointColors = cliffs.map((_, i) => spikeWeeks.has(i) ? '#ef4444' : '#3b82f6');
+  const pointColors = cliffs.map((_, i) => spikeWeeks.has(i) ? '#A8E6CF' : '#A8C7FA');
   const pointRadii  = cliffs.map((_, i) => spikeWeeks.has(i) ? 7 : 3);
 
   charts.cliffs = new Chart(document.getElementById('chartCliffs'), {
@@ -263,8 +264,8 @@ function renderCliffsChart(cliffs) {
         {
           label: 'Available Hours',
           data: available,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59,130,246,.08)',
+          borderColor: '#A8C7FA',
+          backgroundColor: 'rgba(168,199,250,0.15)',
           borderWidth: 2.5,
           fill: true,
           tension: 0.35,
@@ -276,7 +277,7 @@ function renderCliffsChart(cliffs) {
         {
           label: 'Booked Hours',
           data: booked,
-          borderColor: '#94a3b8',
+          borderColor: '#2E3250',
           backgroundColor: 'transparent',
           borderWidth: 1.5,
           borderDash: [4, 3],
@@ -303,12 +304,12 @@ function renderCliffsChart(cliffs) {
           display: true,
           position: 'top',
           align: 'end',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#64748b', boxWidth: 12, usePointStyle: true },
+          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', boxWidth: 12, usePointStyle: true },
         },
         tooltip: {
-          backgroundColor: '#0f172a',
-          titleColor: '#e2e8f0',
-          bodyColor: '#94a3b8',
+          backgroundColor: '#22263A',
+          titleColor: '#FFFFFF',
+          bodyColor: '#8892B0',
           padding: 12,
           callbacks: {
             afterBody: (ctx) => {
@@ -323,12 +324,12 @@ function renderCliffsChart(cliffs) {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 }, callback: v => `${v}h` },
-          grid: { color: '#f1f5f9' },
+          ticks: { color: '#8892B0', font: { family: 'Inter', size: 11 }, callback: v => `${v}h` },
+          grid: { color: '#2E3250' },
           border: { display: false },
         },
         x: {
-          ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, maxRotation: 45 },
+          ticks: { color: '#8892B0', font: { family: 'Inter', size: 11 }, maxRotation: 45 },
           grid: { display: false },
           border: { display: false },
         },
@@ -359,7 +360,7 @@ function renderCoverageChart(coverage) {
       datasets: [{
         data: total === 0 ? [1, 0, 0] : [fullyMet, partiallyMet, unmet],
         backgroundColor: total === 0
-          ? ['#e2e8f0', '#e2e8f0', '#e2e8f0']
+          ? ['#2E3250', '#2E3250', '#2E3250']
           : ['#A8E6CF', '#FFF3A3', '#FFB3B3'],
         borderWidth: 0,
         hoverOffset: 6,
@@ -372,9 +373,9 @@ function renderCoverageChart(coverage) {
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#64748b', padding: 12, usePointStyle: true },
+          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', padding: 12, usePointStyle: true },
         },
-        tooltip: { backgroundColor: '#0f172a', bodyColor: '#94a3b8', padding: 10 },
+        tooltip: { backgroundColor: '#22263A', titleColor: '#FFFFFF', bodyColor: '#8892B0', padding: 10 },
       },
     },
     plugins: [{
@@ -387,10 +388,10 @@ function renderCoverageChart(coverage) {
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = `700 24px Inter, sans-serif`;
-        ctx.fillStyle = total === 0 ? '#94a3b8' : (unmet === 0 ? '#10b981' : '#ef4444');
+        ctx.fillStyle = total === 0 ? '#8892B0' : (unmet === 0 ? '#A8E6CF' : '#FFB3B3');
         ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy);
         ctx.font = `400 11px Inter, sans-serif`;
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#8892B0';
         ctx.fillText('open roles', cx, cy + 22);
         ctx.restore();
       },
@@ -457,6 +458,7 @@ function renderBenchReport(benchReport) {
         ? emp.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
         : '?';
       const barPct = Math.min(100, Math.round((emp.recentWeekHours / 45) * 100));
+      const barColor = emp.recentWeekHours === 0 ? '#FFB3B3' : '#FFF3A3';
       const safeName = (emp.name || '').replace(/'/g, "\\'");
       return `
         <div class="bench-employee dd-clickable" onclick="drillBench('${safeName}')" title="Click for booking detail">
@@ -466,10 +468,10 @@ function renderBenchReport(benchReport) {
             <div class="bench-emp-sub">Avg ${emp.avgHours}h/wk</div>
           </div>
           <div class="bench-hours">
-            <div class="bench-hours-value">${emp.recentWeekHours}h</div>
+            <div class="bench-hours-value" style="color:${barColor}">${emp.recentWeekHours}h</div>
             <div class="bench-hours-label">this week</div>
             <div class="bench-bar-wrap">
-              <div class="bench-bar-fill" style="width:${barPct}%"></div>
+              <div class="bench-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
             </div>
           </div>
         </div>`;

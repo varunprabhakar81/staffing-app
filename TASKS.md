@@ -31,8 +31,8 @@
 - [x] #20 Drilldown - KPI Summary Cards (Headcount, Utilization, Bench, Demand)
 
 ### Phase 5 - Polish
-- [ ] #21 Dark theme with minimalistic pastel color scheme
-- [ ] #22 Styling - make it exec-presentable
+- [x] #21 Dark theme with minimalistic pastel color scheme
+- [x] #22 Styling - make it exec-presentable
 - [ ] #23 Auto-refresh when Excel file changes
 - [ ] #24 Test with real data, fix edge cases
 
