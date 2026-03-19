@@ -405,7 +405,7 @@ body {
 
 .chart-wrapper { position: relative; }
 .chart-wrapper--md { height: 280px; }
-.chart-wrapper--sm { height: 220px; }
+.chart-wrapper--sm { height: 185px; }
 
 /* Explicit canvas sizing prevents blurry rendering on high-DPI displays */
 .chart-wrapper canvas {
@@ -417,12 +417,49 @@ body {
 /* ── Coverage Layout ────────────────────────────────────────────── */
 .coverage-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 190px 1fr;
   gap: 16px;
   align-items: start;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.coverage-donut-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coverage-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 0 2px;
+}
+
+.cov-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.cov-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cov-legend-label {
+  color: #8892B0;
+  flex: 1;
+}
+
+.cov-legend-count {
+  color: #CCD6F6;
+  font-weight: 600;
 }
 
 .coverage-table {
@@ -1032,7 +1069,7 @@ body {
   .charts-grid { grid-template-columns: 1fr; grid-template-rows: 4fr 2fr 2fr; }
   .span-full { grid-column: 1; }
   .span-half { grid-column: span 1; }
-  .coverage-layout { grid-template-columns: 180px 1fr; }
+  .coverage-layout { grid-template-columns: 170px 1fr; }
 }
 
 @media (max-width: 700px) {

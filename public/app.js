@@ -659,31 +659,20 @@ function renderCoverageChart(coverage) {
       responsive: true,
       maintainAspectRatio: false,
       devicePixelRatio: window.devicePixelRatio || 2,
-      cutout: '60%',
+      cutout: '62%',
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            font: { family: 'Inter', size: 12 }, color: '#8892B0', padding: 12, usePointStyle: true,
-            generateLabels(chart) {
-              const counts = [fullyMet, partiallyMet, unmet];
-              const names  = ['Fully Met', 'Partially Met', 'Unmet'];
-              const colors = total === 0
-                ? ['#2E3250', '#2E3250', '#2E3250']
-                : ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
-              return names.map((name, i) => ({
-                text: `${name} (${counts[i]})`,
-                fillStyle: colors[i],
-                strokeStyle: colors[i],
-                lineWidth: 0,
-                pointStyle: 'circle',
-                hidden: false,
-                index: i,
-              }));
-            },
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#22263A',
+          titleColor: '#FFFFFF',
+          bodyColor: '#CCD6F6',
+          padding: 10,
+          displayColors: false,
+          callbacks: {
+            title() { return ''; },
+            label(ctx) { return `${ctx.label}: ${ctx.parsed}`; },
           },
         },
-        tooltip: { backgroundColor: '#22263A', titleColor: '#FFFFFF', bodyColor: '#8892B0', padding: 10 },
       },
     },
     plugins: [{
@@ -692,19 +681,36 @@ function renderCoverageChart(coverage) {
         const { ctx, chartArea: { width, height, left, top } } = chart;
         ctx.save();
         const cx = left + width / 2;
-        const cy = top  + height / 2 - 10;
+        const cy = top  + height / 2;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = `700 32px Inter, sans-serif`;
+        ctx.font = `700 30px Inter, sans-serif`;
         ctx.fillStyle = total === 0 ? '#8892B0' : '#FFFFFF';
-        ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy);
-        ctx.font = `400 12px Inter, sans-serif`;
+        ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy - 10);
+        ctx.font = `400 11px Inter, sans-serif`;
         ctx.fillStyle = '#8892B0';
-        ctx.fillText('open roles', cx, cy + 24);
+        ctx.fillText('open needs', cx, cy + 14);
         ctx.restore();
       },
     }],
   });
+
+  const legendEl = document.getElementById('coverageLegend');
+  if (legendEl) {
+    const colors = total === 0 ? ['#2E3250', '#2E3250', '#2E3250'] : ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
+    const items  = [
+      { label: 'Fully Met',     count: fullyMet,     color: colors[0] },
+      { label: 'Partially Met', count: partiallyMet, color: colors[1] },
+      { label: 'Unmet',         count: unmet,         color: colors[2] },
+    ];
+    legendEl.innerHTML = items.map(it =>
+      `<div class="cov-legend-item">
+        <span class="cov-legend-dot" style="background:${it.color}"></span>
+        <span class="cov-legend-label">${it.label}</span>
+        <span class="cov-legend-count">${it.count}</span>
+      </div>`
+    ).join('');
+  }
 
   const tableEl = document.getElementById('coverageTable');
   if (!coverage.roles || !coverage.roles.length) {
