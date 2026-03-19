@@ -49,9 +49,11 @@
 - [ ] #48 Left sidebar navigation to replace top tab bar
 - [ ] #49 Overview tab - fill empty space with meaningful content
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
-- [ ] #51 Staffing tab - Bench Report as collapsible side panel
+- ~~[ ] #51 Staffing tab - Bench Report as collapsible side panel~~ *(superseded by #54)*
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
+- [ ] #54 Staffing tab - remove Bench Report, add bench count indicator to heatmap
+- [ ] #55 Heatmap - optimized row density to show 50-60 employees
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
@@ -88,4 +90,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**27 complete [x] · 26 open [ ] · 53 total**
+**27 complete [x] · 27 open [ ] · 55 total**
