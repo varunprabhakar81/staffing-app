@@ -52,7 +52,7 @@ body {
 .app-header {
   background: var(--bg);
   padding: 0 32px;
-  height: 64px;
+  height: 44px;
   display: flex;
   align-items: center;
   position: sticky;
@@ -91,7 +91,7 @@ body {
 }
 
 .brand-title {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: -0.3px;
@@ -99,9 +99,12 @@ body {
 }
 
 .brand-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 300;
+  display: none;
+}
+
+.brand-mark svg {
+  width: 22px;
+  height: 22px;
 }
 
 .header-status {
@@ -665,6 +668,9 @@ body {
 .staffing-heatmap-card {
   flex: 1;
   min-height: 0;
+}
+.staffing-heatmap-card .chart-card-header {
+  margin-bottom: 6px;
 }
 
 
@@ -1292,7 +1298,9 @@ body {
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border);
   border-right: 1px solid var(--border);
-  min-width: 190px;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
   white-space: nowrap;
 }
 
@@ -1336,7 +1344,9 @@ body {
   font-weight: 600;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
-  min-width: 54px;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
   white-space: nowrap;
   user-select: none;
   transition: color 0.15s, background 0.15s;
@@ -1366,8 +1376,9 @@ body {
   background: var(--card);
   padding: 5px 14px;
   border-right: 1px solid #0F1117;
-  min-width: 190px;
-  max-width: 220px;
+  width: 200px;
+  min-width: 200px;
+  max-width: 200px;
   vertical-align: middle;
   transition: background 0.15s;
 }
@@ -1394,8 +1405,8 @@ body {
 
 /* Heatmap cells */
 .hm-cell {
-  width: 54px;
-  min-width: 54px;
+  width: 52px;
+  min-width: 52px;
   height: 38px;
   text-align: center;
   font-size: 11px;

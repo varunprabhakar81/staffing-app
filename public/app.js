@@ -322,7 +322,7 @@ function buildHeatmapTable(data) {
       }).join('');
 
       tbody += `<tr class="hm-emp-row">
-        <td class="hm-name-cell" data-emp="${safeNameAttr}">
+        <td class="hm-name-cell" data-emp="${safeNameAttr}" title="${encodeAttr(emp.name + (emp.skillSet ? ' · ' + emp.skillSet : ''))}">
           <div class="hm-name-inner" onclick="toggleHmExpand(this.closest('.hm-name-cell').dataset.emp)">
             <span class="hm-chevron" data-emp="${safeNameAttr}">▶</span>
             <div class="hm-name-text">
