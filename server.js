@@ -114,11 +114,22 @@ app.get('/api/dashboard', async (req, res) => {
     });
 
   // ── b. Bench Report ──────────────────────────────────────────────────────
-  // Use most recent week (last key in weeklyHours of first supply row)
-  const weekKeys    = supply.length ? Object.keys(supply[0].weeklyHours) : [];
-  const recentWeek  = weekKeys[weekKeys.length - 1] || null;
+  // Use the current week: the first week-ending date on or after today.
+  // The spreadsheet spans months into the future; using the last column
+  // was wrong — it checked hours 3+ months out instead of this week.
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+  const thisYear = today.getFullYear();
+  let currentWeek = weekKeys[0] || null;
+  for (const wk of weekKeys) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    if (!m) continue;
+    const wkDate = new Date(thisYear, parseInt(m[1]) - 1, parseInt(m[2]));
+    if (wkDate >= today) { currentWeek = wk; break; }
+  }
+  const recentWeek = currentWeek;
 
-  // Sum hours per employee for the most recent week
+  // Sum hours per employee for the current week
   const recentTotals = {};
   for (const row of supply) {
     const name = row.employeeName;
