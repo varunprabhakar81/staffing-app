@@ -52,3 +52,6 @@
 - [ ] #35 Build Excel to SQLite import script
 - [ ] #36 Swap backend data layer from Excel to SQLite
 - [ ] #37 Test and validate parity with Phase 1
+
+### Phase 8 - Deployment
+- [ ] #38 Deploy app to Railway for internal team access
