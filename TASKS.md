@@ -7,7 +7,7 @@
 - [x] #4 Create sample Excel file with Supply, Demand and Master tabs
 
 ### Phase 2 - Backend
-- [ ] #5 Set up Node.js + Express server
+- [x] #5 Set up Node.js + Express server
 - [ ] #6 Build Excel reader (parse all tabs)
 - [ ] #7 Build Claude API integration
 - [ ] #8 Create API endpoints for dashboard and Q&A
