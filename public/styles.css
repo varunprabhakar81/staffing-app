@@ -1574,6 +1574,7 @@ body {
 }
 
 .hm-sub-row.hm-sub-visible {
+  display: table-row;
   opacity: 1;
 }
 
