@@ -670,7 +670,7 @@ body {
   min-height: 0;
 }
 .staffing-heatmap-card .chart-card-header {
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
 
@@ -1267,12 +1267,13 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 4px;
+  padding-right: 8px;
 }
 
 .hm-table {
   border-collapse: collapse;
+  table-layout: fixed;
   width: max-content;
-  min-width: 100%;
 }
 
 /* Sticky header row */
@@ -1308,7 +1309,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
   flex-shrink: 0;
 }
 
