@@ -221,6 +221,17 @@
 
   </main>
 
+  <!-- ── Drilldown Modal ─────────────────────────────────────────── -->
+  <div id="drilldownOverlay" class="drilldown-overlay" onclick="handleOverlayClick(event)">
+    <div class="drilldown-panel">
+      <div class="drilldown-header">
+        <h3 class="drilldown-title" id="drilldownTitle"></h3>
+        <button class="drilldown-close" onclick="closeDrilldown()">✕</button>
+      </div>
+      <div class="drilldown-body" id="drilldownBody"></div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
