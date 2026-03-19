@@ -10,18 +10,18 @@
 - [x] #5 Set up Node.js + Express server
 - [x] #6 Build Excel reader (parse all tabs)
 - [x] #7 Build Claude API integration
-- [ ] #8 Create API endpoints for dashboard and Q&A
+- [x] #8 Create API endpoints for dashboard and Q&A
 
 ### Phase 3 - Dashboard
-- [ ] #9 Build app shell with two-tab navigation
-- [ ] #10 Utilization by Level chart
-- [ ] #11 Bench Report chart
-- [ ] #12 Cliffs visualization
-- [ ] #13 Needs Coverage chart
+- [x] #9 Build app shell with two-tab navigation
+- [x] #10 Utilization by Level chart
+- [x] #11 Bench Report chart
+- [x] #12 Cliffs visualization
+- [x] #13 Needs Coverage chart
 
 ### Phase 4 - Q&A
-- [ ] #14 Build Ask Claude tab UI
-- [ ] #15 Wire Q&A to backend and display responses
+- [x] #14 Build Ask Claude tab UI
+- [x] #15 Wire Q&A to backend and display responses
 
 ### Phase 5 - Polish
 - [ ] #16 Styling - make it exec-presentable
