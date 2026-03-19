@@ -264,6 +264,11 @@ body {
   transform: translateY(-1px);
 }
 
+.kpi-card.dd-clickable:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: var(--shadow-md), 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
 .kpi-icon {
   width: 44px;
   height: 44px;

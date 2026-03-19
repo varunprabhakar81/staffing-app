@@ -24,11 +24,11 @@
 - [x] #15 Wire Q&A to backend and display responses
 
 ### Phase 4b - Chart Drilldowns
-- [ ] #16 Drilldown - Utilization by Level
-- [ ] #17 Drilldown - Bench Report
-- [ ] #18 Drilldown - Cliffs Visualization
-- [ ] #19 Drilldown - Needs Coverage
-- [ ] #20 Drilldown - KPI Summary Cards (Headcount, Utilization, Bench, Demand)
+- [x] #16 Drilldown - Utilization by Level
+- [x] #17 Drilldown - Bench Report
+- [x] #18 Drilldown - Cliffs Visualization
+- [x] #19 Drilldown - Needs Coverage
+- [x] #20 Drilldown - KPI Summary Cards (Headcount, Utilization, Bench, Demand)
 
 ### Phase 5 - Polish
 - [ ] #21 Dark theme with minimalistic pastel color scheme

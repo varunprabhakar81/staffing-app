@@ -62,7 +62,7 @@
 
       <!-- KPI Row -->
       <div class="kpi-grid" id="kpiGrid">
-        <div class="kpi-card">
+        <div class="kpi-card dd-clickable" onclick="drillHeadcount()" title="Click for headcount detail">
           <div class="kpi-icon kpi-icon--blue">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 1114 0H3z" fill="currentColor"/></svg>
           </div>
@@ -71,7 +71,7 @@
             <div class="kpi-label">Total Headcount</div>
           </div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card dd-clickable" onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
           <div class="kpi-icon kpi-icon--green">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-12v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
@@ -80,7 +80,7 @@
             <div class="kpi-label">Avg Utilization</div>
           </div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card dd-clickable" onclick="drillBenchKPI()" title="Click for bench detail">
           <div class="kpi-icon kpi-icon--amber">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7v11h14V7L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 18V10h6v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
@@ -89,7 +89,7 @@
             <div class="kpi-label">On Bench</div>
           </div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card dd-clickable" onclick="drillDemandKPI()" title="Click for open demand detail">
           <div class="kpi-icon kpi-icon--red">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-11v4m0 3v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>

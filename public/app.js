@@ -703,6 +703,292 @@ function drillCoverage(roleIdx) {
   );
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ── KPI Card Drilldowns ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+
+const LEVEL_ORDER = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+
+// ── KPI Drilldown 1: Total Headcount ──────────────────────────────
+function drillHeadcount() {
+  if (!rawData.employees.length) {
+    openDrilldown('All Employees — Headcount Detail',
+      '<p class="dd-empty">No employee data loaded yet.</p>');
+    return;
+  }
+
+  const empAverages = buildEmpAverages();
+  const sorted = [...rawData.employees].sort(
+    (a, b) => LEVEL_ORDER.indexOf(a.level) - LEVEL_ORDER.indexOf(b.level)
+  );
+
+  const rows = sorted.map(emp => {
+    const info = empAverages[emp.employeeName];
+    const avg  = info ? info.avg : 0;
+    const stat = utilStatus(avg);
+    const projects = info ? (info.projects.join(', ') || '—') : '—';
+    const skillSet = info ? (info.skillSet || '—') : '—';
+    return `<tr>
+      <td>${emp.employeeName}</td>
+      <td style="color:#8892B0;font-size:12px">${emp.level}</td>
+      <td style="font-size:12px">${skillSet}</td>
+      <td>${avg}h/wk</td>
+      <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
+      <td style="font-size:12px;color:#8892B0">${projects}</td>
+    </tr>`;
+  }).join('');
+
+  openDrilldown(`All Employees — Headcount Detail (${sorted.length})`, `
+    <table class="dd-table">
+      <thead><tr>
+        <th>Employee</th><th>Level</th><th>Skill Set</th>
+        <th>Avg Hours</th><th>Status</th><th>Active Projects</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`);
+}
+
+// ── KPI Drilldown 2: Avg Utilization ─────────────────────────────
+function drillUtilizationKPI() {
+  if (!rawData.supply.length) {
+    openDrilldown('Utilization Breakdown — All Employees',
+      '<p class="dd-empty">No supply data loaded yet.</p>');
+    return;
+  }
+
+  const levelMap   = {};
+  for (const emp of rawData.employees) levelMap[emp.employeeName] = emp.level;
+
+  // Get the two most recent week keys for trend
+  const weekKeys = rawData.supply.length ? Object.keys(rawData.supply[0].weeklyHours) : [];
+  const lastWk   = weekKeys[weekKeys.length - 1];
+  const prevWk   = weekKeys[weekKeys.length - 2];
+
+  // Per-employee week totals
+  const thisWkHrs = {}, prevWkHrs = {};
+  for (const row of rawData.supply) {
+    const n = row.employeeName;
+    thisWkHrs[n] = (thisWkHrs[n] || 0) + (row.weeklyHours[lastWk] || 0);
+    if (prevWk) prevWkHrs[n] = (prevWkHrs[n] || 0) + (row.weeklyHours[prevWk] || 0);
+  }
+
+  const empAverages = buildEmpAverages();
+  const allEmps = Object.entries(empAverages)
+    .map(([name, info]) => ({
+      name,
+      level:    levelMap[name] || '—',
+      avg:      info.avg,
+      utilPct:  Math.round((info.avg / 45) * 100),
+      stat:     utilStatus(info.avg),
+      thisWk:   thisWkHrs[name] || 0,
+      prevWk:   prevWk ? (prevWkHrs[name] || 0) : null,
+    }))
+    .sort((a, b) => b.utilPct - a.utilPct);
+
+  const totalAvg = allEmps.length
+    ? Math.round(allEmps.reduce((s, e) => s + e.utilPct, 0) / allEmps.length)
+    : 0;
+
+  const rows = allEmps.map(e => {
+    let trend = '';
+    if (e.prevWk !== null) {
+      const delta = e.thisWk - e.prevWk;
+      if (delta > 0)       trend = `<span style="color:#A8E6CF;font-size:11px">▲ +${delta}h</span>`;
+      else if (delta < 0)  trend = `<span style="color:#FFB3B3;font-size:11px">▼ ${delta}h</span>`;
+      else                 trend = `<span style="color:#8892B0;font-size:11px">— 0h</span>`;
+    }
+    return `<tr>
+      <td>${e.name}</td>
+      <td style="color:#8892B0;font-size:12px">${e.level}</td>
+      <td>${e.avg}h/wk</td>
+      <td><b>${e.utilPct}%</b></td>
+      <td><span class="dd-badge ${e.stat.cls}">${e.stat.label}</span></td>
+      <td>${trend}</td>
+    </tr>`;
+  }).join('');
+
+  const summary = `<tr style="border-top:1px solid #2E3250;font-weight:600">
+    <td colspan="3" style="color:#8892B0;padding-top:12px">Overall Average</td>
+    <td style="padding-top:12px"><b>${totalAvg}%</b></td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  openDrilldown('Utilization Breakdown — All Employees', `
+    <table class="dd-table">
+      <thead><tr>
+        <th>Employee</th><th>Level</th><th>Avg Hours</th>
+        <th>Util %</th><th>Status</th><th>Trend vs Last Wk</th>
+      </tr></thead>
+      <tbody>${rows}${summary}</tbody>
+    </table>`);
+}
+
+// ── KPI Drilldown 3: On Bench ────────────────────────────────────
+function drillBenchKPI() {
+  if (!rawData.supply.length) {
+    openDrilldown('Bench Report — Available Resources',
+      '<p class="dd-empty">No supply data loaded yet.</p>');
+    return;
+  }
+
+  const levelMap = {};
+  for (const emp of rawData.employees) levelMap[emp.employeeName] = emp.level;
+
+  const weekKeys = rawData.supply.length ? Object.keys(rawData.supply[0].weeklyHours) : [];
+
+  // Per-employee per-week totals
+  const empWeekTotals = {};
+  const empSkillSet   = {};
+  for (const row of rawData.supply) {
+    const n = row.employeeName;
+    if (!empWeekTotals[n]) empWeekTotals[n] = {};
+    empSkillSet[n] = row.skillSet;
+    for (const [wk, hrs] of Object.entries(row.weeklyHours))
+      empWeekTotals[n][wk] = (empWeekTotals[n][wk] || 0) + (hrs || 0);
+  }
+
+  // Consecutive low weeks (< 10h, counting back from most recent)
+  function consecutiveLow(name) {
+    let count = 0;
+    for (let i = weekKeys.length - 1; i >= 0; i--) {
+      if ((empWeekTotals[name]?.[weekKeys[i]] || 0) < 10) count++;
+      else break;
+    }
+    return count;
+  }
+
+  // Last project where employee had hours
+  function lastProject(name) {
+    for (let i = weekKeys.length - 1; i >= 0; i--) {
+      const wk = weekKeys[i];
+      const active = rawData.supply.find(
+        r => r.employeeName === name && (r.weeklyHours[wk] || 0) > 0
+      );
+      if (active) return active.projectAssigned || '—';
+    }
+    return 'No history';
+  }
+
+  // Filter to employees with current week < 10h
+  const lastWk = weekKeys[weekKeys.length - 1];
+  const benched = Object.entries(empWeekTotals)
+    .filter(([n]) => (empWeekTotals[n][lastWk] || 0) < 10)
+    .map(([n]) => ({
+      name:        n,
+      level:       levelMap[n] || '—',
+      skillSet:    empSkillSet[n] || '—',
+      currentHrs:  empWeekTotals[n][lastWk] || 0,
+      consecutive: consecutiveLow(n),
+      lastProject: lastProject(n),
+    }))
+    .sort((a, b) => b.consecutive - a.consecutive || a.currentHrs - b.currentHrs);
+
+  if (!benched.length) {
+    openDrilldown('Bench Report — Available Resources',
+      '<p class="dd-empty">No employees with low hours this week.</p>');
+    return;
+  }
+
+  const rows = benched.map(e => {
+    const highlight = e.consecutive >= 2 ? 'style="background:rgba(255,179,179,0.08)"' : '';
+    const warnIcon  = e.consecutive >= 2
+      ? '<span style="color:#FFB3B3;margin-left:4px;font-size:11px">●</span>' : '';
+    return `<tr ${highlight}>
+      <td>${e.name}${warnIcon}</td>
+      <td style="color:#8892B0;font-size:12px">${e.level}</td>
+      <td style="font-size:12px">${e.skillSet}</td>
+      <td style="color:${e.currentHrs === 0 ? '#FFB3B3' : '#FFF3A3'};font-weight:600">${e.currentHrs}h</td>
+      <td>${e.consecutive} wk${e.consecutive !== 1 ? 's' : ''}</td>
+      <td style="font-size:12px;color:#8892B0">${e.lastProject}</td>
+    </tr>`;
+  }).join('');
+
+  const legend = benched.some(e => e.consecutive >= 2)
+    ? '<p style="font-size:11px;color:#FFB3B3;margin-bottom:12px">● Benched 2+ consecutive weeks</p>'
+    : '';
+
+  openDrilldown(`Bench Report — Available Resources (${benched.length})`,
+    legend + `
+    <table class="dd-table">
+      <thead><tr>
+        <th>Employee</th><th>Level</th><th>Skill Set</th>
+        <th>This Week</th><th>Consecutive</th><th>Last Active Project</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`);
+}
+
+// ── KPI Drilldown 4: Open Demand Roles ───────────────────────────
+function drillDemandKPI() {
+  const roles = rawData.coverageRoles;
+  if (!roles.length) {
+    openDrilldown('Open Demand — All Roles',
+      '<p class="dd-empty">No demand data loaded yet.</p>');
+    return;
+  }
+
+  const levelMap   = {};
+  for (const emp of rawData.employees) levelMap[emp.employeeName] = emp.level;
+  const empAverages = buildEmpAverages();
+
+  function bestMatch(role) {
+    const candidates = Object.entries(empAverages)
+      .filter(([, info]) => info.avg < 45)
+      .map(([name, info]) => {
+        const skillMatch = info.skillSet === role.skillSet;
+        const lvlMatch   = levelMap[name] === role.resourceLevel;
+        const type = (skillMatch && lvlMatch) ? 'full'
+                   : (skillMatch || lvlMatch)  ? 'partial'
+                   : 'none';
+        return { name, avg: info.avg, type };
+      })
+      .filter(c => c.type !== 'none')
+      .sort((a, b) => (a.type === 'full' ? 0 : 1) - (b.type === 'full' ? 0 : 1) || a.avg - b.avg);
+    return candidates[0] || null;
+  }
+
+  const rows = roles.map(role => {
+    const match = bestMatch(role);
+    let matchCell, rowStyle = '';
+    if (!match) {
+      matchCell = '<span class="dd-badge status-bench">No Match</span>';
+      rowStyle  = 'style="background:rgba(255,179,179,0.05)"';
+    } else if (match.type === 'full') {
+      matchCell = `<span class="dd-badge status-full">Full Match</span> <span style="font-size:12px;color:#8892B0">${match.name} (${match.avg}h)</span>`;
+      rowStyle  = 'style="background:rgba(168,230,207,0.05)"';
+    } else {
+      matchCell = `<span class="dd-badge status-under">Partial Match</span> <span style="font-size:12px;color:#8892B0">${match.name} (${match.avg}h)</span>`;
+    }
+    return `<tr ${rowStyle}>
+      <td style="font-size:12px">${role.projectName || '—'}</td>
+      <td style="color:#8892B0;font-size:12px">${role.resourceLevel || '—'}</td>
+      <td style="font-size:12px">${role.skillSet || '—'}</td>
+      <td style="font-size:11px;color:#8892B0">${role.startDate || '—'} – ${role.endDate || '—'}</td>
+      <td>${matchCell}</td>
+    </tr>`;
+  }).join('');
+
+  const fullCount    = roles.filter(r => { const m = bestMatch(r); return m?.type === 'full'; }).length;
+  const partialCount = roles.filter(r => { const m = bestMatch(r); return m?.type === 'partial'; }).length;
+  const noneCount    = roles.filter(r => !bestMatch(r)).length;
+
+  const summary = `
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <span class="dd-badge status-full">Full Match: ${fullCount}</span>
+      <span class="dd-badge status-under">Partial Match: ${partialCount}</span>
+      <span class="dd-badge status-bench">No Match: ${noneCount}</span>
+    </div>`;
+
+  openDrilldown(`Open Demand — All Roles (${roles.length})`,
+    summary + `
+    <table class="dd-table">
+      <thead><tr>
+        <th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Best Match</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`);
+}
+
 // ── Ask Claude ────────────────────────────────────────────────────
 function setQuestion(chipEl) {
   document.getElementById('askInput').value = chipEl.textContent.trim();
