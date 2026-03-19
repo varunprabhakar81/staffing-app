@@ -278,6 +278,83 @@ app.get('/api/dashboard', async (req, res) => {
   res.json({ utilizationByLevel, benchReport, cliffs, needsCoverage });
 });
 
+// GET /api/heatmap
+app.get('/api/heatmap', async (req, res) => {
+  const freshData = await readStaffingData();
+  if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+  const { supply, employees } = freshData;
+
+  // Build level map from Employee Master
+  const levelMap = {};
+  for (const emp of employees) levelMap[emp.employeeName] = emp.level;
+
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+
+  function parseWkLabel(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+
+  // Filter: from current week (first week-ending >= today) through June 27
+  const endDate = new Date(today.getFullYear(), 5, 27);
+  const displayWeeks = weekKeys.filter(wk => {
+    const d = parseWkLabel(wk);
+    return d && d >= today && d <= endDate;
+  });
+
+  // Fallback: show all weeks if none match
+  const weeksToShow = displayWeeks.length ? displayWeeks : weekKeys;
+
+  const weeks = weeksToShow.map(wk => {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? `${parseInt(m[1])}/${parseInt(m[2])}` : wk;
+  });
+
+  // Build per-employee project hours by week
+  const empData = {}; // { name: { weekKey: { project: hours } } }
+  const empMeta = {}; // { name: { skillSet, level } }
+  for (const row of supply) {
+    const name = row.employeeName;
+    if (!empData[name]) {
+      empData[name] = {};
+      empMeta[name] = { skillSet: row.skillSet, level: levelMap[name] || row.level || 'Unknown' };
+    }
+    const project = row.projectAssigned || 'Unassigned';
+    for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
+      if (!weeksToShow.includes(wk)) continue;
+      if (!empData[name][wk]) empData[name][wk] = {};
+      empData[name][wk][project] = (empData[name][wk][project] || 0) + (hrs || 0);
+    }
+  }
+
+  const levelOrder = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+
+  const empList = Object.entries(empData).map(([name, weekMap]) => {
+    const weeklyHours = weeksToShow.map(wk => {
+      const projects = weekMap[wk] || {};
+      return Object.values(projects).reduce((a, b) => a + b, 0);
+    });
+    const weeklyProjects = weeksToShow.map(wk => {
+      const projects = weekMap[wk] || {};
+      return Object.entries(projects)
+        .filter(([, h]) => h > 0)
+        .map(([project, hours]) => ({ project, hours }));
+    });
+    return { name, level: empMeta[name].level, skillSet: empMeta[name].skillSet, weeklyHours, weeklyProjects };
+  });
+
+  empList.sort((a, b) => {
+    const ai = levelOrder.indexOf(a.level); const bi = levelOrder.indexOf(b.level);
+    const an = ai === -1 ? 99 : ai;         const bn = bi === -1 ? 99 : bi;
+    if (an !== bn) return an - bn;
+    return a.name.localeCompare(b.name);
+  });
+
+  res.json({ weeks, employees: empList });
+});
+
 // GET /api/ask?question=...
 app.get('/api/ask', async (req, res) => {
   if (!requireData(res)) return;

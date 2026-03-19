@@ -20,7 +20,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrilldo
 const charts = {};
 
 // ── Raw data store for drilldowns ─────────────────────────────────
-const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [] };
+const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heatmap: null };
 
 // ── Status indicator ──────────────────────────────────────────────
 function setStatus(type, msg) {
@@ -72,30 +72,31 @@ function fmtWeek(wk) {
 async function loadDashboard() {
   setStatus('loading', 'Loading data…');
   try {
-    const [dashRes, supplyRes, empRes] = await Promise.all([
+    const [dashRes, supplyRes, empRes, heatmapRes] = await Promise.all([
       fetch('/api/dashboard'),
       fetch('/api/supply'),
       fetch('/api/employees'),
+      fetch('/api/heatmap'),
     ]);
 
     if (!dashRes.ok) throw new Error(`HTTP ${dashRes.status}`);
     const data = await dashRes.json();
     if (data.error) throw new Error(data.error);
 
-    rawData.supply        = supplyRes.ok ? await supplyRes.json() : [];
-    rawData.employees     = empRes.ok    ? await empRes.json()    : [];
-    rawData.cliffs        = data.cliffs  || [];
+    rawData.supply        = supplyRes.ok    ? await supplyRes.json()    : [];
+    rawData.employees     = empRes.ok       ? await empRes.json()       : [];
+    rawData.cliffs        = data.cliffs     || [];
     rawData.coverageRoles = (data.needsCoverage || {}).roles || [];
+    rawData.heatmap       = heatmapRes.ok   ? await heatmapRes.json()   : null;
 
     setStatus('ok', 'Live data');
     document.getElementById('dataTimestamp').textContent =
       `Last updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
     renderKPIs(data);
-    renderUtilizationChart(data.utilizationByLevel);
-    renderCliffsChart(data.cliffs);
     renderCoverageChart(data.needsCoverage);
     renderBenchReport(data.benchReport);
+    if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
 
   } catch (err) {
     setStatus('error', 'Connection error');
@@ -144,215 +145,259 @@ function renderKPIs(data) {
   );
 }
 
-// ── Utilization by Level ──────────────────────────────────────────
-function renderUtilizationChart(levels) {
-  if (charts.utilization) charts.utilization.destroy();
-  if (!levels || !levels.length) return;
+// ══════════════════════════════════════════════════════════════════
+// ── Availability Heatmap ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
 
-  const utilizationData = levels.map(l => l.utilizationPct);
-  console.log('Utilization % by level:', levels.map(l => `${l.level}: ${l.utilizationPct}%`));
-
-  const barColors = utilizationData.map(value => {
-    if (value < 40)   return '#FFB3B3';
-    if (value < 90)   return '#FFF3A3';
-    if (value < 100)  return '#A8C7FA';
-    if (value === 100) return '#A8E6CF';
-    return '#FF8A80';
-  });
-
-  charts.utilization = new Chart(document.getElementById('chartUtilization'), {
-    type: 'bar',
-    data: {
-      labels: levels.map(l => l.level),
-      datasets: [
-        {
-          type: 'bar',
-          label: 'Utilization %',
-          data: utilizationData,
-          backgroundColor: barColors,
-          borderColor:     barColors,
-          borderWidth: 0,
-          borderRadius: 6,
-          borderSkipped: false,
-        },
-        {
-          type: 'line',
-          label: 'Target (80%)',
-          data: levels.map(() => 80),
-          borderColor: '#A8E6CF',
-          borderDash: [6, 4],
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: false,
-          tension: 0,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      onClick(evt, elements) {
-        if (!elements.length) return;
-        const el = elements.find(e => e.datasetIndex === 0);
-        if (!el) return;
-        drillUtilization(levels[el.index].level);
-      },
-      onHover(evt, elements) {
-        const hit = elements.some(e => e.datasetIndex === 0);
-        evt.native.target.style.cursor = hit ? 'pointer' : 'default';
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', boxWidth: 12, usePointStyle: true },
-        },
-        tooltip: {
-          backgroundColor: '#22263A',
-          titleColor: '#FFFFFF',
-          bodyColor: '#8892B0',
-          padding: 12,
-          callbacks: {
-            title: ctx => ctx[0].label,
-            label: ctx => {
-              if (ctx.datasetIndex === 1) return '  Target: 80%';
-              const l = levels[ctx.dataIndex];
-              return [
-                `  Utilization: ${l.utilizationPct}%`,
-                `  Avg Hours: ${l.avgHours}h / 45h`,
-                `  Headcount: ${l.headcount}`,
-                '  Click to see employees',
-              ];
-            },
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 130,
-          ticks: { callback: v => `${v}%`, color: '#8892B0', font: { family: 'Inter', size: 11 }, stepSize: 20 },
-          grid: { color: '#2E3250' },
-          border: { display: false },
-        },
-        x: {
-          ticks: { color: '#8892B0', font: { family: 'Inter', size: 12, weight: '500' } },
-          grid: { display: false },
-          border: { display: false },
-        },
-      },
-    },
-  });
+function heatmapCellBg(hours) {
+  if (hours === 0)  return '#8B0000';
+  if (hours < 40)   return '#FFB3B3';
+  if (hours < 45)   return '#FFF3A3';
+  if (hours === 45) return '#A8E6CF';
+  if (hours <= 50)  return '#FF9999';
+  return '#FF8A80';
 }
 
-// ── Cliffs Visualization ──────────────────────────────────────────
-function renderCliffsChart(cliffs) {
-  if (charts.cliffs) charts.cliffs.destroy();
-  if (!cliffs || !cliffs.length) return;
+function heatmapCellFg(hours) {
+  return hours === 0 ? '#FFFFFF' : '#0F1117';
+}
 
-  const booked   = cliffs.map(c => c.totalBookedHours);
-  // Capacity = headcount × 45 (stable flat line); derive from employee list already loaded
-  const totalCapacity = (rawData.employees.length || 0) * 45;
-  const capacity = cliffs.map(() => totalCapacity);
+function encodeAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '&#10;');
+}
 
-  // Cliffs = weeks where booked hours DROP significantly (projects ending, people rolling off)
-  const deltas = booked.map((v, i) => i === 0 ? 0 : Math.max(0, booked[i - 1] - v));
-  const CLIFF_THRESHOLD = 40;
-  const spikeWeeks = new Set(
-    deltas.map((d, i) => (d >= CLIFF_THRESHOLD ? i : -1)).filter(i => i >= 0)
-  );
+// ── Tooltip helpers ───────────────────────────────────────────────
+let _hmTip = null;
 
-  const spikeCount = spikeWeeks.size;
-  const badge = document.getElementById('cliffsBadge');
-  badge.textContent = spikeCount > 0 ? `${spikeCount} roll-off week${spikeCount > 1 ? 's' : ''}` : 'No major roll-offs';
-  badge.className = 'chart-badge ' + (spikeCount > 0 ? 'warn' : 'ok');
+function showHmTooltip(evt, el) {
+  if (!_hmTip) {
+    _hmTip = document.createElement('div');
+    _hmTip.id = 'hmTooltip';
+    document.body.appendChild(_hmTip);
+  }
+  _hmTip.textContent = el.dataset.tip || '';
+  _hmTip.style.display = 'block';
+  positionHmTooltip(evt);
+}
 
-  const labels = cliffs.map(c => fmtWeek(c.week));
+function hideHmTooltip() {
+  if (_hmTip) _hmTip.style.display = 'none';
+}
 
-  const pointColors = cliffs.map((_, i) => spikeWeeks.has(i) ? '#A8E6CF' : '#A8C7FA');
-  const pointRadii  = cliffs.map((_, i) => spikeWeeks.has(i) ? 7 : 3);
+function positionHmTooltip(evt) {
+  if (!_hmTip || _hmTip.style.display === 'none') return;
+  const x = Math.min(evt.clientX + 14, window.innerWidth - 220);
+  const y = Math.max(evt.clientY - 50, 8);
+  _hmTip.style.left = x + 'px';
+  _hmTip.style.top  = y + 'px';
+}
 
-  charts.cliffs = new Chart(document.getElementById('chartCliffs'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Total Capacity',
-          data: capacity,
-          borderColor: '#8892B0',
-          backgroundColor: 'transparent',
-          borderWidth: 2,
-          borderDash: [6, 4],
-          fill: false,
-          tension: 0,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-        },
-        {
-          label: 'Booked Hours',
-          data: booked,
-          borderColor: '#A8C7FA',
-          backgroundColor: 'rgba(168,199,250,0.15)',
-          borderWidth: 2.5,
-          fill: 'origin',
-          tension: 0.35,
-          pointBackgroundColor: pointColors,
-          pointBorderColor: pointColors,
-          pointRadius: pointRadii,
-          pointHoverRadius: 8,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      onClick(evt, elements) {
-        if (!elements.length) return;
-        drillCliff(elements[0].index);
-      },
-      onHover(evt, elements) {
-        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
-      },
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          align: 'end',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', boxWidth: 12, usePointStyle: true },
-        },
-        tooltip: {
-          backgroundColor: '#22263A',
-          titleColor: '#FFFFFF',
-          bodyColor: '#8892B0',
-          padding: 12,
-          callbacks: {
-            afterBody: (ctx) => {
-              const i = ctx[0].dataIndex;
-              const lines = ['  Click to see roll-offs'];
-              if (spikeWeeks.has(i)) lines.unshift('  ⚠ Cliff: Mass roll-off detected');
-              return lines;
-            },
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#8892B0', font: { family: 'Inter', size: 11 }, callback: v => `${v}h` },
-          grid: { color: '#2E3250' },
-          border: { display: false },
-        },
-        x: {
-          ticks: { color: '#8892B0', font: { family: 'Inter', size: 11 }, maxRotation: 45 },
-          grid: { display: false },
-          border: { display: false },
-        },
-      },
-    },
-  });
+// ── Build heatmap table ───────────────────────────────────────────
+function buildHeatmapTable(data) {
+  const container = document.getElementById('heatmapContainer');
+  if (!container) return;
+  const { weeks, employees } = data;
+
+  // Badge + legend stats for week 0 (current week)
+  let bench = 0, under = 0, full = 0, over = 0, totalAvail = 0;
+  for (const emp of employees) {
+    const h = emp.weeklyHours[0] || 0;
+    totalAvail += Math.max(0, 45 - h);
+    if (h === 0)       bench++;
+    else if (h < 40)   under++;
+    else if (h <= 45)  full++;
+    else               over++;
+  }
+  const badge = document.getElementById('heatmapBadge');
+  if (badge) { badge.textContent = `${totalAvail}h available this week`; badge.className = 'chart-badge'; }
+
+  // thead
+  const wkThs = weeks.map((w, i) =>
+    `<th class="hm-week-th dd-clickable" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
+  ).join('');
+  const thead = `<thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>`;
+
+  // Group by level
+  const byLevel = {};
+  for (const emp of employees) {
+    if (!byLevel[emp.level]) byLevel[emp.level] = [];
+    byLevel[emp.level].push(emp);
+  }
+
+  // tbody
+  let tbody = '<tbody>';
+  for (const level of LEVEL_ORDER) {
+    const emps = byLevel[level];
+    if (!emps || !emps.length) continue;
+    tbody += `<tr class="hm-level-row"><td colspan="${weeks.length + 1}">${level} <span style="opacity:0.55;font-size:11px">(${emps.length})</span></td></tr>`;
+    for (const emp of emps) {
+      const safeNameAttr = encodeAttr(emp.name);
+      const cells = emp.weeklyHours.map((h, i) => {
+        const projects = emp.weeklyProjects[i];
+        const projLines = projects.length
+          ? projects.map(p => `${p.project}: ${p.hours}h`).join('\n')
+          : 'No bookings';
+        const tipText = encodeAttr(`${h}h total\n${projLines}`);
+        return `<td class="hm-cell dd-clickable"
+          style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}"
+          data-emp="${safeNameAttr}" data-idx="${i}" data-tip="${tipText}"
+          onclick="drillHeatmapCell(this.dataset.emp,parseInt(this.dataset.idx))"
+          onmouseenter="showHmTooltip(event,this)"
+          onmousemove="positionHmTooltip(event)"
+          onmouseleave="hideHmTooltip()">${h}</td>`;
+      }).join('');
+      tbody += `<tr>
+        <td class="hm-name-cell dd-clickable" data-emp="${safeNameAttr}"
+          onclick="drillHeatmapEmployee(this.dataset.emp)" title="Click for full history">
+          <div class="hm-emp-name">${emp.name}</div>
+          <div class="hm-emp-skill">${emp.skillSet || '—'}</div>
+        </td>${cells}</tr>`;
+    }
+  }
+  tbody += '</tbody>';
+
+  // Legend swatches
+  const swatches = [
+    { bg: '#8B0000', fg: '#FFF', label: '0h — Bench' },
+    { bg: '#FFB3B3', fg: '#0F1117', label: '1–39h — Under' },
+    { bg: '#FFF3A3', fg: '#0F1117', label: '40–44h — Nominal' },
+    { bg: '#A8E6CF', fg: '#0F1117', label: '45h — Full' },
+    { bg: '#FF9999', fg: '#0F1117', label: '46–50h — Over' },
+    { bg: '#FF8A80', fg: '#0F1117', label: '51h+ — Over+' },
+  ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch" style="background:${s.bg}"></span>${s.label}</div>`).join('');
+
+  container.innerHTML = `
+    <div class="hm-scroll-wrap">
+      <table class="hm-table">${thead}${tbody}</table>
+    </div>
+    <div class="hm-legend">
+      <div class="hm-legend-swatches">${swatches}</div>
+      <div class="hm-legend-stats">
+        <span style="color:#A8E6CF;font-weight:600">${totalAvail}h available this week</span>
+        <span style="color:#8892B0;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
+      </div>
+    </div>`;
+}
+
+// ── Heatmap Drilldown A: Cell click ──────────────────────────────
+function drillHeatmapCell(empName, weekIdx) {
+  const hm = rawData.heatmap;
+  if (!hm) return;
+  const emp = hm.employees.find(e => e.name === empName);
+  if (!emp) return;
+  const week     = hm.weeks[weekIdx];
+  const hours    = emp.weeklyHours[weekIdx] || 0;
+  const projects = emp.weeklyProjects[weekIdx] || [];
+  const avail    = Math.max(0, 45 - hours);
+  const stat     = utilStatus(hours);
+
+  const projRows = projects.length
+    ? projects.map(p => `<tr><td>${p.project}</td><td><b>${p.hours}h</b></td></tr>`).join('')
+    : '<tr><td colspan="2" style="color:#8892B0;text-align:center">No bookings this week</td></tr>';
+
+  openDrilldown(`${empName} — Week of ${week}`, `
+    <div class="dd-role-card">
+      <div class="dd-role-row"><span>Employee</span><b>${empName}</b></div>
+      <div class="dd-role-row"><span>Level</span><b>${emp.level}</b></div>
+      <div class="dd-role-row"><span>Skill Set</span><b>${emp.skillSet || '—'}</b></div>
+      <div class="dd-role-row"><span>Total Hours</span><b>${hours}h / 45h</b></div>
+      <div class="dd-role-row"><span>Status</span><b><span class="dd-badge ${stat.cls}">${stat.label}</span></b></div>
+      <div class="dd-role-row"><span>Available Hours</span><b style="color:#A8E6CF">${avail}h remaining</b></div>
+    </div>
+    <h4 class="dd-section-title">Project Breakdown</h4>
+    <table class="dd-table">
+      <thead><tr><th>Project</th><th>Hours</th></tr></thead>
+      <tbody>${projRows}</tbody>
+    </table>`);
+}
+
+// ── Heatmap Drilldown B: Employee name click ──────────────────────
+function drillHeatmapEmployee(empName) {
+  const hm = rawData.heatmap;
+  if (!hm) return;
+  const emp = hm.employees.find(e => e.name === empName);
+  if (!emp) return;
+
+  const total    = emp.weeklyHours.reduce((a, b) => a + b, 0);
+  const avg      = emp.weeklyHours.length ? Math.round(total / emp.weeklyHours.length * 10) / 10 : 0;
+  const peak     = Math.max(...emp.weeklyHours);
+  const peakIdx  = emp.weeklyHours.indexOf(peak);
+  const peakWeek = hm.weeks[peakIdx] || '—';
+  const benchWks = emp.weeklyHours.filter(h => h < 10).length;
+
+  const tableRows = hm.weeks.map((week, i) => {
+    const h = emp.weeklyHours[i];
+    const ps = emp.weeklyProjects[i];
+    const stat = utilStatus(h);
+    const projText = ps.length
+      ? ps.map(p => `${p.project} (${p.hours}h)`).join(', ')
+      : '<span style="color:#8892B0">No bookings</span>';
+    const bg = heatmapCellBg(h);
+    const fg = heatmapCellFg(h);
+    return `<tr>
+      <td>${week}</td>
+      <td style="font-size:12px">${projText}</td>
+      <td><span style="background:${bg};color:${fg};border-radius:4px;padding:2px 8px;font-weight:700;font-size:12px">${h}h</span></td>
+      <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  openDrilldown(`${empName} — Full Booking History`, `
+    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+      <div class="dd-stat"><div class="dd-stat-value">${avg}h</div><div class="dd-stat-label">Avg / Week</div></div>
+      <div class="dd-stat"><div class="dd-stat-value">${peak}h</div><div class="dd-stat-label">Peak (${peakWeek})</div></div>
+      <div class="dd-stat"><div class="dd-stat-value">${benchWks}</div><div class="dd-stat-label">Bench Weeks</div></div>
+    </div>
+    <table class="dd-table">
+      <thead><tr><th>Week</th><th>Projects</th><th>Hours</th><th>Status</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`);
+}
+
+// ── Heatmap Drilldown C: Week header click ────────────────────────
+function drillHeatmapWeek(weekIdx) {
+  const hm = rawData.heatmap;
+  if (!hm) return;
+  const week = hm.weeks[weekIdx];
+
+  const byLevel = {};
+  for (const emp of hm.employees) {
+    const h = emp.weeklyHours[weekIdx] || 0;
+    const avail = Math.max(0, 45 - h);
+    if (!byLevel[emp.level]) byLevel[emp.level] = [];
+    byLevel[emp.level].push({ name: emp.name, skillSet: emp.skillSet, hours: h, avail });
+  }
+  for (const level of Object.keys(byLevel))
+    byLevel[level].sort((a, b) => b.avail - a.avail);
+
+  const totalAvail = hm.employees.reduce((s, e) => s + Math.max(0, 45 - (e.weeklyHours[weekIdx] || 0)), 0);
+
+  let html = `<div style="margin-bottom:16px"><span style="color:#A8E6CF;font-weight:700;font-size:15px">${totalAvail}h</span> <span style="color:#8892B0">total available across ${hm.employees.length} employees</span></div>`;
+
+  for (const level of LEVEL_ORDER) {
+    const emps = byLevel[level];
+    if (!emps || !emps.length) continue;
+    const rows = emps.map(e => {
+      const stat = utilStatus(e.hours);
+      return `<tr>
+        <td>${e.name}</td>
+        <td style="font-size:12px;color:#8892B0">${e.skillSet || '—'}</td>
+        <td>${e.hours}h</td>
+        <td style="color:#A8E6CF;font-weight:600">${e.avail}h free</td>
+        <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
+      </tr>`;
+    }).join('');
+    html += `<h4 class="dd-section-title" style="margin-top:16px">${level}</h4>
+      <table class="dd-table">
+        <thead><tr><th>Employee</th><th>Skill Set</th><th>Booked</th><th>Available</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  openDrilldown(`Week of ${week} — Availability Summary`, html);
 }
 
 // ── Needs Coverage ────────────────────────────────────────────────

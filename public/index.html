@@ -113,31 +113,17 @@
       <!-- Charts Grid -->
       <div class="charts-grid">
 
-        <!-- Utilization by Level (wide) -->
+        <!-- Availability Heatmap (full width) -->
         <div class="chart-card span-full">
           <div class="chart-card-header">
             <div>
-              <h3 class="chart-title">Utilization by Level</h3>
-              <p class="chart-sub">Average weekly hours vs 45h target · Current period</p>
+              <h3 class="chart-title">Availability Heatmap</h3>
+              <p class="chart-sub">Weekly hours by employee · Click names, cells, or week headers for details</p>
             </div>
-            <span class="chart-badge">Target: 80%</span>
+            <span class="chart-badge" id="heatmapBadge">—</span>
           </div>
-          <div class="chart-wrapper chart-wrapper--md">
-            <canvas id="chartUtilization"></canvas>
-          </div>
-        </div>
-
-        <!-- Cliffs (wide) -->
-        <div class="chart-card span-full">
-          <div class="chart-card-header">
-            <div>
-              <h3 class="chart-title">Project Roll-off Cliffs</h3>
-              <p class="chart-sub">Weekly booked vs available hours · Spikes indicate mass roll-offs</p>
-            </div>
-            <span class="chart-badge" id="cliffsBadge">—</span>
-          </div>
-          <div class="chart-wrapper chart-wrapper--md">
-            <canvas id="chartCliffs"></canvas>
+          <div id="heatmapContainer">
+            <div style="padding:32px;text-align:center;color:#8892B0">Loading heatmap…</div>
           </div>
         </div>
 
