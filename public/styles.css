@@ -24,7 +24,7 @@
   --radius-lg:    16px;
 }
 
-html { font-size: 16px; }
+html { font-size: 16px; height: 100%; }
 
 body {
   font-family: var(--font);
@@ -32,7 +32,10 @@ body {
   color: var(--text-primary);
   font-weight: 400;
   line-height: 1.6;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Scrollbars ─────────────────────────────────────────────────── */
@@ -185,20 +188,38 @@ body {
 
 /* ── Main Content ───────────────────────────────────────────────── */
 .main-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 28px 32px 48px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
 }
 
 .tab-panel { display: none; }
-.tab-panel.active { display: block; }
+.tab-panel.active {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#tab-dashboard {
+  overflow: hidden;
+  padding: 16px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+#tab-ask {
+  overflow-y: auto;
+  padding: 28px 32px 48px;
+}
 
 /* ── Section Header ─────────────────────────────────────────────── */
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .section-title {
@@ -240,7 +261,8 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 .kpi-card {
@@ -302,15 +324,22 @@ body {
 /* ── Charts Grid ────────────────────────────────────────────────── */
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 4fr 3fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
 
 .chart-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 24px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .span-full { grid-column: 1 / -1; }
@@ -320,8 +349,9 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .chart-title {
@@ -367,15 +397,18 @@ body {
 /* ── Coverage Layout ────────────────────────────────────────────── */
 .coverage-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 20px;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
   align-items: start;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .coverage-table {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 220px;
+  max-height: 100%;
 }
 
 .coverage-table table {
@@ -421,7 +454,8 @@ body {
 /* ── Bench Report ───────────────────────────────────────────────── */
 .bench-content {
   overflow-y: auto;
-  max-height: 280px;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -857,15 +891,18 @@ body {
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .charts-grid { grid-template-columns: 1fr; }
+  .charts-grid { grid-template-columns: 1fr; grid-template-rows: 4fr 2fr 2fr; }
+  .span-full { grid-column: 1; }
   .span-half { grid-column: span 1; }
   .coverage-layout { grid-template-columns: 180px 1fr; }
 }
 
 @media (max-width: 700px) {
-  .main-content { padding: 20px 16px 40px; }
+  .main-content { padding: 0; }
   .app-header { padding: 0 16px; }
   .tab-nav-inner { padding: 0 16px; }
+  #tab-dashboard { padding: 10px; }
+  #tab-ask { padding: 20px 16px 40px; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .kpi-value { font-size: 24px; }
   .coverage-layout { grid-template-columns: 1fr; }
@@ -1077,9 +1114,18 @@ body {
 }
 
 /* ── Availability Heatmap ───────────────────────────────────────── */
+#heatmapContainer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .hm-scroll-wrap {
   overflow: auto;
-  max-height: 520px;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 4px;
@@ -1123,6 +1169,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .hm-pill-btns {
@@ -1242,6 +1289,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   padding: 12px 4px 2px;
+  flex-shrink: 0;
 }
 
 .hm-legend-swatches {
