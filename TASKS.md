@@ -80,4 +80,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**18 complete [x] · 21 open [ ] · 39 total**
+**26 complete [x] · 21 open [ ] · 47 total**
