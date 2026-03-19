@@ -296,7 +296,7 @@ function renderCliffsChart(cliffs) {
           borderColor: '#A8C7FA',
           backgroundColor: 'rgba(168,199,250,0.15)',
           borderWidth: 2.5,
-          fill: true,
+          fill: 'origin',
           tension: 0.35,
           pointBackgroundColor: pointColors,
           pointBorderColor: pointColors,
