@@ -78,8 +78,14 @@ app.get('/api/employees', (req, res) => {
 });
 
 // GET /api/dashboard
-app.get('/api/dashboard', (req, res) => {
-  if (!requireData(res)) return;
+app.get('/api/dashboard', async (req, res) => {
+  // Always reload from Excel so edits to resourcing.xlsx are reflected immediately
+  // without requiring a server restart.
+  const freshData = await readStaffingData();
+  if (freshData.error) {
+    return res.status(503).json({ error: freshData.error });
+  }
+  staffingData = freshData; // keep in-memory cache current too
 
   const { supply, demand, employees } = staffingData;
 
