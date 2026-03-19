@@ -642,18 +642,72 @@ function renderCoverageChart(coverage) {
   badge.textContent = total ? `${total} open roles` : 'No open roles';
   badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
 
-  // Register a custom positioner that places the tooltip outside the donut ring
-  if (!Chart.Tooltip.positioners.donutOuter) {
-    Chart.Tooltip.positioners.donutOuter = function(elements) {
-      if (!elements.length) return false;
-      const arc = elements[0].element;
-      const midAngle = (arc.startAngle + arc.endAngle) / 2;
-      const r = arc.outerRadius + 20;
-      return { x: arc.x + Math.cos(midAngle) * r, y: arc.y + Math.sin(midAngle) * r };
-    };
+  // ── External HTML tooltip (never overlaps canvas center) ──────────
+  const DONUT_COLORS = ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
+
+  function getDonutTip() {
+    let tip = document.getElementById('donutTip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'donutTip';
+      document.body.appendChild(tip);
+    }
+    return tip;
   }
 
-  charts.coverage = new Chart(document.getElementById('chartCoverage'), {
+  function hideDonutTip() {
+    const tip = document.getElementById('donutTip');
+    if (tip) tip.style.opacity = '0';
+  }
+
+  function externalDonutTooltip(context) {
+    const tip = getDonutTip();
+    const { chart, tooltip } = context;
+
+    if (tooltip.opacity === 0) { hideDonutTip(); return; }
+
+    const item  = tooltip.dataPoints && tooltip.dataPoints[0];
+    if (!item) { hideDonutTip(); return; }
+
+    const label = item.label;
+    const value = item.parsed;
+    const color = DONUT_COLORS[item.dataIndex] || '#8892B0';
+
+    tip.innerHTML =
+      `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;` +
+      `background:${color};margin-right:6px;vertical-align:middle"></span>` +
+      `<span style="color:#fff;font-weight:600">${label}:</span>` +
+      `<span style="color:#CCD6F6;margin-left:4px">${value}</span>`;
+
+    // Position: use canvas bounding rect + arc midpoint angle to place
+    // tooltip outside the ring on the correct side
+    const canvas = chart.canvas;
+    const rect   = canvas.getBoundingClientRect();
+    const meta   = chart.getDatasetMeta(0);
+    const arc    = meta.data[item.dataIndex];
+    const mid    = (arc.startAngle + arc.endAngle) / 2;
+    // Push 24px beyond outer radius in the direction of the arc midpoint
+    const r      = arc.outerRadius + 24;
+    const arcX   = arc.x + Math.cos(mid) * r;
+    const arcY   = arc.y + Math.sin(mid) * r;
+    // Convert canvas-local coords to page coords
+    const pageX = rect.left + window.scrollX + arcX;
+    const pageY = rect.top  + window.scrollY + arcY;
+
+    tip.style.opacity   = '1';
+    // Offset tip so it doesn't straddle the anchor point
+    tip.style.transform = mid > Math.PI / 2 && mid < 3 * Math.PI / 2
+      ? 'translate(-100%, -50%)'   // left half of donut → tip extends left
+      : 'translate(0%, -50%)';     // right half of donut → tip extends right
+    tip.style.left = pageX + 'px';
+    tip.style.top  = pageY + 'px';
+  }
+
+  // Hide tip when mouse leaves the canvas
+  const cvs = document.getElementById('chartCoverage');
+  if (cvs) cvs.addEventListener('mouseleave', hideDonutTip);
+
+  charts.coverage = new Chart(cvs, {
     type: 'doughnut',
     data: {
       labels: ['Fully Met', 'Partially Met', 'Unmet'],
@@ -674,17 +728,8 @@ function renderCoverageChart(coverage) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          position: 'donutOuter',
-          backgroundColor: '#22263A',
-          titleColor: '#FFFFFF',
-          bodyColor: '#CCD6F6',
-          padding: 10,
-          caretSize: 4,
-          displayColors: false,
-          callbacks: {
-            title() { return ''; },
-            label(ctx) { return `${ctx.label}: ${ctx.parsed}`; },
-          },
+          enabled: false,
+          external: externalDonutTooltip,
         },
       },
     },
