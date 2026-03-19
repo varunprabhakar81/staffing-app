@@ -74,60 +74,52 @@
         </button>
       </div>
 
-      <!-- KPI Strip -->
-      <div class="kpi-strip" id="kpiGrid">
-        <div class="kpi-strip-item dd-clickable" onclick="drillHeadcount()" title="Click for headcount detail">
-          <svg class="kpi-strip-icon kpi-strip-icon--blue" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 1114 0H3z" fill="currentColor"/></svg>
-          <span class="kpi-value" id="kpiHeadcount">—</span>
-          <span class="kpi-strip-label">Total Headcount</span>
-        </div>
-        <div class="kpi-strip-sep"></div>
-        <div class="kpi-strip-item dd-clickable" onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
-          <svg class="kpi-strip-icon kpi-strip-icon--green" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-12v4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span class="kpi-value" id="kpiUtilization">—</span>
-          <span class="kpi-strip-label">Avg Utilization</span>
-        </div>
-        <div class="kpi-strip-sep"></div>
-        <div class="kpi-strip-item dd-clickable" onclick="drillBenchKPI()" title="Click for bench detail">
-          <svg class="kpi-strip-icon kpi-strip-icon--amber" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7v11h14V7L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 18V10h6v8" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          <span class="kpi-value" id="kpiBench">—</span>
-          <span class="kpi-strip-label">On Bench</span>
-        </div>
-        <div class="kpi-strip-sep"></div>
-        <div class="kpi-strip-item dd-clickable" onclick="drillDemandKPI()" title="Click for open demand detail">
-          <svg class="kpi-strip-icon kpi-strip-icon--red" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-11v4m0 3v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span class="kpi-value" id="kpiUncovered">—</span>
-          <span class="kpi-strip-label">Open Demand Roles</span>
-          <span class="kpi-strip-breakdown" id="kpiCoverageBreakdown"></span>
-        </div>
-      </div>
-
       <!-- Overview Summary -->
       <div class="overview-summary">
         <p class="overview-greeting" id="overviewGreeting">Loading snapshot…</p>
-        <div class="overview-stats">
-          <div class="overview-stat-box overview-stat--blue">
-            <div class="overview-stat-value" id="overviewAvailHours">—</div>
-            <div class="overview-stat-label">Available Hours This Week</div>
+        <div class="overview-divider"></div>
+        <div class="exec-cards">
+          <div class="exec-card" style="--exec-accent:#A8C7FA"
+               onclick="navigateTo('staffing')" title="View staffing availability">
+            <div class="exec-card-label">Available Hours</div>
+            <div class="exec-card-number">
+              <span class="exec-card-num" id="overviewAvailHours">—</span>
+              <span class="exec-card-unit">h</span>
+            </div>
+            <div class="exec-card-trend" id="overviewAvailTrend">Loading…</div>
           </div>
-          <div class="overview-stat-box">
-            <div class="overview-stat-value" id="overviewUtil">—</div>
-            <div class="overview-stat-label">Utilization Rate</div>
+          <div class="exec-card" id="overviewUtilCard"
+               onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
+            <div class="exec-card-label">Utilization</div>
+            <div class="exec-card-number">
+              <span class="exec-card-num" id="overviewUtil">—</span>
+              <span class="exec-card-unit">%</span>
+            </div>
+            <div class="exec-card-trend" id="overviewUtilTrend">Loading…</div>
           </div>
-          <div class="overview-stat-box">
-            <div class="overview-stat-value" id="overviewUnmet">—</div>
-            <div class="overview-stat-label">Unmet Demand Roles</div>
+          <div class="exec-card" id="overviewNeedsCard"
+               onclick="drillDemandKPI()" title="Click for demand detail">
+            <div class="exec-card-label">Unmet Needs</div>
+            <div class="exec-card-number">
+              <span class="exec-card-num" id="overviewUnmet">—</span>
+              <span class="exec-card-unit">roles</span>
+            </div>
+            <div class="exec-card-trend" id="overviewUnmetTrend">Loading…</div>
           </div>
-          <div class="overview-stat-box overview-stat--clickable" id="overviewBenchCard"
+          <div class="exec-card" id="overviewBenchCard"
                onclick="drillBenchKPI()" title="Click to see employees on bench this week">
-            <div class="overview-stat-value" id="overviewBench">—</div>
-            <div class="overview-stat-label">On Bench This Week</div>
+            <div class="exec-card-label">On Bench</div>
+            <div class="exec-card-number">
+              <span class="exec-card-num" id="overviewBench">—</span>
+              <span class="exec-card-unit">people</span>
+            </div>
+            <div class="exec-card-trend" id="overviewBenchTrend">Loading…</div>
           </div>
         </div>
         <div class="overview-actions">
-          <button class="quick-action-btn" onclick="navigateTo('staffing')">View Staffing →</button>
-          <button class="quick-action-btn" onclick="navigateTo('needs')">View Needs →</button>
-          <button class="quick-action-btn quick-action-btn--primary" onclick="navigateTo('ask')">Ask Claude →</button>
+          <button class="quick-action-btn" onclick="navigateTo('staffing')">View Staffing <span class="arrow">→</span></button>
+          <button class="quick-action-btn" onclick="navigateTo('needs')">View Needs <span class="arrow">→</span></button>
+          <button class="quick-action-btn quick-action-btn--primary" onclick="navigateTo('ask')">Ask Claude <span class="arrow">→</span></button>
         </div>
       </div>
 
