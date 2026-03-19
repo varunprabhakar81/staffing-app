@@ -68,8 +68,8 @@ const WEEKS = [
 const w     = (h)         => Array(15).fill(h);
 const taper = (hi, lo, n) => [...Array(n).fill(hi), ...Array(15 - n).fill(lo)];
 
-// Supply rows — plain values only, no IDs or formulas
-// Columns: Employee Name (A), Skill Set (B), Project Assigned (C), weekly hours (D+)
+// Supply rows — plain values only (Level is generated as VLOOKUP formula in the sheet)
+// Columns: Employee Name (A), Level (B, VLOOKUP), Skill Set (C), Project Assigned (D), weekly hours (E+)
 //
 // Utilization distribution (total per employee per week, consistent across all 15 weeks):
 //   0h  (bench)           : James Okafor, Emily Walsh
@@ -228,10 +228,11 @@ async function createResourcingFile() {
   // Tab order: Supply → Demand → Employee Master → Skills Master → Resource Levels → Project Master
 
   // ── Tab 1: Supply ─────────────────────────────────────────────────────────
-  // Columns: Employee Name (A), Skill Set (B), Project Assigned (C), weekly hours (D+)
+  // Columns: Employee Name (A), Level (B, VLOOKUP), Skill Set (C), Project Assigned (D), weekly hours (E+)
   const supplySheet = workbook.addWorksheet('Supply');
   supplySheet.columns = [
     { header: 'Employee Name',    key: 'name',     width: 24 },
+    { header: 'Level',            key: 'level',    width: 20 },
     { header: 'Skill Set',        key: 'skillSet', width: 34 },
     { header: 'Project Assigned', key: 'project',  width: 52 },
     ...WEEKS.map(wk => ({
@@ -241,10 +242,14 @@ async function createResourcingFile() {
     })),
   ];
   styleHeader(supplySheet.getRow(1));
-  supplySheet.views = [{ state: 'frozen', xSplit: 3, ySplit: 1 }];
+  supplySheet.views = [{ state: 'frozen', xSplit: 4, ySplit: 1 }];
 
   for (const sr of supplyRows) {
     const row = supplySheet.addRow({ name: sr.name, skillSet: sr.skillSet, project: sr.project });
+
+    // VLOOKUP: looks up Employee Name in Employee Master col A, returns Level from col B
+    const rowNum = row.number;
+    row.getCell('level').value = { formula: `VLOOKUP(A${rowNum},'Employee Master'!A:B,2,FALSE)` };
 
     WEEKS.forEach((wk, i) => {
       const cell  = row.getCell(`w_${wk.replace('/', '_')}`);
@@ -255,13 +260,14 @@ async function createResourcingFile() {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: utilizationColor(total) } };
     });
 
-    stripeRow(row, ['name', 'skillSet', 'project']);
+    stripeRow(row, ['name', 'level', 'skillSet', 'project']);
   }
 
   // Data validation dropdowns for Supply
   addDropdown(supplySheet, 'A', `'Employee Master'!$A$2:$A$${EMP_LAST_ROW}`);
-  addDropdown(supplySheet, 'B', `'Skills Master'!$A$2:$A$${SKILL_LAST_ROW}`);
-  addDropdown(supplySheet, 'C', `'Project Master'!$B$2:$B$${PROJ_LAST_ROW}`);
+  // Column B (Level) is a VLOOKUP formula — no dropdown needed
+  addDropdown(supplySheet, 'C', `'Skills Master'!$A$2:$A$${SKILL_LAST_ROW}`);
+  addDropdown(supplySheet, 'D', `'Project Master'!$B$2:$B$${PROJ_LAST_ROW}`);
 
   // ── Tab 2: Demand ─────────────────────────────────────────────────────────
   // Columns: Project/Client Name (A), Resource Level (B), Resource Skill Set (C),

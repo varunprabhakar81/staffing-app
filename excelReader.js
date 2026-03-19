@@ -62,7 +62,7 @@ async function readStaffingData() {
   }
 
   // ── Supply ────────────────────────────────────────────────────────────────
-  // Columns: Employee Name, Skill Set, Project Assigned, Week ending 3/21 … 6/27
+  // Columns: Employee Name, Level, Skill Set, Project Assigned, Week ending 3/21 … 6/27
   const rawSupply = sheetToObjects(workbook.getWorksheet('Supply'));
   const supply = rawSupply.map(row => {
     const weekly = {};
@@ -71,6 +71,7 @@ async function readStaffingData() {
     }
     return {
       employeeName:    row['Employee Name']    ?? null,
+      level:           row['Level']           ?? null,
       skillSet:        row['Skill Set']        ?? null,
       projectAssigned: row['Project Assigned'] ?? null,
       weeklyHours:     weekly,

@@ -90,27 +90,31 @@ app.get('/api/dashboard', async (req, res) => {
   const { supply, demand, employees } = staffingData;
 
   // ── a. Utilization by Level ──────────────────────────────────────────────
-  // Join supply employee averages with Employee Master to get level
+  // Use Level column from Supply to group employees by level
+  // For each level per week: utilization% = (total hours) / (employee count × 45) × 100
   const empAverages = employeeWeeklyAverages(supply);
-  const levelMap    = {};
-  for (const emp of employees) levelMap[emp.employeeName] = emp.level;
 
-  const byLevel = {};
-  for (const emp of empAverages) {
-    const level = levelMap[emp.name] || 'Unknown';
-    if (!byLevel[level]) byLevel[level] = { totalHours: 0, headcount: 0 };
-    byLevel[level].totalHours += emp.avgHours;
-    byLevel[level].headcount  += 1;
+  const levelWeekData = {}; // { level: { employees: Set, weekTotals: { week: hours } } }
+  for (const row of supply) {
+    const level = row.level || 'Unknown';
+    if (!levelWeekData[level]) levelWeekData[level] = { employees: new Set(), weekTotals: {} };
+    levelWeekData[level].employees.add(row.employeeName);
+    for (const [week, hrs] of Object.entries(row.weeklyHours)) {
+      levelWeekData[level].weekTotals[week] = (levelWeekData[level].weekTotals[week] || 0) + (hrs || 0);
+    }
   }
 
   const levelOrder = ['Analyst', 'Consultant', 'Senior Consultant', 'Manager', 'Senior Manager', 'Partner/MD'];
   const utilizationByLevel = levelOrder
-    .filter(l => byLevel[l])
+    .filter(l => levelWeekData[l])
     .map(level => {
-      const { totalHours, headcount } = byLevel[level];
-      const avgHours  = totalHours / headcount;
-      const utilPct   = Math.round((avgHours / 45) * 100);
-      return { level, avgHours: Math.round(avgHours * 10) / 10, utilizationPct: utilPct, headcount };
+      const { employees, weekTotals } = levelWeekData[level];
+      const headcount   = employees.size;
+      const weeks       = Object.keys(weekTotals);
+      const totalHours  = Object.values(weekTotals).reduce((a, b) => a + b, 0);
+      const avgHours    = weeks.length ? Math.round((totalHours / (headcount * weeks.length)) * 10) / 10 : 0;
+      const utilPct     = Math.round((avgHours / 45) * 100);
+      return { level, avgHours, utilizationPct: utilPct, headcount };
     });
 
   // ── b. Bench Report ──────────────────────────────────────────────────────
