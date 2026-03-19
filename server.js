@@ -188,6 +188,10 @@ app.get('/api/dashboard', async (req, res) => {
   // For each demand role, match employees by level+skillSet and check weekly
   // availability against the demand's hoursPerWeek over its date range.
 
+  // Build level map from Employee Master for candidate matching
+  const levelMap = {};
+  for (const emp of employees) levelMap[emp.employeeName] = emp.level;
+
   // Parse a "Week ending M/D" key into a Date
   function parseWeekKey(wk) {
     const m = wk.match(/(\d+)\/(\d+)/);
