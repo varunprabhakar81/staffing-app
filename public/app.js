@@ -60,10 +60,12 @@ function buildEmpAverages() {
   return out;
 }
 
-// ── Format week label ─────────────────────────────────────────────
+// ── Format week label — return just "M/D" (strips "Week ending " prefix)
 function fmtWeek(wk) {
-  const m = String(wk).match(/(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${parseInt(m[2])}/${parseInt(m[3])}` : String(wk);
+  const iso = String(wk).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${parseInt(iso[2])}/${parseInt(iso[3])}`;
+  const md = String(wk).match(/(\d+)\/(\d+)/);
+  return md ? `${parseInt(md[1])}/${parseInt(md[2])}` : String(wk);
 }
 
 // ── Load Dashboard ────────────────────────────────────────────────
@@ -147,13 +149,13 @@ function renderUtilizationChart(levels) {
   if (charts.utilization) charts.utilization.destroy();
   if (!levels || !levels.length) return;
 
-  const barColors = levels.map(l => {
-    if (l.utilizationPct > 100)  return '#FF8A80';
-    if (l.utilizationPct === 100) return '#A8E6CF';
-    if (l.utilizationPct >= 90)  return '#A8C7FA';
-    if (l.utilizationPct >= 40)  return '#FFF3A3';
+  function barColor(pct) {
+    if (pct > 100)  return '#FF8A80';
+    if (pct === 100) return '#A8E6CF';
+    if (pct >= 90)  return '#A8C7FA';
+    if (pct >= 40)  return '#FFF3A3';
     return '#FFB3B3';
-  });
+  }
 
   charts.utilization = new Chart(document.getElementById('chartUtilization'), {
     type: 'bar',
@@ -164,8 +166,8 @@ function renderUtilizationChart(levels) {
           type: 'bar',
           label: 'Utilization %',
           data: levels.map(l => l.utilizationPct),
-          backgroundColor: barColors,
-          borderColor: barColors,
+          backgroundColor: ctx => barColor(levels[ctx.dataIndex].utilizationPct),
+          borderColor:     ctx => barColor(levels[ctx.dataIndex].utilizationPct),
           borderWidth: 0,
           borderRadius: 6,
           borderSkipped: false,
@@ -381,11 +383,29 @@ function renderCoverageChart(coverage) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '72%',
+      cutout: '55%',
       plugins: {
         legend: {
           position: 'bottom',
-          labels: { font: { family: 'Inter', size: 12 }, color: '#8892B0', padding: 12, usePointStyle: true },
+          labels: {
+            font: { family: 'Inter', size: 12 }, color: '#8892B0', padding: 12, usePointStyle: true,
+            generateLabels(chart) {
+              const counts = [fullyMet, partiallyMet, unmet];
+              const names  = ['Fully Met', 'Partially Met', 'Unmet'];
+              const colors = total === 0
+                ? ['#2E3250', '#2E3250', '#2E3250']
+                : ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
+              return names.map((name, i) => ({
+                text: `${name} (${counts[i]})`,
+                fillStyle: colors[i],
+                strokeStyle: colors[i],
+                lineWidth: 0,
+                pointStyle: 'circle',
+                hidden: false,
+                index: i,
+              }));
+            },
+          },
         },
         tooltip: { backgroundColor: '#22263A', titleColor: '#FFFFFF', bodyColor: '#8892B0', padding: 10 },
       },
