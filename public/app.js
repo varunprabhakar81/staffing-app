@@ -224,7 +224,7 @@ function buildHeatmapTable(data) {
   const wkThs = weeks.map((w, i) =>
     `<th class="hm-week-th dd-clickable" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
   ).join('');
-  const thead = `<thead><tr><th class="hm-name-th">Employee<span id="hmToggleIcon" class="hm-toggle-icon" onclick="hmToggleAll()" title="Expand All">⊞</span></th>${wkThs}</tr></thead>`;
+  const thead = `<thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>`;
 
   // Group by level
   const byLevel = {};
@@ -316,6 +316,13 @@ function buildHeatmapTable(data) {
   ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch" style="background:${s.bg}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
+    <div class="hm-controls-row">
+      <span class="hm-controls-hint">Click ▶ to expand rows</span>
+      <div class="hm-pill-btns">
+        <button id="hmExpandAll" class="hm-pill-btn" onclick="hmExpandAll()">⊞ Expand All</button>
+        <button id="hmCollapseAll" class="hm-pill-btn" onclick="hmCollapseAll()" disabled>⊟ Collapse All</button>
+      </div>
+    </div>
     <div class="hm-scroll-wrap">
       <table class="hm-table">${thead}${tbody}</table>
     </div>
@@ -330,7 +337,7 @@ function buildHeatmapTable(data) {
 
   // Restore previously expanded employees (survives data refresh)
   for (const empName of _hmExpanded) _applyExpand(empName, true);
-  _updateHmToggleIcon();
+  _updateHmPillBtns();
 }
 
 // ── Expand / Collapse helpers ─────────────────────────────────────
@@ -372,36 +379,30 @@ function toggleHmExpand(empName) {
     _hmExpanded.add(empName);
     _applyExpand(empName, true);
   }
-  _updateHmToggleIcon();
+  _updateHmPillBtns();
 }
 
 function _allEmpNames() {
   return Array.from(document.querySelectorAll('.hm-chevron')).map(c => c.dataset.emp);
 }
 
-function _updateHmToggleIcon() {
-  const icon = document.getElementById('hmToggleIcon');
-  if (!icon) return;
+function _updateHmPillBtns() {
+  const expandBtn   = document.getElementById('hmExpandAll');
+  const collapseBtn = document.getElementById('hmCollapseAll');
+  if (!expandBtn || !collapseBtn) return;
   const all = _allEmpNames();
-  const allExpanded = all.length > 0 && all.every(n => _hmExpanded.has(n));
-  if (allExpanded) {
-    icon.textContent = '⊟';
-    icon.title = 'Collapse All';
-  } else {
-    icon.textContent = '⊞';
-    icon.title = 'Expand All';
-  }
+  expandBtn.disabled   = all.length > 0 && all.every(n => _hmExpanded.has(n));
+  collapseBtn.disabled = _hmExpanded.size === 0;
 }
 
-function hmToggleAll() {
-  const all = _allEmpNames();
-  const allExpanded = all.length > 0 && all.every(n => _hmExpanded.has(n));
-  if (allExpanded) {
-    for (const name of all) { _hmExpanded.delete(name); _applyExpand(name, false); }
-  } else {
-    for (const name of all) { _hmExpanded.add(name); _applyExpand(name, true); }
-  }
-  _updateHmToggleIcon();
+function hmExpandAll() {
+  for (const name of _allEmpNames()) { _hmExpanded.add(name); _applyExpand(name, true); }
+  _updateHmPillBtns();
+}
+
+function hmCollapseAll() {
+  for (const name of _allEmpNames()) { _hmExpanded.delete(name); _applyExpand(name, false); }
+  _updateHmPillBtns();
 }
 
 // ── Heatmap Drilldown A: Cell click ──────────────────────────────

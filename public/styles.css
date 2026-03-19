@@ -1115,21 +1115,38 @@ body {
   border-bottom: 1px solid var(--border);
   border-right: 1px solid var(--border);
   min-width: 190px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   white-space: nowrap;
 }
 
-.hm-toggle-icon {
-  font-size: 14px;
-  color: #8892B0;
-  cursor: pointer;
-  margin-left: 8px;
-  transition: color 0.15s;
-  flex-shrink: 0;
+.hm-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
 }
-.hm-toggle-icon:hover { color: #A8C7FA; }
+
+.hm-controls-hint {
+  font-size: 11px;
+  color: #8892B0;
+}
+
+.hm-pill-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.hm-pill-btn {
+  background: #2E3250;
+  color: #8892B0;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #3A3F6B;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hm-pill-btn:hover:not(:disabled) { color: #A8C7FA; border-color: #A8C7FA; }
+.hm-pill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .hm-week-th {
   text-align: center;
