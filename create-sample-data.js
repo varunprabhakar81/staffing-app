@@ -140,10 +140,31 @@ const PROJ_LAST_ROW  = projects.length + 1;        // e.g. 13
 
 // ── Styling helpers ─────────────────────────────────────────────────────────
 
-const BLUE   = 'FF2F5496';
-const STRIPE = 'FFE9EFF7';
-const YELLOW = 'FFFFF2CC';
-const GREY   = 'FFD9D9D9';
+const BLUE      = 'FF2F5496';
+const STRIPE    = 'FFE9EFF7';
+
+// Utilization colors (applied per-employee per-week based on TOTAL hours)
+const CLR_UNDER    = 'FF8B0000'; // dark red   — total < 40 (underutilized)
+const CLR_NOMINAL  = 'FFFFD700'; // yellow     — total 40–44
+const CLR_TARGET   = 'FF00B050'; // green      — total exactly 45
+const CLR_OVER     = 'FFFF9999'; // salmon     — total > 45 (overbooked)
+
+// Pre-compute total hours per employee per week index
+// empWeekTotals[employeeName][weekIndex] = sum across all their rows
+const empWeekTotals = {};
+for (const sr of supplyRows) {
+  if (!empWeekTotals[sr.name]) {
+    empWeekTotals[sr.name] = Array(WEEKS.length).fill(0);
+  }
+  sr.hours.forEach((h, i) => { empWeekTotals[sr.name][i] += h; });
+}
+
+function utilizationColor(total) {
+  if (total < 40)  return CLR_UNDER;
+  if (total === 45) return CLR_TARGET;
+  if (total <= 44) return CLR_NOMINAL;
+  return CLR_OVER;
+}
 
 function styleHeader(row) {
   row.eachCell(cell => {
@@ -208,14 +229,12 @@ async function createResourcingFile() {
     const row = supplySheet.addRow({ name: sr.name, skillSet: sr.skillSet, project: sr.project });
 
     WEEKS.forEach((wk, i) => {
-      const cell = row.getCell(`w_${wk.replace('/', '_')}`);
+      const cell  = row.getCell(`w_${wk.replace('/', '_')}`);
       cell.value     = sr.hours[i];
       cell.alignment = { horizontal: 'center' };
-      if (sr.hours[i] === 0) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREY } };
-      } else if (sr.hours[i] < 40) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: YELLOW } };
-      }
+      // Color based on employee's TOTAL hours that week across all their rows
+      const total = empWeekTotals[sr.name][i];
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: utilizationColor(total) } };
     });
 
     stripeRow(row, ['name', 'skillSet', 'project']);
