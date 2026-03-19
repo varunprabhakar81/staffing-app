@@ -9,7 +9,7 @@
 ### Phase 2 - Backend
 - [x] #5 Set up Node.js + Express server
 - [x] #6 Build Excel reader (parse all tabs)
-- [ ] #7 Build Claude API integration
+- [x] #7 Build Claude API integration
 - [ ] #8 Create API endpoints for dashboard and Q&A
 
 ### Phase 3 - Dashboard
