@@ -149,13 +149,16 @@ function renderUtilizationChart(levels) {
   if (charts.utilization) charts.utilization.destroy();
   if (!levels || !levels.length) return;
 
-  function barColor(pct) {
-    if (pct > 100)  return '#FF8A80';
-    if (pct === 100) return '#A8E6CF';
-    if (pct >= 90)  return '#A8C7FA';
-    if (pct >= 40)  return '#FFF3A3';
-    return '#FFB3B3';
-  }
+  const utilizationData = levels.map(l => l.utilizationPct);
+  console.log('Utilization % by level:', levels.map(l => `${l.level}: ${l.utilizationPct}%`));
+
+  const barColors = utilizationData.map(value => {
+    if (value < 40)   return '#FFB3B3';
+    if (value < 90)   return '#FFF3A3';
+    if (value < 100)  return '#A8C7FA';
+    if (value === 100) return '#A8E6CF';
+    return '#FF8A80';
+  });
 
   charts.utilization = new Chart(document.getElementById('chartUtilization'), {
     type: 'bar',
@@ -165,9 +168,9 @@ function renderUtilizationChart(levels) {
         {
           type: 'bar',
           label: 'Utilization %',
-          data: levels.map(l => l.utilizationPct),
-          backgroundColor: ctx => barColor(levels[ctx.dataIndex].utilizationPct),
-          borderColor:     ctx => barColor(levels[ctx.dataIndex].utilizationPct),
+          data: utilizationData,
+          backgroundColor: barColors,
+          borderColor:     barColors,
           borderWidth: 0,
           borderRadius: 6,
           borderSkipped: false,
@@ -278,10 +281,10 @@ function renderCliffsChart(cliffs) {
         {
           label: 'Total Capacity',
           data: capacity,
-          borderColor: '#2E3250',
+          borderColor: '#8892B0',
           backgroundColor: 'transparent',
-          borderWidth: 1.5,
-          borderDash: [4, 3],
+          borderWidth: 2,
+          borderDash: [6, 4],
           fill: false,
           tension: 0,
           pointRadius: 0,
@@ -383,7 +386,7 @@ function renderCoverageChart(coverage) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '55%',
+      cutout: '60%',
       plugins: {
         legend: {
           position: 'bottom',
@@ -419,12 +422,12 @@ function renderCoverageChart(coverage) {
         const cy = top  + height / 2 - 10;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = `700 24px Inter, sans-serif`;
-        ctx.fillStyle = total === 0 ? '#8892B0' : (unmet === 0 ? '#A8E6CF' : '#FFB3B3');
+        ctx.font = `700 32px Inter, sans-serif`;
+        ctx.fillStyle = total === 0 ? '#8892B0' : '#FFFFFF';
         ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy);
-        ctx.font = `400 11px Inter, sans-serif`;
+        ctx.font = `400 12px Inter, sans-serif`;
         ctx.fillStyle = '#8892B0';
-        ctx.fillText('open roles', cx, cy + 22);
+        ctx.fillText('open roles', cx, cy + 24);
         ctx.restore();
       },
     }],
