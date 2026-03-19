@@ -1125,11 +1125,6 @@ body {
   padding-bottom: 8px;
 }
 
-.hm-controls-hint {
-  font-size: 11px;
-  color: #8892B0;
-}
-
 .hm-pill-btns {
   display: flex;
   gap: 6px;
@@ -1138,15 +1133,22 @@ body {
 .hm-pill-btn {
   background: #2E3250;
   color: #8892B0;
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 10px;
   border-radius: 20px;
   border: 1px solid #3A3F6B;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .hm-pill-btn:hover:not(:disabled) { color: #A8C7FA; border-color: #A8C7FA; }
 .hm-pill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+#hmExpandAll {
+  background: #A8C7FA;
+  color: #0F1117;
+  border-color: #A8C7FA;
+}
+#hmExpandAll:hover:not(:disabled) { background: #BDD5FC; border-color: #BDD5FC; color: #0F1117; }
 
 .hm-week-th {
   text-align: center;

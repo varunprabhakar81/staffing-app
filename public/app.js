@@ -317,7 +317,7 @@ function buildHeatmapTable(data) {
 
   container.innerHTML = `
     <div class="hm-controls-row">
-      <span class="hm-controls-hint">Click ▶ to expand rows</span>
+      <span></span>
       <div class="hm-pill-btns">
         <button id="hmExpandAll" class="hm-pill-btn" onclick="hmExpandAll()">⊞ Expand All</button>
         <button id="hmCollapseAll" class="hm-pill-btn" onclick="hmCollapseAll()" disabled>⊟ Collapse All</button>
