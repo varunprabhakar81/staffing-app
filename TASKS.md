@@ -24,6 +24,7 @@
 - [x] #15 Wire Q&A to backend and display responses
 
 ### Phase 5 - Polish
+- [ ] #33 Dark theme with minimalistic pastel color scheme
 - [ ] #16 Styling - make it exec-presentable
 - [ ] #17 Auto-refresh when Excel file changes
 - [ ] #18 Test with real data, fix edge cases
