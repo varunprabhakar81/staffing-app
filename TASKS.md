@@ -23,26 +23,32 @@
 - [x] #14 Build Ask Claude tab UI
 - [x] #15 Wire Q&A to backend and display responses
 
+### Phase 4b - Chart Drilldowns
+- [ ] #16 Drilldown - Utilization by Level
+- [ ] #17 Drilldown - Bench Report
+- [ ] #18 Drilldown - Cliffs Visualization
+- [ ] #19 Drilldown - Needs Coverage
+
 ### Phase 5 - Polish
-- [ ] #16 Dark theme with minimalistic pastel color scheme
-- [ ] #17 Styling - make it exec-presentable
-- [ ] #18 Auto-refresh when Excel file changes
-- [ ] #19 Test with real data, fix edge cases
+- [ ] #20 Dark theme with minimalistic pastel color scheme
+- [ ] #21 Styling - make it exec-presentable
+- [ ] #22 Auto-refresh when Excel file changes
+- [ ] #23 Test with real data, fix edge cases
 
 ### Phase 6 - Testing
-- [ ] #20 Functional Testing - verify all dashboard charts render correctly
-- [ ] #21 Functional Testing - verify Q&A returns accurate answers
-- [ ] #22 Functional Testing - verify Excel dropdowns and data validation
-- [ ] #23 Functional Testing - verify color coding logic in Supply tab
-- [ ] #24 Technical Testing - verify API error handling and edge cases
-- [ ] #25 Technical Testing - verify app handles missing or malformed Excel data
-- [ ] #26 Technical Testing - performance testing with large datasets
-- [ ] #27 UAT - exec team reviews dashboard with real data
-- [ ] #28 UAT - staffing team tests Q&A with real resourcing questions
-- [ ] #29 UAT - sign off and move to Phase 7
+- [ ] #24 Functional Testing - verify all dashboard charts render correctly
+- [ ] #25 Functional Testing - verify Q&A returns accurate answers
+- [ ] #26 Functional Testing - verify Excel dropdowns and data validation
+- [ ] #27 Functional Testing - verify color coding logic in Supply tab
+- [ ] #28 Technical Testing - verify API error handling and edge cases
+- [ ] #29 Technical Testing - verify app handles missing or malformed Excel data
+- [ ] #30 Technical Testing - performance testing with large datasets
+- [ ] #31 UAT - exec team reviews dashboard with real data
+- [ ] #32 UAT - staffing team tests Q&A with real resourcing questions
+- [ ] #33 UAT - sign off and move to Phase 7
 
 ### Phase 7 - Database Enhancement
-- [ ] #30 Set up SQLite schema mirroring all Excel tabs
-- [ ] #31 Build Excel to SQLite import script
-- [ ] #32 Swap backend data layer from Excel to SQLite
-- [ ] #33 Test and validate parity with Phase 1
+- [ ] #34 Set up SQLite schema mirroring all Excel tabs
+- [ ] #35 Build Excel to SQLite import script
+- [ ] #36 Swap backend data layer from Excel to SQLite
+- [ ] #37 Test and validate parity with Phase 1
