@@ -642,81 +642,7 @@ function renderCoverageChart(coverage) {
   badge.textContent = total ? `${total} open roles` : 'No open roles';
   badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
 
-  // ── External HTML tooltip (never overlaps canvas center) ──────────
-  const DONUT_COLORS = ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
-
-  function getDonutTip() {
-    let tip = document.getElementById('donutTip');
-    if (!tip) {
-      tip = document.createElement('div');
-      tip.id = 'donutTip';
-      document.body.appendChild(tip);
-    }
-    return tip;
-  }
-
-  function hideDonutTip() {
-    const tip = document.getElementById('donutTip');
-    if (tip) tip.style.opacity = '0';
-  }
-
-  function externalDonutTooltip(context) {
-    const tip = getDonutTip();
-    const { chart, tooltip } = context;
-
-    if (tooltip.opacity === 0) { hideDonutTip(); return; }
-
-    const item = tooltip.dataPoints && tooltip.dataPoints[0];
-    if (!item) { hideDonutTip(); return; }
-
-    const label = item.label;
-    const value = item.parsed;
-    const color = DONUT_COLORS[item.dataIndex] || '#8892B0';
-
-    tip.innerHTML =
-      `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;` +
-      `background:${color};margin-right:6px;vertical-align:middle"></span>` +
-      `<span style="color:#fff;font-weight:600">${label}:</span>` +
-      `<span style="color:#CCD6F6;margin-left:4px">${value}</span>`;
-
-    // Make visible (but off-screen) so we can measure its width
-    tip.style.opacity = '1';
-    tip.style.left    = '-9999px';
-    tip.style.top     = '-9999px';
-    tip.style.transform = '';
-
-    const tipW  = tip.offsetWidth;
-    const tipH  = tip.offsetHeight;
-    const MARGIN = 10;
-    const canvasRect = chart.canvas.getBoundingClientRect();
-
-    // Anchor point: Chart.js caretX/Y are canvas-local; convert to viewport coords
-    const anchorX = canvasRect.left + tooltip.caretX;
-    const anchorY = canvasRect.top  + tooltip.caretY;
-
-    // Try right of anchor first; fall back to left if it clips the viewport
-    let left = anchorX + MARGIN;
-    if (left + tipW > window.innerWidth - MARGIN) {
-      left = anchorX - tipW - MARGIN;
-    }
-    // Clamp so it never goes off the left edge either
-    left = Math.max(MARGIN, left);
-
-    // Vertically centre on the anchor; clamp top/bottom
-    let top = anchorY - tipH / 2;
-    top = Math.max(MARGIN, Math.min(top, window.innerHeight - tipH - MARGIN));
-
-    // position: fixed so viewport coords are correct
-    tip.style.position = 'fixed';
-    tip.style.left     = left + 'px';
-    tip.style.top      = top  + 'px';
-  }
-
-  // Hide tip when mouse leaves the canvas
-  const cvs = document.getElementById('chartCoverage');
-  if (cvs) cvs.addEventListener('mouseleave', hideDonutTip);
-
-  charts.coverage = new Chart(cvs, {
+  charts.coverage = new Chart(document.getElementById('chartCoverage'), {
     type: 'doughnut',
     data: {
       labels: ['Fully Met', 'Partially Met', 'Unmet'],
@@ -736,10 +662,7 @@ function renderCoverageChart(coverage) {
       cutout: '62%',
       plugins: {
         legend: { display: false },
-        tooltip: {
-          enabled: false,
-          external: externalDonutTooltip,
-        },
+        tooltip: { enabled: false },
       },
     },
     plugins: [{

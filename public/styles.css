@@ -1626,21 +1626,6 @@ body {
   max-width: 260px;
 }
 
-/* Donut external tooltip */
-#donutTip {
-  position: fixed;
-  background: #22263A;
-  border: 1px solid #2E3250;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-family: var(--font);
-  pointer-events: none;
-  white-space: nowrap;
-  opacity: 0;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
-  z-index: 200;
-}
 
 /* Drilldown summary stat boxes */
 .dd-stat {
