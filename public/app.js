@@ -155,6 +155,13 @@ function renderKPIs(data) {
   // Bench: coral if anyone on bench, mint if zero
   document.getElementById('kpiBench').className = 'kpi-value ' + (benchCount > 0 ? 'danger' : 'ok');
 
+  // Bench indicator pill in heatmap header
+  const benchInd = document.getElementById('benchIndicator');
+  if (benchInd) {
+    benchInd.textContent = `Bench: ${benchCount}`;
+    benchInd.className   = 'chart-badge ' + (benchCount > 0 ? 'warn' : 'ok');
+  }
+
   // Demand: coral if unmet, yellow if partial only, mint if all met
   const uncovEl = document.getElementById('kpiUncovered');
   uncovEl.className = 'kpi-value ' + (
@@ -692,11 +699,11 @@ function renderCoverageChart(coverage) {
 function renderBenchReport(benchReport) {
   const el    = document.getElementById('benchContent');
   const badge = document.getElementById('benchBadge');
+  if (!el && !badge) return; // bench card removed from DOM
 
   if (!benchReport || !benchReport.length) {
-    badge.textContent = 'No one on bench';
-    badge.className   = 'chart-badge ok';
-    el.innerHTML = `
+    if (badge) { badge.textContent = 'No one on bench'; badge.className = 'chart-badge ok'; }
+    if (el) el.innerHTML = `
       <div class="empty-state">
         <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
           <circle cx="20" cy="20" r="18" stroke="#e2e8f0" stroke-width="2"/>
@@ -708,8 +715,8 @@ function renderBenchReport(benchReport) {
   }
 
   const totalBench = benchReport.reduce((s, g) => s + g.employees.length, 0);
-  badge.textContent = `${totalBench} employee${totalBench !== 1 ? 's' : ''}`;
-  badge.className   = 'chart-badge warn';
+  if (badge) { badge.textContent = `${totalBench} employee${totalBench !== 1 ? 's' : ''}`; badge.className = 'chart-badge warn'; }
+  if (!el) return;
 
   el.innerHTML = benchReport.map(group => {
     const empRows = group.employees.map(emp => {

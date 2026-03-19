@@ -138,23 +138,12 @@
             <h3 class="chart-title">Availability Heatmap</h3>
             <p class="chart-sub">Weekly hours by employee · Click names, cells, or week headers for details</p>
           </div>
+          <span id="benchIndicator" class="chart-badge" onclick="drillBenchKPI()" title="Click to see employees on bench this week" style="cursor:pointer">Bench: —</span>
           <span class="chart-badge" id="heatmapBadge">—</span>
         </div>
         <div id="heatmapContainer">
           <div style="padding:32px;text-align:center;color:#8892B0">Loading heatmap…</div>
         </div>
-      </div>
-
-      <!-- Bench Report -->
-      <div class="chart-card staffing-bench-card">
-        <div class="chart-card-header">
-          <div>
-            <h3 class="chart-title">Bench Report</h3>
-            <p class="chart-sub">Employees under 10h this week · Grouped by skill</p>
-          </div>
-          <span class="chart-badge" id="benchBadge">—</span>
-        </div>
-        <div class="bench-content" id="benchContent"></div>
       </div>
 
     </div>

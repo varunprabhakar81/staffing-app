@@ -667,10 +667,6 @@ body {
   min-height: 0;
 }
 
-.staffing-bench-card {
-  flex-shrink: 0;
-  max-height: 26vh;
-}
 
 /* ── Needs Tab ───────────────────────────────────────────────────── */
 .needs-coverage-card {
