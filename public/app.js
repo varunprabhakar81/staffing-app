@@ -22,6 +22,9 @@ const charts = {};
 // ── Raw data store for drilldowns ─────────────────────────────────
 const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heatmap: null };
 
+// ── Tracks which employee rows are expanded in the heatmap ────────
+const _hmExpanded = new Set();
+
 // ── Status indicator ──────────────────────────────────────────────
 function setStatus(type, msg) {
   const dot  = document.getElementById('statusDot');
@@ -227,14 +230,17 @@ function buildHeatmapTable(data) {
     byLevel[emp.level].push(emp);
   }
 
-  // tbody
+  // tbody — employee rows + hidden project sub-rows
   let tbody = '<tbody>';
   for (const level of LEVEL_ORDER) {
     const emps = byLevel[level];
     if (!emps || !emps.length) continue;
     tbody += `<tr class="hm-level-row"><td colspan="${weeks.length + 1}">${level} <span style="opacity:0.55;font-size:11px">(${emps.length})</span></td></tr>`;
+
     for (const emp of emps) {
       const safeNameAttr = encodeAttr(emp.name);
+
+      // ── Employee row ──────────────────────────────────────────
       const cells = emp.weeklyHours.map((h, i) => {
         const projects = emp.weeklyProjects[i];
         const projLines = projects.length
@@ -249,24 +255,61 @@ function buildHeatmapTable(data) {
           onmousemove="positionHmTooltip(event)"
           onmouseleave="hideHmTooltip()">${h}</td>`;
       }).join('');
-      tbody += `<tr>
-        <td class="hm-name-cell dd-clickable" data-emp="${safeNameAttr}"
-          onclick="drillHeatmapEmployee(this.dataset.emp)" title="Click for full history">
-          <div class="hm-emp-name">${emp.name}</div>
-          <div class="hm-emp-skill">${emp.skillSet || '—'}</div>
+
+      tbody += `<tr class="hm-emp-row">
+        <td class="hm-name-cell" data-emp="${safeNameAttr}">
+          <div class="hm-name-inner" onclick="toggleHmExpand(this.closest('.hm-name-cell').dataset.emp)">
+            <span class="hm-chevron" data-emp="${safeNameAttr}">▶</span>
+            <div class="hm-name-text">
+              <div class="hm-emp-name">${emp.name}</div>
+              <div class="hm-emp-skill">${emp.skillSet || '—'}</div>
+            </div>
+          </div>
+          <span class="hm-info-icon" data-emp="${safeNameAttr}"
+            onclick="event.stopPropagation();drillHeatmapEmployee(this.dataset.emp)"
+            title="Full booking history">ℹ</span>
         </td>${cells}</tr>`;
+
+      // ── Project sub-rows (hidden by default) ──────────────────
+      // Collect unique projects ordered by first appearance
+      const allProjects = [];
+      for (const weekProjs of emp.weeklyProjects)
+        for (const p of weekProjs)
+          if (!allProjects.includes(p.project)) allProjects.push(p.project);
+
+      for (const projName of allProjects) {
+        const projCells = emp.weeklyProjects.map((weekProjs) => {
+          const match = weekProjs.find(p => p.project === projName);
+          const h = match ? match.hours : 0;
+          const bg = h > 0 ? heatmapCellBg(h) : '#16192A';
+          const fg = h > 0 ? heatmapCellFg(h) : '#4A5568';
+          return `<td class="hm-sub-cell" style="background:${bg};color:${fg}">${h > 0 ? h : '—'}</td>`;
+        }).join('');
+        tbody += `<tr class="hm-sub-row" data-parent="${safeNameAttr}">
+          <td class="hm-sub-name-cell"><span class="hm-sub-indent">${encodeAttr(projName)}</span></td>
+          ${projCells}</tr>`;
+      }
+
+      // Total sub-row
+      const totalCells = emp.weeklyHours.map(h => {
+        return `<td class="hm-sub-cell hm-sub-total-cell"
+          style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}">${h}</td>`;
+      }).join('');
+      tbody += `<tr class="hm-sub-row hm-sub-total-row" data-parent="${safeNameAttr}">
+        <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>
+        ${totalCells}</tr>`;
     }
   }
   tbody += '</tbody>';
 
   // Legend swatches
   const swatches = [
-    { bg: '#8B0000', fg: '#FFF', label: '0h — Bench' },
-    { bg: '#FFB3B3', fg: '#0F1117', label: '1–39h — Under' },
-    { bg: '#FFF3A3', fg: '#0F1117', label: '40–44h — Nominal' },
-    { bg: '#A8E6CF', fg: '#0F1117', label: '45h — Full' },
-    { bg: '#FF9999', fg: '#0F1117', label: '46–50h — Over' },
-    { bg: '#FF8A80', fg: '#0F1117', label: '51h+ — Over+' },
+    { bg: '#8B0000', label: '0h — Bench' },
+    { bg: '#FFB3B3', label: '1–39h — Under' },
+    { bg: '#FFF3A3', label: '40–44h — Nominal' },
+    { bg: '#A8E6CF', label: '45h — Full' },
+    { bg: '#FF9999', label: '46–50h — Over' },
+    { bg: '#FF8A80', label: '51h+ — Over+' },
   ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch" style="background:${s.bg}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
@@ -279,7 +322,52 @@ function buildHeatmapTable(data) {
         <span style="color:#A8E6CF;font-weight:600">${totalAvail}h available this week</span>
         <span style="color:#8892B0;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
       </div>
+      <div class="hm-legend-hint">Click ▶ to expand employee project breakdown</div>
     </div>`;
+
+  // Restore previously expanded employees (survives data refresh)
+  for (const empName of _hmExpanded) _applyExpand(empName, true);
+}
+
+// ── Expand / Collapse helpers ─────────────────────────────────────
+function _getSubRows(empName) {
+  return Array.from(document.querySelectorAll('.hm-sub-row'))
+    .filter(r => r.dataset.parent === empName);
+}
+
+function _getChevron(empName) {
+  return Array.from(document.querySelectorAll('.hm-chevron'))
+    .find(c => c.dataset.emp === empName);
+}
+
+function _applyExpand(empName, expanded) {
+  const rows    = _getSubRows(empName);
+  const chevron = _getChevron(empName);
+  if (expanded) {
+    rows.forEach(r => {
+      r.style.display = 'table-row';
+      r.offsetHeight;                        // force reflow for transition
+      r.classList.add('hm-sub-visible');
+    });
+    if (chevron) chevron.textContent = '▼';
+  } else {
+    rows.forEach(r => {
+      r.classList.remove('hm-sub-visible');
+      r.addEventListener('transitionend', () => { r.style.display = 'none'; }, { once: true });
+    });
+    if (chevron) chevron.textContent = '▶';
+  }
+}
+
+function toggleHmExpand(empName) {
+  const isExpanded = _hmExpanded.has(empName);
+  if (isExpanded) {
+    _hmExpanded.delete(empName);
+    _applyExpand(empName, false);
+  } else {
+    _hmExpanded.add(empName);
+    _applyExpand(empName, true);
+  }
 }
 
 // ── Heatmap Drilldown A: Cell click ──────────────────────────────

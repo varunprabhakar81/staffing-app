@@ -1229,6 +1229,118 @@ body {
 
 .hm-legend-stats { font-size: 12px; }
 
+.hm-legend-hint {
+  width: 100%;
+  font-size: 11px;
+  color: #4A5568;
+  margin-top: 4px;
+}
+
+/* ── Employee name cell inner layout ────────────────────────────── */
+.hm-name-cell {
+  position: relative; /* anchor for the info icon */
+}
+
+.hm-name-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding-right: 20px; /* leave room for info icon */
+}
+
+.hm-name-inner:hover .hm-emp-name { color: var(--accent); }
+
+/* ── Chevron ────────────────────────────────────────────────────── */
+.hm-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  font-size: 9px;
+  color: #8892B0;
+  user-select: none;
+  transition: color 0.15s;
+  line-height: 1;
+  margin-top: 1px;
+}
+.hm-name-inner:hover .hm-chevron { color: var(--accent); }
+
+.hm-name-text { flex: 1; min-width: 0; }
+
+/* ── Info icon (ℹ) — appears on row hover ───────────────────────── */
+.hm-info-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #4A5568;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 3px;
+  user-select: none;
+}
+.hm-emp-row:hover .hm-info-icon { opacity: 1; }
+.hm-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
+
+/* ── Project sub-rows ────────────────────────────────────────────── */
+.hm-sub-row {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.hm-sub-row.hm-sub-visible {
+  opacity: 1;
+}
+
+.hm-sub-name-cell {
+  background: #16192A;
+  padding: 4px 10px 4px 14px;
+  border-right: 1px solid #0F1117;
+  vertical-align: middle;
+}
+
+.hm-sub-indent {
+  font-size: 11px;
+  color: #8892B0;
+  font-style: italic;
+  padding-left: 24px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.hm-sub-cell {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #0F1117;
+  vertical-align: middle;
+  padding: 3px 2px;
+  height: 28px;
+}
+
+/* Total sub-row */
+.hm-sub-total-row .hm-sub-name-cell {
+  background: #1E2233;
+  border-top: 1px solid #2E3250;
+}
+.hm-sub-total-row .hm-sub-cell {
+  border-top: 1px solid #2E3250;
+}
+
+.hm-sub-total-label {
+  color: #FFFFFF !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+}
+
 /* Tooltip */
 #hmTooltip {
   position: fixed;
