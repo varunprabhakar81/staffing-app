@@ -83,13 +83,67 @@ Complete all items in TASKS.md. Internal pilot with our NetSuite practice.
 - Historical performance based staffing
 - Multi-tenant SaaS architecture
 
+## V1 Current State (as of March 2026)
+
+### What is built and working in V1
+
+**Navigation & Layout**
+- Four-tab navigation: Overview, Staffing, Needs, Ask Claude
+- Viewport-filling layout — no page scroll, each section scrolls internally
+- Dark theme with minimalistic pastel color palette (coral, mint, yellow, purple, peach)
+- Compact header bar (44px) with live data status indicator
+
+**Overview Tab**
+- Compact KPI strip: Total Headcount, Avg Utilization, On Bench, Open Demand Roles
+- All KPIs are clickable drilldowns opening a side panel with detail
+- Summary greeting with 3 stat boxes: Available Hours, Utilization Rate, Unmet Demand
+- Quick action buttons to navigate to Staffing, Needs and Ask Claude tabs
+
+**Staffing Tab**
+- Interactive availability heatmap: all employees as rows, 12 rolling weeks as columns
+- Color-coded cells: bench (dark red), underutilized (coral), nominal (yellow), full (mint), overbooked (red)
+- Expandable rows showing project-level breakdown per employee
+- Virtual scrolling for 44 employees — only visible rows in DOM, rAF-debounced
+- Row height 30px (level headers 20px) for dense but readable layout
+- Expand All / Collapse All pill buttons
+- Bench count indicator pill in heatmap header — clickable drilldown
+- Hover tooltip on employee name: shows name, level, skill set, current week hours + status
+- Click drilldowns: employee name → full 13-week booking history, cell → week detail, week header → team availability
+
+**Needs Tab**
+- Needs Coverage donut chart: Fully Met / Partially Met / Unmet categorization
+- Coverage table listing all open demand roles with status badges
+- Click-through drilldowns per role
+
+**Ask Claude Tab**
+- Natural language Q&A powered by Claude Sonnet
+- Suggested question chips pre-populated
+- Markdown-rendered responses
+
+**Data**
+- Real staffing data imported from Staffing_Data.xlsx (44 employees, 8 demand roles)
+- Excel-based data layer via exceljs
+- All drilldowns use live data from backend API
+
+### What is still in progress (Phase 5b)
+- Heatmap polish items (#56)
+- Left sidebar navigation (#48)
+- Needs tab improvements (#50)
+- Dynamic suggested questions in Ask Claude (#52)
+- Overview tab depth — alerts, trend sparkline (#49)
+- Header search and notifications (#53)
+
+---
+
 ## V1 to V2 Mapping
 Features already built in V1 that map to V2 epics:
-- Dashboard charts → Epic 5 (will be enhanced)
-- Ask Claude Q&A → Epic 3 FEAT-3.4 (will be enhanced)
-- Needs Coverage logic → Epic 2 FEAT-2.3 (will be rebuilt properly)
+- Interactive heatmap → Epic 2 (will be enhanced with drag-and-drop booking)
+- KPI strip with drilldowns → Epic 5 (will be enhanced with trend charts)
+- Ask Claude Q&A → Epic 3 FEAT-3.4 (will be enhanced with action capability)
+- Needs Coverage logic → Epic 2 FEAT-2.3 (will be rebuilt with proper skill matching)
 - Excel data backbone → Epic 6 (will migrate to SQLite)
-- AI Recommendations tab → Epic 3 (will be enhanced with explainability)
+- Color-coded utilization system → Epic 4 (will be enhanced with constraint engine)
+- Dark theme + pastel design system → carries forward to V2 UI
 
 ## Technology Decisions for V2
 - Database: SQLite → PostgreSQL for multi-tenant
