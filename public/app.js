@@ -224,7 +224,7 @@ function buildHeatmapTable(data) {
   const wkThs = weeks.map((w, i) =>
     `<th class="hm-week-th dd-clickable" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
   ).join('');
-  const thead = `<thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>`;
+  const thead = `<thead><tr><th class="hm-name-th">Employee<span id="hmToggleIcon" class="hm-toggle-icon" onclick="hmToggleAll()" title="Expand All">⊞</span></th>${wkThs}</tr></thead>`;
 
   // Group by level
   const byLevel = {};
@@ -330,7 +330,7 @@ function buildHeatmapTable(data) {
 
   // Restore previously expanded employees (survives data refresh)
   for (const empName of _hmExpanded) _applyExpand(empName, true);
-  _updateHmBulkBtns();
+  _updateHmToggleIcon();
 }
 
 // ── Expand / Collapse helpers ─────────────────────────────────────
@@ -372,38 +372,36 @@ function toggleHmExpand(empName) {
     _hmExpanded.add(empName);
     _applyExpand(empName, true);
   }
-  _updateHmBulkBtns();
+  _updateHmToggleIcon();
 }
 
 function _allEmpNames() {
   return Array.from(document.querySelectorAll('.hm-chevron')).map(c => c.dataset.emp);
 }
 
-function _updateHmBulkBtns() {
+function _updateHmToggleIcon() {
+  const icon = document.getElementById('hmToggleIcon');
+  if (!icon) return;
   const all = _allEmpNames();
-  const expandBtn   = document.getElementById('hmExpandAll');
-  const collapseBtn = document.getElementById('hmCollapseAll');
-  if (!expandBtn || !collapseBtn) return;
-  const allExpanded   = all.length > 0 && all.every(n => _hmExpanded.has(n));
-  const noneExpanded  = _hmExpanded.size === 0;
-  expandBtn.disabled   = allExpanded;
-  collapseBtn.disabled = noneExpanded;
+  const allExpanded = all.length > 0 && all.every(n => _hmExpanded.has(n));
+  if (allExpanded) {
+    icon.textContent = '⊟';
+    icon.title = 'Collapse All';
+  } else {
+    icon.textContent = '⊞';
+    icon.title = 'Expand All';
+  }
 }
 
-function hmExpandAll() {
-  for (const name of _allEmpNames()) {
-    _hmExpanded.add(name);
-    _applyExpand(name, true);
+function hmToggleAll() {
+  const all = _allEmpNames();
+  const allExpanded = all.length > 0 && all.every(n => _hmExpanded.has(n));
+  if (allExpanded) {
+    for (const name of all) { _hmExpanded.delete(name); _applyExpand(name, false); }
+  } else {
+    for (const name of all) { _hmExpanded.add(name); _applyExpand(name, true); }
   }
-  _updateHmBulkBtns();
-}
-
-function hmCollapseAll() {
-  for (const name of _allEmpNames()) {
-    _hmExpanded.delete(name);
-    _applyExpand(name, false);
-  }
-  _updateHmBulkBtns();
+  _updateHmToggleIcon();
 }
 
 // ── Heatmap Drilldown A: Cell click ──────────────────────────────
