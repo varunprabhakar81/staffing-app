@@ -237,31 +237,185 @@ function encodeAttr(s) {
     .replace(/\n/g, '&#10;');
 }
 
-// ── Tooltip helpers ───────────────────────────────────────────────
+// ── Virtual scroll constants & state ─────────────────────────────
+const VS_H_EMP   = 30;   // employee row height px
+const VS_H_LEVEL = 20;   // level group header height px
+const VS_H_SUB   = 26;   // project sub-row height px
+const VS_BUFFER  = 8;    // extra rows rendered beyond viewport
+
+let _vsData    = null;   // {weeks, employees} reference
+let _vsAllRows = [];     // flat array of row descriptors
+let _vsColCount = 13;    // 1 name col + N week cols
+let _vsScrollRaf = null; // rAF handle for scroll debounce
+
+// Build (or rebuild) flat row list from _vsData + _hmExpanded state
+function _buildVsAllRows() {
+  _vsAllRows = [];
+  if (!_vsData) return;
+  const { weeks, employees } = _vsData;
+  _vsColCount = weeks.length + 1;
+
+  const byLevel = {};
+  for (const emp of employees) {
+    if (!byLevel[emp.level]) byLevel[emp.level] = [];
+    byLevel[emp.level].push(emp);
+  }
+
+  for (const level of LEVEL_ORDER) {
+    const emps = byLevel[level];
+    if (!emps || !emps.length) continue;
+    _vsAllRows.push({ type: 'level', level, count: emps.length, height: VS_H_LEVEL });
+
+    for (const emp of emps) {
+      _vsAllRows.push({ type: 'emp', emp, height: VS_H_EMP });
+      if (_hmExpanded.has(emp.name)) {
+        const allProjects = [];
+        for (const wkProjs of emp.weeklyProjects)
+          for (const p of wkProjs)
+            if (!allProjects.includes(p.project)) allProjects.push(p.project);
+        for (const projName of allProjects)
+          _vsAllRows.push({ type: 'sub', emp, projName, height: VS_H_SUB });
+        _vsAllRows.push({ type: 'total', emp, height: VS_H_SUB });
+      }
+    }
+  }
+}
+
+// Render a single virtual row to HTML
+function _vsRenderRow(row) {
+  const C = _vsColCount;
+  if (row.type === 'level') {
+    return `<tr class="hm-level-row"><td colspan="${C}">${row.level} <span style="opacity:0.5;font-size:9px">(${row.count})</span></td></tr>`;
+  }
+
+  if (row.type === 'emp') {
+    const emp = row.emp;
+    const sn  = encodeAttr(emp.name);
+    const h0  = emp.weeklyHours[0] || 0;
+    const st  = h0 === 0 ? 'On bench' : h0 < 40 ? 'Under-utilized' : h0 <= 45 ? 'Nominal' : 'Overbooked';
+    const tip = encodeAttr(`${emp.name}\n${emp.level}  ·  ${emp.skillSet || '—'}\nThis week: ${h0}h — ${st}`);
+    const chv = _hmExpanded.has(emp.name) ? '▼' : '▶';
+    const cells = emp.weeklyHours.map((h, i) => {
+      const projs    = emp.weeklyProjects[i];
+      const projText = projs.length ? projs.map(p => `${p.project}: ${p.hours}h`).join('\n') : 'No bookings';
+      const ct = encodeAttr(`${h}h total\n${projText}`);
+      return `<td class="hm-cell dd-clickable"
+        style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}"
+        data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
+        onclick="drillHeatmapCell(this.dataset.emp,parseInt(this.dataset.idx))"
+        onmouseenter="showHmTooltip(event,this)"
+        onmousemove="positionHmTooltip(event)"
+        onmouseleave="hideHmTooltip()">${h}</td>`;
+    }).join('');
+    return `<tr class="hm-emp-row">
+      <td class="hm-name-cell" data-emp="${sn}" data-tip="${tip}"
+        onmouseenter="showEmpTip(event,this)"
+        onmousemove="moveEmpTip(event)"
+        onmouseleave="hideEmpTip()">
+        <div class="hm-name-inner" onclick="toggleHmExpand(this.closest('td').dataset.emp)">
+          <span class="hm-chevron">${chv}</span>
+          <div class="hm-name-text"><div class="hm-emp-name">${emp.name}</div></div>
+        </div>
+        <span class="hm-info-icon"
+          onclick="event.stopPropagation();drillHeatmapEmployee(this.closest('td').dataset.emp)"
+          title="Full booking history">ℹ</span>
+      </td>${cells}</tr>`;
+  }
+
+  if (row.type === 'sub') {
+    const { emp, projName } = row;
+    const cells = emp.weeklyProjects.map(wkProjs => {
+      const match = wkProjs.find(p => p.project === projName);
+      const h = match ? match.hours : 0;
+      return `<td class="hm-sub-cell" style="background:${h > 0 ? heatmapCellBg(h) : '#16192A'};color:${h > 0 ? heatmapCellFg(h) : '#4A5568'}">${h > 0 ? h : '—'}</td>`;
+    }).join('');
+    return `<tr class="hm-sub-row hm-sub-visible">
+      <td class="hm-sub-name-cell"><span class="hm-sub-indent">${encodeAttr(projName)}</span></td>${cells}</tr>`;
+  }
+
+  if (row.type === 'total') {
+    const cells = row.emp.weeklyHours.map(h =>
+      `<td class="hm-sub-cell hm-sub-total-cell" style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}">${h}</td>`
+    ).join('');
+    return `<tr class="hm-sub-row hm-sub-total-row hm-sub-visible">
+      <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>${cells}</tr>`;
+  }
+  return '';
+}
+
+// Render only the rows currently in (or near) the viewport
+function _vsRenderVisible() {
+  const tbody = document.getElementById('hmTbody');
+  const wrap  = document.querySelector('.hm-scroll-wrap');
+  if (!tbody || !wrap) return;
+
+  const n = _vsAllRows.length;
+  if (n === 0) { tbody.innerHTML = ''; return; }
+
+  // Compute cumulative row tops
+  let y = 0;
+  const tops = _vsAllRows.map(r => { const t = y; y += r.height; return t; });
+  const totalH = y;
+
+  const scrollTop = wrap.scrollTop;
+  const viewH     = wrap.clientHeight || 600;
+  const bufPx     = VS_BUFFER * VS_H_EMP;
+  const visTop    = Math.max(0, scrollTop - bufPx);
+  const visBot    = scrollTop + viewH + bufPx;
+
+  let first = 0;
+  while (first < n && tops[first] + _vsAllRows[first].height <= visTop) first++;
+  let last = first;
+  while (last < n && tops[last] < visBot) last++;
+
+  const topH = first > 0 ? tops[first] : 0;
+  const botH = last < n  ? totalH - tops[last] : 0;
+
+  let html = `<tr><td colspan="${_vsColCount}" style="height:${topH}px;padding:0;border:none;background:transparent"></td></tr>`;
+  for (let i = first; i < last; i++) html += _vsRenderRow(_vsAllRows[i]);
+  html += `<tr><td colspan="${_vsColCount}" style="height:${botH}px;padding:0;border:none;background:transparent"></td></tr>`;
+  tbody.innerHTML = html;
+}
+
+function hmVsScroll() {
+  if (_vsScrollRaf) return;
+  _vsScrollRaf = requestAnimationFrame(() => { _vsScrollRaf = null; _vsRenderVisible(); });
+}
+
+// ── Tooltip helpers (cell hover) ──────────────────────────────────
 let _hmTip = null;
 
 function showHmTooltip(evt, el) {
-  if (!_hmTip) {
-    _hmTip = document.createElement('div');
-    _hmTip.id = 'hmTooltip';
-    document.body.appendChild(_hmTip);
-  }
+  if (!_hmTip) { _hmTip = document.createElement('div'); _hmTip.id = 'hmTooltip'; document.body.appendChild(_hmTip); }
   _hmTip.textContent = el.dataset.tip || '';
   _hmTip.style.display = 'block';
   positionHmTooltip(evt);
 }
-
-function hideHmTooltip() {
-  if (_hmTip) _hmTip.style.display = 'none';
-}
-
+function hideHmTooltip() { if (_hmTip) _hmTip.style.display = 'none'; }
 function positionHmTooltip(evt) {
   if (!_hmTip || _hmTip.style.display === 'none') return;
-  const x = Math.min(evt.clientX + 14, window.innerWidth - 220);
-  const y = Math.max(evt.clientY - 50, 8);
-  _hmTip.style.left = x + 'px';
-  _hmTip.style.top  = y + 'px';
+  _hmTip.style.left = Math.min(evt.clientX + 14, window.innerWidth - 220) + 'px';
+  _hmTip.style.top  = Math.max(evt.clientY - 50, 8) + 'px';
 }
+
+// ── Employee name hover tooltip (300ms delay) ─────────────────────
+let _empTipTimer = null;
+
+function showEmpTip(evt, el) {
+  clearTimeout(_empTipTimer);
+  _empTipTimer = setTimeout(() => {
+    if (!_hmTip) { _hmTip = document.createElement('div'); _hmTip.id = 'hmTooltip'; document.body.appendChild(_hmTip); }
+    _hmTip.textContent = el.dataset.tip || '';
+    _hmTip.style.display = 'block';
+    moveEmpTip(evt);
+  }, 300);
+}
+function moveEmpTip(evt) {
+  if (!_hmTip || _hmTip.style.display === 'none') return;
+  _hmTip.style.left = Math.min(evt.clientX + 16, window.innerWidth - 260) + 'px';
+  _hmTip.style.top  = Math.max(evt.clientY - 10, 8) + 'px';
+}
+function hideEmpTip() { clearTimeout(_empTipTimer); if (_hmTip) _hmTip.style.display = 'none'; }
 
 // ── Build heatmap table ───────────────────────────────────────────
 function buildHeatmapTable(data) {
@@ -269,105 +423,23 @@ function buildHeatmapTable(data) {
   if (!container) return;
   const { weeks, employees } = data;
 
-  // Badge + legend stats for week 0 (current week)
+  // Store for virtual scroll
+  _vsData = data;
+
+  // Badge + legend stats for week 0
   let bench = 0, under = 0, full = 0, over = 0, totalAvail = 0;
   for (const emp of employees) {
     const h = emp.weeklyHours[0] || 0;
     totalAvail += Math.max(0, 45 - h);
-    if (h === 0)       bench++;
-    else if (h < 40)   under++;
-    else if (h <= 45)  full++;
-    else               over++;
+    if (h === 0) bench++; else if (h < 40) under++; else if (h <= 45) full++; else over++;
   }
   const badge = document.getElementById('heatmapBadge');
   if (badge) { badge.textContent = `${totalAvail}h available this week`; badge.className = 'chart-badge'; }
 
-  // thead
   const wkThs = weeks.map((w, i) =>
     `<th class="hm-week-th dd-clickable" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
   ).join('');
-  const thead = `<thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>`;
 
-  // Group by level
-  const byLevel = {};
-  for (const emp of employees) {
-    if (!byLevel[emp.level]) byLevel[emp.level] = [];
-    byLevel[emp.level].push(emp);
-  }
-
-  // tbody — employee rows + hidden project sub-rows
-  let tbody = '<tbody>';
-  for (const level of LEVEL_ORDER) {
-    const emps = byLevel[level];
-    if (!emps || !emps.length) continue;
-    tbody += `<tr class="hm-level-row"><td colspan="${weeks.length + 1}">${level} <span style="opacity:0.55;font-size:11px">(${emps.length})</span></td></tr>`;
-
-    for (const emp of emps) {
-      const safeNameAttr = encodeAttr(emp.name);
-
-      // ── Employee row ──────────────────────────────────────────
-      const cells = emp.weeklyHours.map((h, i) => {
-        const projects = emp.weeklyProjects[i];
-        const projLines = projects.length
-          ? projects.map(p => `${p.project}: ${p.hours}h`).join('\n')
-          : 'No bookings';
-        const tipText = encodeAttr(`${h}h total\n${projLines}`);
-        return `<td class="hm-cell dd-clickable"
-          style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}"
-          data-emp="${safeNameAttr}" data-idx="${i}" data-tip="${tipText}"
-          onclick="drillHeatmapCell(this.dataset.emp,parseInt(this.dataset.idx))"
-          onmouseenter="showHmTooltip(event,this)"
-          onmousemove="positionHmTooltip(event)"
-          onmouseleave="hideHmTooltip()">${h}</td>`;
-      }).join('');
-
-      tbody += `<tr class="hm-emp-row">
-        <td class="hm-name-cell" data-emp="${safeNameAttr}" title="${encodeAttr(emp.name + (emp.skillSet ? ' · ' + emp.skillSet : ''))}">
-          <div class="hm-name-inner" onclick="toggleHmExpand(this.closest('.hm-name-cell').dataset.emp)">
-            <span class="hm-chevron" data-emp="${safeNameAttr}">▶</span>
-            <div class="hm-name-text">
-              <div class="hm-emp-name">${emp.name}</div>
-              <div class="hm-emp-skill">${emp.skillSet || '—'}</div>
-            </div>
-          </div>
-          <span class="hm-info-icon" data-emp="${safeNameAttr}"
-            onclick="event.stopPropagation();drillHeatmapEmployee(this.dataset.emp)"
-            title="Full booking history">ℹ</span>
-        </td>${cells}</tr>`;
-
-      // ── Project sub-rows (hidden by default) ──────────────────
-      // Collect unique projects ordered by first appearance
-      const allProjects = [];
-      for (const weekProjs of emp.weeklyProjects)
-        for (const p of weekProjs)
-          if (!allProjects.includes(p.project)) allProjects.push(p.project);
-
-      for (const projName of allProjects) {
-        const projCells = emp.weeklyProjects.map((weekProjs) => {
-          const match = weekProjs.find(p => p.project === projName);
-          const h = match ? match.hours : 0;
-          const bg = h > 0 ? heatmapCellBg(h) : '#16192A';
-          const fg = h > 0 ? heatmapCellFg(h) : '#4A5568';
-          return `<td class="hm-sub-cell" style="background:${bg};color:${fg}">${h > 0 ? h : '—'}</td>`;
-        }).join('');
-        tbody += `<tr class="hm-sub-row" data-parent="${safeNameAttr}">
-          <td class="hm-sub-name-cell"><span class="hm-sub-indent">${encodeAttr(projName)}</span></td>
-          ${projCells}</tr>`;
-      }
-
-      // Total sub-row
-      const totalCells = emp.weeklyHours.map(h => {
-        return `<td class="hm-sub-cell hm-sub-total-cell"
-          style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}">${h}</td>`;
-      }).join('');
-      tbody += `<tr class="hm-sub-row hm-sub-total-row" data-parent="${safeNameAttr}">
-        <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>
-        ${totalCells}</tr>`;
-    }
-  }
-  tbody += '</tbody>';
-
-  // Legend swatches
   const swatches = [
     { bg: '#8B0000', label: '0h — Bench' },
     { bg: '#FFB3B3', label: '1–39h — Under' },
@@ -385,8 +457,11 @@ function buildHeatmapTable(data) {
         <button id="hmCollapseAll" class="hm-pill-btn" onclick="hmCollapseAll()" disabled>⊟ Collapse All</button>
       </div>
     </div>
-    <div class="hm-scroll-wrap">
-      <table class="hm-table">${thead}${tbody}</table>
+    <div class="hm-scroll-wrap" onscroll="hmVsScroll()">
+      <table class="hm-table">
+        <thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>
+        <tbody id="hmTbody"></tbody>
+      </table>
     </div>
     <div class="hm-legend">
       <div class="hm-legend-swatches">${swatches}</div>
@@ -394,76 +469,43 @@ function buildHeatmapTable(data) {
         <span style="color:#A8E6CF;font-weight:600">${totalAvail}h available this week</span>
         <span style="color:#8892B0;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
       </div>
-      <div class="hm-legend-hint">Click ▶ to expand employee project breakdown</div>
+      <div class="hm-legend-hint">Hover employee name for details · Click ▶ to expand project breakdown</div>
     </div>`;
 
-  // Restore previously expanded employees (survives data refresh)
-  for (const empName of _hmExpanded) _applyExpand(empName, true);
+  _buildVsAllRows();
+  _vsRenderVisible();
   _updateHmPillBtns();
 }
 
-// ── Expand / Collapse helpers ─────────────────────────────────────
-function _getSubRows(empName) {
-  return Array.from(document.querySelectorAll('.hm-sub-row'))
-    .filter(r => r.dataset.parent === empName);
-}
-
-function _getChevron(empName) {
-  return Array.from(document.querySelectorAll('.hm-chevron'))
-    .find(c => c.dataset.emp === empName);
-}
-
-function _applyExpand(empName, expanded) {
-  const rows    = _getSubRows(empName);
-  const chevron = _getChevron(empName);
-  if (expanded) {
-    rows.forEach(r => {
-      r.style.display = 'table-row';
-      r.offsetHeight;                        // force reflow for transition
-      r.classList.add('hm-sub-visible');
-    });
-    if (chevron) chevron.textContent = '▼';
-  } else {
-    rows.forEach(r => {
-      r.classList.remove('hm-sub-visible');
-      r.addEventListener('transitionend', () => { r.style.display = 'none'; }, { once: true });
-    });
-    if (chevron) chevron.textContent = '▶';
-  }
-}
-
+// ── Expand / Collapse (virtual-scroll aware) ──────────────────────
 function toggleHmExpand(empName) {
-  const isExpanded = _hmExpanded.has(empName);
-  if (isExpanded) {
-    _hmExpanded.delete(empName);
-    _applyExpand(empName, false);
-  } else {
-    _hmExpanded.add(empName);
-    _applyExpand(empName, true);
-  }
+  if (_hmExpanded.has(empName)) _hmExpanded.delete(empName);
+  else _hmExpanded.add(empName);
+  _buildVsAllRows();
+  _vsRenderVisible();
   _updateHmPillBtns();
-}
-
-function _allEmpNames() {
-  return Array.from(document.querySelectorAll('.hm-chevron')).map(c => c.dataset.emp);
 }
 
 function _updateHmPillBtns() {
   const expandBtn   = document.getElementById('hmExpandAll');
   const collapseBtn = document.getElementById('hmCollapseAll');
   if (!expandBtn || !collapseBtn) return;
-  const all = _allEmpNames();
-  expandBtn.disabled   = all.length > 0 && all.every(n => _hmExpanded.has(n));
+  const allNames = _vsData ? _vsData.employees.map(e => e.name) : [];
+  expandBtn.disabled   = allNames.length > 0 && allNames.every(n => _hmExpanded.has(n));
   collapseBtn.disabled = _hmExpanded.size === 0;
 }
 
 function hmExpandAll() {
-  for (const name of _allEmpNames()) { _hmExpanded.add(name); _applyExpand(name, true); }
+  if (_vsData) for (const emp of _vsData.employees) _hmExpanded.add(emp.name);
+  _buildVsAllRows();
+  _vsRenderVisible();
   _updateHmPillBtns();
 }
 
 function hmCollapseAll() {
-  for (const name of _allEmpNames()) { _hmExpanded.delete(name); _applyExpand(name, false); }
+  _hmExpanded.clear();
+  _buildVsAllRows();
+  _vsRenderVisible();
   _updateHmPillBtns();
 }
 
