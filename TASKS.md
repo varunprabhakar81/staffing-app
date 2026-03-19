@@ -43,7 +43,7 @@
 - [x] #16 Styling - make it exec-presentable
 
 ### Phase 5 - Navigation & UX
-- [ ] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs
+- [x] #46 Restructure navigation into Overview, Staffing, Needs and Ask Claude tabs
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
@@ -80,4 +80,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**26 complete [x] · 21 open [ ] · 47 total**
+**27 complete [x] · 20 open [ ] · 47 total**

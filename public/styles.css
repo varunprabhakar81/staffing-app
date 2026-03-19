@@ -201,7 +201,21 @@ body {
   height: 100%;
 }
 
-#tab-dashboard {
+#tab-overview {
+  overflow: hidden;
+  padding: 12px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+#tab-staffing {
+  overflow: hidden;
+  padding: 12px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+#tab-needs {
   overflow: hidden;
   padding: 12px;
   gap: 10px;
@@ -560,6 +574,125 @@ body {
 
 .empty-state svg { opacity: 0.3; margin-bottom: 8px; }
 .empty-state p { font-size: 13px; }
+
+/* ── Overview Tab ───────────────────────────────────────────────── */
+.overview-summary {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+
+.overview-greeting {
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.overview-stats {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.overview-stat-box {
+  flex: 1;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px 24px;
+  text-align: center;
+}
+
+.overview-stat--blue { border-color: rgba(168,199,250,0.3); }
+
+.overview-stat-value {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.overview-stat--blue .overview-stat-value { color: var(--accent); }
+.overview-stat-value.ok     { color: var(--mint); }
+.overview-stat-value.warn   { color: var(--yellow); }
+.overview-stat-value.danger { color: var(--coral); }
+
+.overview-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.overview-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.quick-action-btn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  color: var(--text-secondary);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.quick-action-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.quick-action-btn--primary {
+  background: var(--accent);
+  color: #0F1117;
+  border-color: var(--accent);
+}
+
+.quick-action-btn--primary:hover { background: #BDD5FC; border-color: #BDD5FC; color: #0F1117; }
+
+/* ── Staffing Tab ────────────────────────────────────────────────── */
+.staffing-heatmap-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.staffing-bench-card {
+  flex-shrink: 0;
+  max-height: 26vh;
+}
+
+/* ── Needs Tab ───────────────────────────────────────────────────── */
+.needs-coverage-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.ai-placeholder-card {
+  flex-shrink: 0;
+  background: #1A1D27;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-placeholder-text {
+  font-size: 13px;
+  color: #8892B0;
+}
 
 /* ── Ask Claude ─────────────────────────────────────────────────── */
 .ask-container {

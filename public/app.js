@@ -13,8 +13,19 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
+    // Resize charts after tab becomes visible (fixes Chart.js sizing on hidden panels)
+    if (tab === 'needs') {
+      requestAnimationFrame(() => {
+        Object.values(charts).forEach(c => c && typeof c.resize === 'function' && c.resize());
+      });
+    }
   });
 });
+
+function navigateTo(tabName) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if (btn) btn.click();
+}
 
 // Close drilldown on Escape
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrilldown(); });
@@ -100,6 +111,7 @@ async function loadDashboard() {
       `Last updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
     renderKPIs(data);
+    renderOverviewStats(data, rawData.heatmap);
     renderCoverageChart(data.needsCoverage);
     renderBenchReport(data.benchReport);
     if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
@@ -149,6 +161,49 @@ function renderKPIs(data) {
     (summary.unmet || 0) > 0       ? 'danger' :
     (summary.partially_met || 0) > 0 ? 'warn'   : 'ok'
   );
+}
+
+// ── Overview Summary Stats ────────────────────────────────────────
+function renderOverviewStats(data, heatmapData) {
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const today = new Date();
+  const daysToFri = (5 - today.getDay() + 7) % 7;
+  const fri = new Date(today);
+  fri.setDate(today.getDate() + daysToFri);
+  const weekLabel = `${fri.getMonth() + 1}/${fri.getDate()}`;
+  const greetEl = document.getElementById('overviewGreeting');
+  if (greetEl) greetEl.textContent = `${greeting} — staffing snapshot for week ending ${weekLabel}`;
+
+  // Available hours from heatmap week 0
+  let totalAvail = 0;
+  if (heatmapData && heatmapData.employees) {
+    for (const emp of heatmapData.employees)
+      totalAvail += Math.max(0, 45 - (emp.weeklyHours[0] || 0));
+  }
+  const availEl = document.getElementById('overviewAvailHours');
+  if (availEl) availEl.textContent = totalAvail ? `${totalAvail}h` : '—';
+
+  // Utilization
+  const levels  = data.utilizationByLevel || [];
+  const headcount = levels.reduce((s, l) => s + l.headcount, 0);
+  const avgUtil   = headcount
+    ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount) : 0;
+  const utilEl = document.getElementById('overviewUtil');
+  if (utilEl) {
+    utilEl.textContent = headcount ? `${avgUtil}%` : '—';
+    utilEl.className = 'overview-stat-value ' + (avgUtil >= 90 ? 'ok' : avgUtil >= 70 ? 'warn' : 'danger');
+  }
+
+  // Unmet demand
+  const summary = (data.needsCoverage || {}).summary || {};
+  const unmet   = summary.unmet || 0;
+  const unmetEl = document.getElementById('overviewUnmet');
+  if (unmetEl) {
+    unmetEl.textContent = String(unmet);
+    unmetEl.className = 'overview-stat-value ' + (unmet > 0 ? 'danger' : 'ok');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
