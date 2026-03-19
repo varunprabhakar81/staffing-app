@@ -78,13 +78,14 @@ async function readStaffingData() {
   });
 
   // ── Demand ────────────────────────────────────────────────────────────────
-  // Columns: Project/Client Name, Resource Level, Resource Skill Set, Start Date, End Date
+  // Columns: Project/Client Name, Resource Level, Resource Skill Set, Start Date, End Date, Hours Per Week
   const demand = sheetToObjects(workbook.getWorksheet('Demand')).map(row => ({
     projectName:   row['Project/Client Name'] ?? null,
     resourceLevel: row['Resource Level']      ?? null,
     skillSet:      row['Resource Skill Set']  ?? null,
     startDate:     row['Start Date']          ?? null,
     endDate:       row['End Date']            ?? null,
+    hoursPerWeek:  row['Hours Per Week']      ?? null,
   }));
 
   // ── Employee Master ───────────────────────────────────────────────────────

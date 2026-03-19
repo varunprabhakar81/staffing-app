@@ -110,18 +110,25 @@ function renderKPIs(data) {
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
     : 0;
   const benchCount  = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
-  const uncovered   = (data.needsCoverage || {}).uncovered || 0;
+  const summary     = (data.needsCoverage || {}).summary || {};
+  const totalRoles  = (summary.fully_met || 0) + (summary.partially_met || 0) + (summary.unmet || 0);
 
   document.getElementById('kpiHeadcount').textContent   = headcount || '—';
   document.getElementById('kpiUtilization').textContent = headcount ? `${avgUtil}%` : '—';
   document.getElementById('kpiBench').textContent       = benchCount;
-  document.getElementById('kpiUncovered').textContent   = uncovered;
+  document.getElementById('kpiUncovered').textContent   = totalRoles || '—';
+
+  const breakdownEl = document.getElementById('kpiCoverageBreakdown');
+  if (breakdownEl && totalRoles) {
+    breakdownEl.textContent =
+      `${summary.fully_met || 0} met · ${summary.partially_met || 0} partial · ${summary.unmet || 0} unmet`;
+  }
 
   const utilEl = document.getElementById('kpiUtilization');
   utilEl.className = 'kpi-value ' + (avgUtil > 95 ? 'danger' : avgUtil > 80 ? 'warn' : 'ok');
 
   const uncovEl = document.getElementById('kpiUncovered');
-  uncovEl.className = 'kpi-value ' + (uncovered > 0 ? 'warn' : 'ok');
+  uncovEl.className = 'kpi-value ' + ((summary.unmet || 0) > 0 ? 'warn' : 'ok');
 }
 
 // ── Utilization by Level ──────────────────────────────────────────
@@ -335,22 +342,25 @@ function renderCoverageChart(coverage) {
   if (charts.coverage) charts.coverage.destroy();
   if (!coverage) return;
 
-  const covered   = coverage.covered   || 0;
-  const uncovered = coverage.uncovered || 0;
-  const total     = coverage.total     || 0;
+  const summary      = coverage.summary || {};
+  const fullyMet     = summary.fully_met    || 0;
+  const partiallyMet = summary.partially_met || 0;
+  const unmet        = summary.unmet        || 0;
+  const total        = fullyMet + partiallyMet + unmet;
 
   const badge = document.getElementById('coverageBadge');
-  const pct   = total ? Math.round((covered / total) * 100) : 100;
-  badge.textContent = total ? `${pct}% covered` : 'No open roles';
-  badge.className   = 'chart-badge ' + (pct >= 80 ? 'ok' : pct >= 50 ? 'warn' : 'danger');
+  badge.textContent = total ? `${total} open roles` : 'No open roles';
+  badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
 
   charts.coverage = new Chart(document.getElementById('chartCoverage'), {
     type: 'doughnut',
     data: {
-      labels: ['Covered', 'Uncovered'],
+      labels: ['Fully Met', 'Partially Met', 'Unmet'],
       datasets: [{
-        data: [covered, uncovered || (total === 0 ? 1 : 0)],
-        backgroundColor: total === 0 ? ['#e2e8f0', '#e2e8f0'] : ['#10b981', '#ef4444'],
+        data: total === 0 ? [1, 0, 0] : [fullyMet, partiallyMet, unmet],
+        backgroundColor: total === 0
+          ? ['#e2e8f0', '#e2e8f0', '#e2e8f0']
+          : ['#A8E6CF', '#FFF3A3', '#FFB3B3'],
         borderWidth: 0,
         hoverOffset: 6,
       }],
@@ -377,11 +387,11 @@ function renderCoverageChart(coverage) {
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = `700 24px Inter, sans-serif`;
-        ctx.fillStyle = total === 0 ? '#94a3b8' : (pct >= 80 ? '#10b981' : '#ef4444');
-        ctx.fillText(`${pct}%`, cx, cy);
+        ctx.fillStyle = total === 0 ? '#94a3b8' : (unmet === 0 ? '#10b981' : '#ef4444');
+        ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy);
         ctx.font = `400 11px Inter, sans-serif`;
         ctx.fillStyle = '#94a3b8';
-        ctx.fillText('covered', cx, cy + 22);
+        ctx.fillText('open roles', cx, cy + 22);
         ctx.restore();
       },
     }],
@@ -393,12 +403,18 @@ function renderCoverageChart(coverage) {
     return;
   }
 
+  const statusBadge = (status) => {
+    if (status === 'fully_met')    return '<span class="badge-covered">Fully Met</span>';
+    if (status === 'partially_met') return '<span style="background:#FFF3A3;color:#7a6500;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">Partial</span>';
+    return '<span class="badge-uncovered">Unmet</span>';
+  };
+
   const rows = coverage.roles.map((r, i) => `
-    <tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click to see matching employees">
-      <td>${r.projectName || '—'}</td>
+    <tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click for details">
+      <td>${r.project || '—'}</td>
       <td>${r.skillSet || '—'}</td>
-      <td>${r.resourceLevel || '—'}</td>
-      <td><span class="${r.covered ? 'badge-covered' : 'badge-uncovered'}">${r.covered ? 'Covered' : 'Open'}</span></td>
+      <td>${r.level || '—'}</td>
+      <td>${statusBadge(r.status)}</td>
     </tr>
   `).join('');
 
@@ -639,67 +655,50 @@ function drillCliff(weekIndex) {
     </table>`);
 }
 
-// ── Drilldown 4: Needs Coverage — Available Matches ───────────────
+// ── Drilldown 4: Needs Coverage — Role Detail ─────────────────────
 function drillCoverage(roleIdx) {
   const role = rawData.coverageRoles[roleIdx];
   if (!role) return;
 
-  const levelMap   = {};
-  for (const emp of rawData.employees) levelMap[emp.employeeName] = emp.level;
-
-  const empAverages = buildEmpAverages();
-
-  // Match on skill set OR level
-  const matches = Object.entries(empAverages)
-    .filter(([n, info]) =>
-      info.skillSet === role.skillSet || levelMap[n] === role.resourceLevel)
-    .map(([n, info]) => ({
-      name:     n,
-      avg:      info.avg,
-      avail:    Math.round(Math.max(0, 45 - info.avg)),
-      stat:     utilStatus(info.avg),
-      skillSet: info.skillSet,
-      level:    levelMap[n] || '—',
-    }))
-    .sort((a, b) => a.avg - b.avg);   // Most available first
+  const statusLabel = {
+    fully_met:    '<span class="badge-covered" style="font-size:13px;padding:4px 12px">Fully Met</span>',
+    partially_met: '<span style="background:#FFF3A3;color:#7a6500;padding:4px 12px;border-radius:10px;font-size:13px;font-weight:600">Partially Met</span>',
+    unmet:        '<span class="badge-uncovered" style="font-size:13px;padding:4px 12px">Unmet</span>',
+  }[role.status] || '—';
 
   const roleCard = `
     <div class="dd-role-card">
-      <div class="dd-role-row"><span>Project</span><b>${role.projectName || '—'}</b></div>
-      <div class="dd-role-row"><span>Level Needed</span><b>${role.resourceLevel || '—'}</b></div>
+      <div class="dd-role-row"><span>Status</span><b>${statusLabel}</b></div>
+      <div class="dd-role-row"><span>Project</span><b>${role.project || '—'}</b></div>
+      <div class="dd-role-row"><span>Level Needed</span><b>${role.level || '—'}</b></div>
       <div class="dd-role-row"><span>Skill Set</span><b>${role.skillSet || '—'}</b></div>
       <div class="dd-role-row"><span>Dates</span><b>${role.startDate || '—'} – ${role.endDate || '—'}</b></div>
+      <div class="dd-role-row"><span>Hours Per Week</span><b>${role.hoursPerWeek || '—'}h/wk</b></div>
     </div>`;
 
-  if (!matches.length) {
-    openDrilldown(
-      `${role.resourceLevel || '—'} — ${role.skillSet || '—'} — Available Matches`,
-      roleCard + '<p class="dd-empty">No matching employees found.</p>'
-    );
-    return;
+  let matchSection = '';
+  if (role.bestMatch) {
+    const bm = role.bestMatch;
+    const coverageText = role.status === 'fully_met'
+      ? `Covers all ${bm.totalWeeks} weeks in range`
+      : `Covers ${bm.availableWeeks} of ${bm.totalWeeks} weeks at required ${role.hoursPerWeek}h/wk`;
+    matchSection = `
+      <h4 class="dd-section-title">Best Match</h4>
+      <table class="dd-table">
+        <thead><tr><th>Employee</th><th>Coverage</th></tr></thead>
+        <tbody><tr class="dd-best-match">
+          <td>${bm.employeeName} <span class="dd-badge status-full" style="margin-left:6px">Best Match</span></td>
+          <td style="color:#A8E6CF;font-weight:600">${coverageText}</td>
+        </tr></tbody>
+      </table>`;
+  } else {
+    const reason = `No ${role.level} with ${role.skillSet} available at ${role.hoursPerWeek}h/wk`;
+    matchSection = `<p class="dd-empty" style="color:#FFB3B3">${reason}</p>`;
   }
 
-  const tableRows = matches.map((m, i) => `
-    <tr ${i === 0 ? 'class="dd-best-match"' : ''}>
-      <td>${m.name}${i === 0 ? ' <span class="dd-badge status-full" style="margin-left:6px">Best Match</span>' : ''}</td>
-      <td>${m.level}</td>
-      <td>${m.skillSet}</td>
-      <td>${m.avg}h/wk</td>
-      <td style="color:#A8E6CF;font-weight:600">${m.avail}h free</td>
-      <td><span class="dd-badge ${m.stat.cls}">${m.stat.label}</span></td>
-    </tr>`).join('');
-
   openDrilldown(
-    `${role.resourceLevel || '—'} — ${role.skillSet || '—'} — Available Matches`,
-    roleCard + `
-      <h4 class="dd-section-title">Matching Employees (${matches.length})</h4>
-      <table class="dd-table">
-        <thead><tr>
-          <th>Employee</th><th>Level</th><th>Skill Set</th>
-          <th>Avg Hours</th><th>Availability</th><th>Status</th>
-        </tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>`
+    `${role.level || '—'} — ${role.skillSet || '—'}`,
+    roleCard + matchSection
   );
 }
 
@@ -927,63 +926,53 @@ function drillDemandKPI() {
     return;
   }
 
-  const levelMap   = {};
-  for (const emp of rawData.employees) levelMap[emp.employeeName] = emp.level;
-  const empAverages = buildEmpAverages();
+  const statusBadge = (status) => {
+    if (status === 'fully_met')    return '<span class="dd-badge status-full">Fully Met</span>';
+    if (status === 'partially_met') return '<span class="dd-badge status-under">Partially Met</span>';
+    return '<span class="dd-badge status-bench">Unmet</span>';
+  };
 
-  function bestMatch(role) {
-    const candidates = Object.entries(empAverages)
-      .filter(([, info]) => info.avg < 45)
-      .map(([name, info]) => {
-        const skillMatch = info.skillSet === role.skillSet;
-        const lvlMatch   = levelMap[name] === role.resourceLevel;
-        const type = (skillMatch && lvlMatch) ? 'full'
-                   : (skillMatch || lvlMatch)  ? 'partial'
-                   : 'none';
-        return { name, avg: info.avg, type };
-      })
-      .filter(c => c.type !== 'none')
-      .sort((a, b) => (a.type === 'full' ? 0 : 1) - (b.type === 'full' ? 0 : 1) || a.avg - b.avg);
-    return candidates[0] || null;
-  }
-
-  const rows = roles.map(role => {
-    const match = bestMatch(role);
-    let matchCell, rowStyle = '';
-    if (!match) {
-      matchCell = '<span class="dd-badge status-bench">No Match</span>';
-      rowStyle  = 'style="background:rgba(255,179,179,0.05)"';
-    } else if (match.type === 'full') {
-      matchCell = `<span class="dd-badge status-full">Full Match</span> <span style="font-size:12px;color:#8892B0">${match.name} (${match.avg}h)</span>`;
-      rowStyle  = 'style="background:rgba(168,230,207,0.05)"';
+  const rows = roles.map((role, i) => {
+    const bm = role.bestMatch;
+    let matchCell = '—';
+    if (bm) {
+      const weeks = role.status === 'fully_met'
+        ? `all ${bm.totalWeeks} wks`
+        : `${bm.availableWeeks}/${bm.totalWeeks} wks`;
+      matchCell = `${bm.employeeName} <span style="font-size:11px;color:#8892B0">(${weeks})</span>`;
     } else {
-      matchCell = `<span class="dd-badge status-under">Partial Match</span> <span style="font-size:12px;color:#8892B0">${match.name} (${match.avg}h)</span>`;
+      matchCell = `<span style="font-size:11px;color:#FFB3B3">No ${role.level} with ${role.skillSet}</span>`;
     }
-    return `<tr ${rowStyle}>
-      <td style="font-size:12px">${role.projectName || '—'}</td>
-      <td style="color:#8892B0;font-size:12px">${role.resourceLevel || '—'}</td>
+    const rowStyle = role.status === 'fully_met'
+      ? 'style="background:rgba(168,230,207,0.05)"'
+      : role.status === 'unmet' ? 'style="background:rgba(255,179,179,0.05)"' : '';
+    return `<tr ${rowStyle} class="dd-clickable" onclick="drillCoverage(${i})" title="Click for detail">
+      <td style="font-size:12px">${role.project || '—'}</td>
+      <td style="color:#8892B0;font-size:12px">${role.level || '—'}</td>
       <td style="font-size:12px">${role.skillSet || '—'}</td>
       <td style="font-size:11px;color:#8892B0">${role.startDate || '—'} – ${role.endDate || '—'}</td>
-      <td>${matchCell}</td>
+      <td style="font-size:12px">${role.hoursPerWeek || '—'}h/wk</td>
+      <td>${statusBadge(role.status)}</td>
+      <td style="font-size:12px">${matchCell}</td>
     </tr>`;
   }).join('');
 
-  const fullCount    = roles.filter(r => { const m = bestMatch(r); return m?.type === 'full'; }).length;
-  const partialCount = roles.filter(r => { const m = bestMatch(r); return m?.type === 'partial'; }).length;
-  const noneCount    = roles.filter(r => !bestMatch(r)).length;
+  const fullyMet    = roles.filter(r => r.status === 'fully_met').length;
+  const partiallyMet = roles.filter(r => r.status === 'partially_met').length;
+  const unmet       = roles.filter(r => r.status === 'unmet').length;
 
   const summary = `
     <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-      <span class="dd-badge status-full">Full Match: ${fullCount}</span>
-      <span class="dd-badge status-under">Partial Match: ${partialCount}</span>
-      <span class="dd-badge status-bench">No Match: ${noneCount}</span>
+      <span class="dd-badge status-full">Fully Met: ${fullyMet}</span>
+      <span class="dd-badge status-under" style="background:#FFF3A380;color:#7a6500">Partially Met: ${partiallyMet}</span>
+      <span class="dd-badge status-bench">Unmet: ${unmet}</span>
     </div>`;
 
   openDrilldown(`Open Demand — All Roles (${roles.length})`,
     summary + `
     <table class="dd-table">
       <thead><tr>
-        <th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Best Match</th>
+        <th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Hrs/Wk</th><th>Status</th><th>Best Match</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`);

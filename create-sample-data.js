@@ -99,8 +99,8 @@ const supplyRows = [
   // ── 45h — Marcus Webb (Manager): 25 + 20 ────────────────────────────────
   { name: 'Marcus Webb',     skillSet: 'NetSuite - Order to Cash',    project: 'Vantage Distribution – Full Suite Implementation',       hours: w(25) },
   { name: 'Marcus Webb',     skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(20) },
-  // ── 20h — Luke Bennett (Senior Consultant): 16 + 4 ──────────────────────
-  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: w(16) },
+  // ── Variable — Luke Bennett (Senior Consultant): 36→0 + 4 ──────────────
+  { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Pinnacle Logistics – Supply Chain Rollout',               hours: taper(36, 0, 5) },
   { name: 'Luke Bennett',    skillSet: 'NetSuite - Supply Chain',     project: 'Vantage Distribution – Full Suite Implementation',       hours: w(4)  },
   // ── 45h — Nina Patel (Senior Consultant): 35 + 10 ───────────────────────
   { name: 'Nina Patel',      skillSet: 'NetSuite - Order to Cash',    project: 'Clearwater Retail – O2C Optimization',                   hours: w(35) },
@@ -130,16 +130,24 @@ const supplyRows = [
 
 // Demand — 8 open roles, plain values only
 // Columns: Project/Client Name (A), Resource Level (B), Resource Skill Set (C),
-//          Start Date (D), End Date (E)
+//          Start Date (D), End Date (E), Hours Per Week (F)
 const demandData = [
-  { project: 'Harrington Manufacturing – NetSuite ERP Implementation',  level: 'Senior Consultant', skillSet: 'NetSuite - Record to Report', startDate: '04/01/2026', endDate: '06/30/2026' },
-  { project: 'Clearwater Retail – O2C Optimization',                    level: 'Consultant',         skillSet: 'NetSuite - Order to Cash',    startDate: '04/01/2026', endDate: '05/31/2026' },
-  { project: 'Pinnacle Logistics – Supply Chain Rollout',               level: 'Analyst',            skillSet: 'NetSuite - Supply Chain',     startDate: '03/21/2026', endDate: '06/27/2026' },
-  { project: 'Meridian Financial – R2R Consolidation',                  level: 'Manager',            skillSet: 'NetSuite - Record to Report', startDate: '05/01/2026', endDate: '07/31/2026' },
-  { project: 'Summit Healthcare – P2P Upgrade',                         level: 'Senior Consultant',  skillSet: 'NetSuite - Procure to Pay',   startDate: '04/15/2026', endDate: '07/15/2026' },
-  { project: 'Vantage Distribution – Full Suite Implementation',        level: 'Consultant',         skillSet: 'NetSuite - Procure to Pay',   startDate: '04/01/2026', endDate: '06/30/2026' },
-  { project: 'Apex Pharma – NetSuite Assessment',                       level: 'Senior Manager',     skillSet: 'NetSuite - Record to Report', startDate: '05/15/2026', endDate: '08/31/2026' },
-  { project: 'Internal – Pre-Sales Support',                            level: 'Analyst',            skillSet: 'NetSuite - Order to Cash',    startDate: '03/21/2026', endDate: '05/30/2026' },
+  // UNMET: no Senior Consultant with R2R available
+  { project: 'Harrington Manufacturing – NetSuite ERP Implementation',  level: 'Senior Consultant', skillSet: 'NetSuite - Record to Report', startDate: '04/01/2026', endDate: '06/30/2026', hoursPerWeek: 40 },
+  // UNMET: Aisha Kamara (O2C Consultant) has only 35h free, needs 40h
+  { project: 'Clearwater Retail – O2C Optimization',                    level: 'Consultant',         skillSet: 'NetSuite - Order to Cash',    startDate: '03/20/2026', endDate: '05/31/2026', hoursPerWeek: 40 },
+  // PARTIALLY MET: Luke Bennett covers weeks 6-15 only (first 5 weeks he's heavily booked)
+  { project: 'Pinnacle Logistics – Supply Chain Rollout',               level: 'Senior Consultant',  skillSet: 'NetSuite - Supply Chain',     startDate: '03/21/2026', endDate: '06/27/2026', hoursPerWeek: 30 },
+  // FULLY MET: Priya Sharma (Manager, R2R) has 35h free every week
+  { project: 'Meridian Financial – R2R Consolidation',                  level: 'Manager',            skillSet: 'NetSuite - Record to Report', startDate: '05/01/2026', endDate: '07/31/2026', hoursPerWeek: 30 },
+  // UNMET: Carlos Rivera (P2P Senior Consultant) is overbooked at 50h
+  { project: 'Summit Healthcare – P2P Upgrade',                         level: 'Senior Consultant',  skillSet: 'NetSuite - Procure to Pay',   startDate: '04/15/2026', endDate: '07/15/2026', hoursPerWeek: 40 },
+  // FULLY MET: Emily Walsh (Consultant, R2R) is fully on bench at 0h
+  { project: 'Vantage Distribution – Full Suite Implementation',        level: 'Consultant',         skillSet: 'NetSuite - Record to Report', startDate: '04/01/2026', endDate: '06/30/2026', hoursPerWeek: 30 },
+  // FULLY MET: James Okafor (Senior Manager, SC) is on bench at 0h
+  { project: 'Apex Pharma – NetSuite Assessment',                       level: 'Senior Manager',     skillSet: 'NetSuite - Supply Chain',     startDate: '05/15/2026', endDate: '08/31/2026', hoursPerWeek: 20 },
+  // UNMET: no Analyst with O2C skill set available
+  { project: 'Internal – Pre-Sales Support',                            level: 'Analyst',            skillSet: 'NetSuite - Order to Cash',    startDate: '03/21/2026', endDate: '05/30/2026', hoursPerWeek: 20 },
 ];
 
 // ── Row/range counts for data validation formulae ──────────────────────────
@@ -257,23 +265,25 @@ async function createResourcingFile() {
 
   // ── Tab 2: Demand ─────────────────────────────────────────────────────────
   // Columns: Project/Client Name (A), Resource Level (B), Resource Skill Set (C),
-  //          Start Date (D), End Date (E)
+  //          Start Date (D), End Date (E), Hours Per Week (F)
   const demandSheet = workbook.addWorksheet('Demand');
   demandSheet.columns = [
-    { header: 'Project/Client Name',  key: 'project',   width: 52 },
-    { header: 'Resource Level',       key: 'level',     width: 20 },
-    { header: 'Resource Skill Set',   key: 'skillSet',  width: 34 },
-    { header: 'Start Date',           key: 'startDate', width: 14 },
-    { header: 'End Date',             key: 'endDate',   width: 14 },
+    { header: 'Project/Client Name',  key: 'project',      width: 52 },
+    { header: 'Resource Level',       key: 'level',        width: 20 },
+    { header: 'Resource Skill Set',   key: 'skillSet',     width: 34 },
+    { header: 'Start Date',           key: 'startDate',    width: 14 },
+    { header: 'End Date',             key: 'endDate',      width: 14 },
+    { header: 'Hours Per Week',       key: 'hoursPerWeek', width: 14 },
   ];
   styleHeader(demandSheet.getRow(1));
   demandSheet.views = [{ state: 'frozen', ySplit: 1 }];
 
   for (const d of demandData) {
     const row = demandSheet.addRow(d);
-    row.getCell('startDate').alignment = { horizontal: 'center' };
-    row.getCell('endDate').alignment   = { horizontal: 'center' };
-    stripeRow(row, ['project', 'level', 'skillSet', 'startDate', 'endDate']);
+    row.getCell('startDate').alignment    = { horizontal: 'center' };
+    row.getCell('endDate').alignment      = { horizontal: 'center' };
+    row.getCell('hoursPerWeek').alignment = { horizontal: 'center' };
+    stripeRow(row, ['project', 'level', 'skillSet', 'startDate', 'endDate', 'hoursPerWeek']);
   }
 
   // Data validation dropdowns for Demand
