@@ -213,23 +213,24 @@ body {
   align-items: center;
   justify-content: center;
   background: #2E3250;
-  border: 1px solid #3A3F6B;
+  border: 1px solid #4A5080;
   border-radius: 50%;
-  color: #8892B0;
+  color: #FFFFFF;
   cursor: pointer;
   width: 28px;
   height: 28px;
-  margin: 0 auto;
+  margin: 0 auto 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  transition: background 0.15s ease, color 0.2s ease, border-color 0.15s ease;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
-.sidebar-collapse-btn:hover { background: #3A4268; color: #A8C7FA; border-color: #A8C7FA; }
+.sidebar-collapse-btn:hover { background: #3A4070; color: #A8C7FA; border-color: #A8C7FA; }
 
 .collapse-icon {
-  transition: transform 0.2s ease;
+  font-style: normal;
 }
-.sidebar.collapsed .collapse-icon { transform: rotate(180deg); }
 
 /* ── Content topbar (refresh button) ───────────────────────────── */
 .content-topbar {
@@ -320,23 +321,23 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 500;
   font-family: var(--font);
-  color: #8892B0;
-  background: #1A1D27;
-  border: 1px solid #2E3250;
+  color: #FFFFFF;
+  background: #2E3250;
+  border: 1px solid #4A5080;
   border-radius: 6px;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .refresh-btn:hover {
-  color: #FFFFFF;
-  border-color: #8892B0;
+  background: #3A4070;
+  border-color: #A8C7FA;
 }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */

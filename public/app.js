@@ -33,7 +33,10 @@ function navigateTo(tabName) {
 
 // ── Sidebar collapse ───────────────────────────────────────────────
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed');
+  const icon = document.querySelector('.collapse-icon');
+  if (icon) icon.textContent = sidebar.classList.contains('collapsed') ? '›' : '‹';
 }
 
 // Close drilldown on Escape
