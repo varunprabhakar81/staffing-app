@@ -159,15 +159,18 @@ function renderOverviewStats(data, heatmapData) {
   const avgUtil = headcount
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
     : 0;
-  // Booked count: unique employees with >0 hours in current week across all supply rows
+  // Booked count: employees with client project hours > 0 this week (excludes Unassigned/bench rows)
   const currentWeekKey = heatmapData && heatmapData.weeks && heatmapData.weeks[0]
     ? `Week ending ${heatmapData.weeks[0]}` : null;
   const bookedSet = new Set();
   (rawData.supply || []).forEach(row => {
-    if (currentWeekKey && (row.weeklyHours || {})[currentWeekKey] > 0) bookedSet.add(row.employeeName);
+    if (currentWeekKey && row.projectAssigned !== 'Unassigned'
+        && (row.weeklyHours || {})[currentWeekKey] > 0) {
+      bookedSet.add(row.employeeName);
+    }
   });
   const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
-  console.log('[Overview] avgUtil:', avgUtil, '% | bookedCount:', bookedCount, '/', headcount);
+  console.log('[Overview] avgUtil:', avgUtil, '% | bookedCount:', bookedCount, '/', headcount, '| week:', currentWeekKey);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';

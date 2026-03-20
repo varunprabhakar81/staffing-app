@@ -693,6 +693,7 @@ body {
   display: flex;
   align-items: flex-start;
   padding-top: 2px;
+  padding-right: 10px;
   overflow: visible;
 }
 
@@ -738,7 +739,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: 100%;
 }
 
 .ov-right-col {
