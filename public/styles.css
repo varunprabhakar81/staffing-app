@@ -806,8 +806,9 @@ body {
 .ov-level-panel { overflow: hidden; }
 /* Level panel: only as tall as its content — no stretch to full grid row */
 .ov-level-panel { align-self: start; }
-/* Cliff/needs panels: fill right column height, inner list scrolls */
-.ov-cliff-panel,
+/* Cliff panel: size to content so items are never clipped mid-row */
+.ov-cliff-panel { overflow: hidden; }
+/* Needs panel: still fills the remaining right-column height */
 .ov-needs-panel { flex: 1; min-height: 0; overflow: hidden; }
 
 .ov-panel-header {
@@ -884,8 +885,15 @@ body {
   flex-shrink: 0;
 }
 
-/* Rolling Off items */
-.ov-cliff-list,
+/* Rolling Off list: cap height so panel doesn't grow unbounded */
+.ov-cliff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 296px;   /* ~4 full items (each ~68px) + 3 gaps */
+  overflow-y: auto;
+}
+/* Needs list: still fills whatever height the needs panel provides */
 .ov-needs-list {
   display: flex;
   flex-direction: column;
