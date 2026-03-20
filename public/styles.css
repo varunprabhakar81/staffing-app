@@ -169,7 +169,7 @@ body {
   font-size: 14px;
   font-weight: 500;
   font-family: var(--font);
-  color: var(--text-secondary);
+  color: #8892B0;
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -178,14 +178,20 @@ body {
   margin-bottom: -1px;
 }
 
-.tab-btn:hover { color: var(--accent); }
+.tab-btn:hover { color: #FFFFFF; }
 
 .tab-btn.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent);
+  color: #FFFFFF;
+  border-bottom-color: #A8C7FA;
 }
 
-.tab-btn svg { opacity: 0.6; transition: opacity 0.2s ease; }
+.tab-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
 .tab-btn.active svg,
 .tab-btn:hover svg { opacity: 1; }
 
@@ -783,13 +789,14 @@ body {
   display: grid;
   grid-template-columns: 58fr 42fr;
   gap: 12px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .ov-left-col {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
 }
 
 .ov-right-col {
@@ -969,7 +976,7 @@ body {
 
 /* Top Projects panel */
 .ov-projects-panel {
-  height: auto;
+  flex: 1;
 }
 .ov-projects-list {
   display: flex;
