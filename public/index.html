@@ -6,7 +6,7 @@
   <title>Staffing Intelligence | Resource Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -173,14 +173,27 @@
       <!-- Row 2: Level Breakdown (left) + Rolling Off + Needs Attention (right) -->
       <div class="ov-row2">
 
-        <!-- Left: Utilization by Level -->
-        <div class="ov-panel ov-level-panel">
-          <div class="ov-panel-header">
-            <span class="ov-panel-title">Utilization by Level</span>
+        <!-- Left column: Utilization by Level + Top Projects -->
+        <div class="ov-left-col">
+
+          <div class="ov-panel ov-level-panel">
+            <div class="ov-panel-header">
+              <span class="ov-panel-title">Utilization by Level</span>
+            </div>
+            <div id="ovLevelBreakdown" class="ov-level-list">
+              <div class="ov-empty">Loading…</div>
+            </div>
           </div>
-          <div id="ovLevelBreakdown" class="ov-level-list">
-            <div class="ov-empty">Loading…</div>
+
+          <div class="ov-panel ov-projects-panel">
+            <div class="ov-panel-header">
+              <span class="ov-panel-title">📊 Top Projects This Week</span>
+            </div>
+            <div id="ovTopProjects" class="ov-projects-list">
+              <div class="ov-empty">Loading…</div>
+            </div>
           </div>
+
         </div>
 
         <!-- Right: two stacked panels -->
@@ -336,6 +349,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
