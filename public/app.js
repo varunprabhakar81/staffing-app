@@ -157,12 +157,14 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
   const heatTotalCap = totalConsultants * 45;
-  // Compute utilization from current-week heatmap so % and booked count are consistent
-  const avgUtil = totalConsultants > 0 && heatTotalCap > 0
-    ? Math.round(currentWeekHours / heatTotalCap * 100)
-    : headcount
+  // Use API's multi-week weighted average (correct 65% figure)
+  const avgUtil = headcount
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
     : 0;
+  // Booked count: employees NOT on bench this week (bench = <10h, per /api/dashboard benchReport)
+  const benchCount = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
+  bookedCount = Math.max(0, headcount - benchCount);
+  console.log('[Util] avgUtil:', avgUtil, '| bookedCount:', bookedCount, '| headcount:', headcount, '| benchCount:', benchCount);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
@@ -173,9 +175,9 @@ function renderOverviewStats(data, heatmapData) {
   if (utilEl) utilEl.textContent = headcount ? String(avgUtil) : '—';
 
   const utilSecondary = document.getElementById('overviewUtilSecondary');
-  if (utilSecondary && totalConsultants) {
-    const avgHrs = Math.round(currentWeekHours / totalConsultants);
-    utilSecondary.textContent = `${bookedCount} of ${totalConsultants} booked · avg ${avgHrs}h/wk`;
+  if (utilSecondary && headcount) {
+    const avgHrs = headcount > 0 ? Math.round(currentWeekHours / headcount) : 0;
+    utilSecondary.textContent = `${bookedCount} of ${headcount} booked · avg ${avgHrs}h/wk`;
   }
 
   // Update semi-circular gauge

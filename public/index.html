@@ -21,19 +21,23 @@
       </div>
       <div class="tab-nav-divider"></div>
       <button class="tab-btn active" data-tab="overview">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
+        <!-- Dashboard: 4-square grid -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6.5" height="6.5" rx="1.5" fill="currentColor"/><rect x="8.5" y="1" width="6.5" height="6.5" rx="1.5" fill="currentColor" opacity=".5"/><rect x="1" y="8.5" width="6.5" height="6.5" rx="1.5" fill="currentColor" opacity=".5"/><rect x="8.5" y="8.5" width="6.5" height="6.5" rx="1.5" fill="currentColor"/></svg>
         Overview
       </button>
       <button class="tab-btn" data-tab="staffing">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="4.5" r="2.5" fill="currentColor"/><path d="M1 13c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="5" r="2" fill="currentColor" opacity=".5"/><path d="M14 13c0-2.209-1.343-4-3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>
+        <!-- Heatmap/bars: vertical bar chart -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="3" height="7" rx="1" fill="currentColor"/><rect x="6" y="4" width="3" height="11" rx="1" fill="currentColor"/><rect x="11" y="1" width="3" height="14" rx="1" fill="currentColor" opacity=".6"/><path d="M1 6.5h13" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" opacity=".35"/></svg>
         Staffing
       </button>
       <button class="tab-btn" data-tab="needs">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3.5v4m0 2.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <!-- Alert triangle -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L1.5 13.5h13L8 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="8" y1="6.5" x2="8" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="12" r="0.75" fill="currentColor"/></svg>
         Needs
       </button>
       <button class="tab-btn" data-tab="ask">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M6 6.5C6 5.4 6.9 4.5 8 4.5s2 .9 2 2c0 .8-.5 1.5-1.2 1.8L8 8.7V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="12" r=".75" fill="currentColor"/></svg>
+        <!-- Sparkle/AI -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3.5 3.5l2 2M10.5 10.5l2 2M10.5 3.5l-2 2M5.5 10.5l-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
         Ask Claude
       </button>
       <div class="tab-nav-meta">
@@ -68,7 +72,7 @@
               <p class="ov-secondary" id="overviewUtilSecondary">— consultants booked</p>
             </div>
             <div class="ov-card-gauge">
-              <svg viewBox="0 0 120 68" width="90" height="51" aria-hidden="true">
+              <svg viewBox="-4 0 128 72" width="90" height="51" aria-hidden="true" style="overflow:visible">
                 <!-- Background arc -->
                 <path d="M 10,62 A 50,50 0 0,1 110,62" fill="none" stroke="#2E3250" stroke-width="8" stroke-linecap="round"/>
                 <!-- Fill arc (JS-controlled) -->

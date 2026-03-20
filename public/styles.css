@@ -693,6 +693,7 @@ body {
   display: flex;
   align-items: flex-start;
   padding-top: 2px;
+  overflow: visible;
 }
 
 .ov-card-trend {
