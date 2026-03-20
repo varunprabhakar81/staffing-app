@@ -129,6 +129,14 @@ async function loadDashboard() {
     renderBenchReport(data.benchReport);
     if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
 
+    // DEBUG: viewport fit measurement — remove after tuning
+    requestAnimationFrame(() => {
+      const el = document.getElementById('tab-overview');
+      console.log('Viewport height:', window.innerHeight);
+      console.log('Content height:', el ? el.scrollHeight : 'N/A');
+      console.log('Difference:', el ? el.scrollHeight - window.innerHeight : 'N/A');
+    });
+
   } catch (err) {
     setStatus('error', 'Connection error');
     document.getElementById('dataTimestamp').textContent = 'Could not load data — check server';
