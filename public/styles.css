@@ -232,15 +232,6 @@ body {
   font-style: normal;
 }
 
-/* ── Content topbar (refresh button) ───────────────────────────── */
-.content-topbar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 6px 16px 0;
-  flex-shrink: 0;
-}
-
 /* ── Main Content ───────────────────────────────────────────────── */
 .main-content {
   flex: 1;
@@ -317,28 +308,21 @@ body {
   margin-top: 3px;
 }
 
-.refresh-btn {
+/* sidebar refresh icon button */
+.sidebar-refresh-btn {
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #8892B0;
+  cursor: pointer;
+  padding: 4px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: var(--font);
-  color: #FFFFFF;
-  background: #2E3250;
-  border: 1px solid #4A5080;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
   flex-shrink: 0;
-  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-
-.refresh-btn:hover {
-  background: #3A4070;
-  border-color: #A8C7FA;
-}
+.sidebar-refresh-btn:hover { background: #2E3250; color: #FFFFFF; }
+.sidebar.collapsed .sidebar-refresh-btn { display: none; }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
 .kpi-strip {
