@@ -193,7 +193,7 @@ body {
 .main-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 0;
 }
 
@@ -968,6 +968,10 @@ body {
 }
 
 /* Top Projects panel */
+.ov-projects-panel {
+  height: auto;
+  align-self: start;
+}
 .ov-projects-list {
   display: flex;
   flex-direction: column;
