@@ -74,6 +74,7 @@
 - [ ] #23 Technical Testing - verify API error handling and edge cases
 - [ ] #24 Technical Testing - verify app handles missing or malformed Excel data
 - [ ] #25 Technical Testing - performance testing with large datasets
+- [ ] #61 Comprehensive drilldown review and improvement across all tabs
 
 ### Phase 9 - UAT
 - [ ] #26 UAT - exec team reviews dashboard with real data
@@ -93,4 +94,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**35 complete [x] · 23 open [ ] · 58 tracked**
+**35 complete [x] · 24 open [ ] · 59 tracked**
