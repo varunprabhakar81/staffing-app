@@ -166,10 +166,10 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
   const heatTotalCap = totalConsultants * 45;
-  // Current-week utilization from heatmap; fall back to API average if no heatmap data
-  const avgUtil = heatTotalCap > 0
-    ? Math.round(currentWeekHours / heatTotalCap * 100)
-    : (headcount ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount) : 0);
+  // Use API 12-week rolling weighted average (do NOT recalculate in frontend)
+  const avgUtil = headcount
+    ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
+    : 0;
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';

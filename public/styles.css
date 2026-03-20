@@ -780,6 +780,7 @@ body {
 .ov-row2 {
   display: grid;
   grid-template-columns: 58fr 42fr;
+  grid-template-rows: 1fr;
   gap: 12px;
   flex: 1;
   min-height: 0;
@@ -807,7 +808,7 @@ body {
 .ov-level-panel { align-self: start; }
 /* Cliff/needs panels: fill right column height, inner list scrolls */
 .ov-cliff-panel,
-.ov-needs-panel { flex: 1; min-height: 0; overflow: visible; }
+.ov-needs-panel { flex: 1; min-height: 0; overflow: hidden; }
 
 .ov-panel-header {
   display: flex;
