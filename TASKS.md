@@ -93,5 +93,10 @@
 ### Phase 12 - Developer Experience
 - [ ] #43 Toggl Track integration for automatic time tracking
 
+### Phase 13 - Auth & User Management
+(Depends on Phase 10 SQLite being complete)
+- [ ] #62 Role-Based Access Control (RBAC)
+- [ ] #63 User Management UI for Admin role
+
 ---
-**35 complete [x] · 24 open [ ] · 59 tracked**
+**35 complete [x] · 26 open [ ] · 61 tracked**
