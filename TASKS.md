@@ -54,10 +54,11 @@
 - [x] #59 Overview tab - executive dashboard redesign (polished)
 
 ### Phase 5b - SaaS Polish & UX (remaining)
-- [ ] #48 Left sidebar navigation to replace top tab bar
+- [x] #48 Left sidebar navigation to replace top tab bar
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
+- [ ] #60 Sidebar, Overview and keyboard navigation polish
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
@@ -94,4 +95,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**33 complete [x] · 24 open [ ] · 57 tracked**
+**34 complete [x] · 24 open [ ] · 58 tracked**
