@@ -145,26 +145,29 @@ function renderOverviewStats(data, heatmapData) {
   const headcount        = levels.reduce((s, l) => s + l.headcount, 0);
   const totalConsultants = heatmapData && heatmapData.employees ? heatmapData.employees.length : headcount;
 
-  // Compute all metrics from current-week heatmap so utilization % and bookedCount match
-  let totalAvail = 0, benchThisWeek = 0, bookedCount = 0, currentWeekHours = 0;
+  // Compute available hours and current-week hours from heatmap
+  let totalAvail = 0, benchThisWeek = 0, currentWeekHours = 0;
   if (heatmapData && heatmapData.employees) {
     for (const emp of heatmapData.employees) {
       const hrs = emp.weeklyHours[0] || 0;
       totalAvail      += Math.max(0, 45 - hrs);
       currentWeekHours += hrs;
       if (hrs === 0) benchThisWeek++;
-      else bookedCount++;
     }
   }
-  const heatTotalCap = totalConsultants * 45;
-  // Use API's multi-week weighted average (correct 65% figure)
+  // Use API's multi-week weighted average for utilization % (correct 65% figure)
   const avgUtil = headcount
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
     : 0;
-  // Booked count: employees NOT on bench this week (bench = <10h, per /api/dashboard benchReport)
-  const benchCount = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
-  bookedCount = Math.max(0, headcount - benchCount);
-  console.log('[Util] avgUtil:', avgUtil, '| bookedCount:', bookedCount, '| headcount:', headcount, '| benchCount:', benchCount);
+  // Booked count: unique employees with >0 hours in current week across all supply rows
+  const currentWeekKey = heatmapData && heatmapData.weeks && heatmapData.weeks[0]
+    ? `Week ending ${heatmapData.weeks[0]}` : null;
+  const bookedSet = new Set();
+  (rawData.supply || []).forEach(row => {
+    if (currentWeekKey && (row.weeklyHours || {})[currentWeekKey] > 0) bookedSet.add(row.employeeName);
+  });
+  const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
+  console.log('[Overview] avgUtil:', avgUtil, '% | bookedCount:', bookedCount, '/', headcount);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
