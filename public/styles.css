@@ -721,7 +721,7 @@ body {
 /* ── Row 2: two-column grid ─────────────────────────────────────── */
 .ov-row2 {
   display: grid;
-  grid-template-columns: 58fr 42fr;
+  grid-template-columns: 58% 42%;
   gap: 10px;
   align-items: stretch;
   margin-top: 10px;
