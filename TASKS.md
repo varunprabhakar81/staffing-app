@@ -47,16 +47,16 @@
 
 ### Phase 5b - SaaS Polish & UX
 - [x] #54 Staffing tab - remove Bench Report, add bench count indicator to heatmap
-- [x] #51 Staffing tab - Bench Report as collapsible side panel (closed - superseded by #54)
 - [x] #55 Heatmap - optimized row density (50-60 employees)
 - [x] #58 Heatmap - complete virtual scrolling to show all 25+ employees
 - [x] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes, row spacing)
 - [x] #57 Move Bench Report snapshot to Overview tab as 4th stat card
+- [ ] #59 Overview tab - executive dashboard redesign
 - [ ] #48 Left sidebar navigation to replace top tab bar
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
-- [ ] #49 Overview tab - fill empty space with meaningful content
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
+- [x] #49 Overview tab - fill empty space (superseded by #59)
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
