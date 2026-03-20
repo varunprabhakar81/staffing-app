@@ -151,7 +151,14 @@ function renderKPIs(data) {
 
 // ── Overview Executive Dashboard ──────────────────────────────────
 function renderOverviewStats(data, heatmapData) {
-  // Greeting line removed — saves 32px vertical space
+  // Compact snapshot label
+  const greetEl = document.getElementById('overviewGreeting');
+  if (greetEl) {
+    const now = new Date();
+    const weekEnd = new Date(now);
+    weekEnd.setDate(now.getDate() + (6 - now.getDay()));
+    greetEl.textContent = `Practice snapshot · Week ending ${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+  }
 
   // ── Shared data ──────────────────────────────────────────────────
   const levels           = data.utilizationByLevel || [];
