@@ -157,8 +157,10 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
   const heatTotalCap = totalConsultants * 45;
-  // Use API 12-week rolling weighted average (do NOT recalculate in frontend)
-  const avgUtil = headcount
+  // Compute utilization from current-week heatmap so % and booked count are consistent
+  const avgUtil = totalConsultants > 0 && heatTotalCap > 0
+    ? Math.round(currentWeekHours / heatTotalCap * 100)
+    : headcount
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
     : 0;
 

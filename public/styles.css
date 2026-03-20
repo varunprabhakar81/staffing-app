@@ -62,6 +62,29 @@ body {
   padding: 0 16px;
 }
 
+.tab-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
+  flex-shrink: 0;
+}
+
+.tab-nav-brand-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.tab-nav-divider {
+  width: 1px;
+  height: 16px;
+  background: #2E3250;
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
 .tab-nav-meta {
   display: flex;
   align-items: center;
