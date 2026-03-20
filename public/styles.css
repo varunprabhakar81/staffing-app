@@ -800,11 +800,14 @@ body {
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
-.ov-level-panel { height: 100%; min-height: 0; }
+/* Level panel clips content to its border-radius */
+.ov-level-panel { overflow: hidden; }
+/* Level panel: only as tall as its content — no stretch to full grid row */
+.ov-level-panel { align-self: start; }
+/* Cliff/needs panels: fill right column height, inner list scrolls */
 .ov-cliff-panel,
-.ov-needs-panel { flex: 1; min-height: 0; }
+.ov-needs-panel { flex: 1; min-height: 0; overflow: visible; }
 
 .ov-panel-header {
   display: flex;

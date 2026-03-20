@@ -180,8 +180,9 @@ function renderOverviewStats(data, heatmapData) {
   if (utilEl) utilEl.textContent = headcount ? String(avgUtil) : '—';
 
   const utilSecondary = document.getElementById('overviewUtilSecondary');
-  if (utilSecondary && headcount) {
-    utilSecondary.textContent = `${bookedCount} of ${totalConsultants} consultants booked`;
+  if (utilSecondary && totalConsultants) {
+    const avgHrs = Math.round(currentWeekHours / totalConsultants);
+    utilSecondary.textContent = `${bookedCount} of ${totalConsultants} booked · avg ${avgHrs}h/wk`;
   }
 
   // Update semi-circular gauge
@@ -326,26 +327,23 @@ function renderLevelBreakdown(heatmapData) {
       byLevel[emp.level].count++;
     }
   }
-  // Always render all 6 levels in order; show 0 count/% for levels with no data
-  const rows = LEVEL_ORDER_OV.map(l => {
-    if (byLevel[l]) {
+  // Only render levels that have employees in the current data
+  const rows = LEVEL_ORDER_OV
+    .filter(l => byLevel[l])
+    .map(l => {
       const { hours, count } = byLevel[l];
       return { level: l, count, utilPct: Math.round(hours / (count * 45) * 100) };
-    }
-    return { level: l, count: 0, utilPct: 0 };
-  });
+    });
   el.innerHTML = rows.map((r, i) => {
-    const color  = r.count === 0 ? '#8892B0'
-      : r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
-    const rowBg  = i % 2 === 0 ? '#1A1D27' : '#16192A';
-    const pctLabel = r.count === 0 ? '—' : `${r.utilPct}%`;
+    const color = r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
+    const rowBg = i % 2 === 0 ? '#1A1D27' : '#16192A';
     return `<div class="ov-level-row" style="background:${rowBg}">
-      <span class="ov-level-name" style="color:${r.count===0?'#8892B0':'#FFFFFF'}">${r.level}</span>
+      <span class="ov-level-name">${r.level}</span>
       <span class="ov-level-count">(${r.count})</span>
       <div class="ov-level-bar-track">
         <div class="ov-level-bar-fill" style="width:${r.utilPct}%;background:${color}"></div>
       </div>
-      <span class="ov-level-pct" style="color:${color}">${pctLabel}</span>
+      <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>
     </div>`;
   }).join('');
 }
