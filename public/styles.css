@@ -205,10 +205,12 @@ body {
 }
 
 #tab-overview {
-  overflow: hidden;
+  overflow-y: auto;
   padding: 16px 24px 12px;
   gap: 10px;
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 #0F1117;
 }
 
 #tab-staffing {
@@ -794,9 +796,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #2E3250 #0F1117;
 }
 
 /* Panel base */
