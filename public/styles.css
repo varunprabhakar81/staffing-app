@@ -148,9 +148,7 @@ body {
 .tab-nav {
   background: #0F1117;
   border-bottom: 1px solid #2E3250;
-  position: sticky;
-  top: 64px;
-  z-index: 99;
+  flex-shrink: 0;
 }
 
 .tab-nav-inner {
