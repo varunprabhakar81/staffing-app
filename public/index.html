@@ -66,61 +66,106 @@
     <!-- ── Overview Tab ─────────────────────────────────────────────── -->
     <div class="tab-panel active" id="tab-overview">
 
-      <div class="section-header">
-        <p class="section-sub" id="dataTimestamp">Loading data…</p>
-        <button class="refresh-btn" onclick="loadDashboard()">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Refresh
-        </button>
+      <!-- Overview Header -->
+      <div class="ov-header">
+        <p class="ov-greeting" id="overviewGreeting">Loading snapshot…</p>
+        <div class="ov-header-right">
+          <span class="ov-week-label" id="dataTimestamp">Loading…</span>
+          <button class="refresh-btn" onclick="loadDashboard()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Refresh
+          </button>
+        </div>
       </div>
 
-      <!-- Overview Summary -->
-      <div class="overview-summary">
-        <p class="overview-greeting" id="overviewGreeting">Loading snapshot…</p>
-        <div class="overview-divider"></div>
-        <div class="exec-cards">
-          <div class="exec-card" style="--exec-accent:#A8C7FA"
-               onclick="navigateTo('staffing')" title="View staffing availability">
-            <div class="exec-card-label">Available Hours</div>
-            <div class="exec-card-number">
-              <span class="exec-card-num" id="overviewAvailHours">—</span>
-              <span class="exec-card-unit">h</span>
+      <!-- Hero KPI Cards -->
+      <div class="ov-kpi-row">
+
+        <!-- Card 1: Utilization (with semi-circular gauge) -->
+        <div class="ov-card" id="overviewUtilCard" style="--ov-accent:#FFB3B3"
+             onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
+          <div class="ov-card-label">Utilization</div>
+          <div class="ov-card-main">
+            <div class="ov-card-left">
+              <div class="ov-num-row">
+                <span class="ov-num" id="overviewUtil">—</span>
+                <span class="ov-unit">%</span>
+              </div>
+              <p class="ov-secondary" id="overviewUtilSecondary">— consultants booked</p>
             </div>
-            <div class="exec-card-trend" id="overviewAvailTrend">Loading…</div>
-          </div>
-          <div class="exec-card" id="overviewUtilCard" style="--exec-accent:#FFF3A3"
-               onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
-            <div class="exec-card-label">Utilization</div>
-            <div class="exec-card-number">
-              <span class="exec-card-num" id="overviewUtil">—</span>
-              <span class="exec-card-unit">%</span>
+            <div class="ov-card-gauge">
+              <svg viewBox="0 0 120 68" width="90" height="51" aria-hidden="true">
+                <!-- Background arc -->
+                <path d="M 10,62 A 50,50 0 0,1 110,62" fill="none" stroke="#2E3250" stroke-width="8" stroke-linecap="round"/>
+                <!-- Fill arc (JS-controlled) -->
+                <path id="utilGaugeFill" d="M 10,62 A 50,50 0 0,1 110,62" fill="none"
+                      stroke="#FFB3B3" stroke-width="8" stroke-linecap="round"
+                      stroke-dasharray="157.08" stroke-dashoffset="157.08"
+                      style="transition: stroke-dashoffset 0.6s ease-out, stroke 0.3s"/>
+                <!-- Target marker at 80% (36° from right/positive-x axis) -->
+                <line x1="96" y1="37" x2="105" y2="29" stroke="#8892B0" stroke-width="1.5" stroke-linecap="round"/>
+                <text x="77" y="52" fill="#8892B0" font-size="6.5" text-anchor="middle" font-family="Inter, sans-serif">Target: 80%</text>
+              </svg>
             </div>
-            <div class="exec-card-trend" id="overviewUtilTrend">Loading…</div>
           </div>
-          <div class="exec-card" id="overviewNeedsCard" style="--exec-accent:#FFB3B3"
-               onclick="drillDemandKPI()" title="Click for demand detail">
-            <div class="exec-card-label">Unmet Needs</div>
-            <div class="exec-card-number">
-              <span class="exec-card-num" id="overviewUnmet">—</span>
-              <span class="exec-card-unit">roles</span>
-            </div>
-            <div class="exec-card-trend" id="overviewUnmetTrend">Loading…</div>
-          </div>
-          <div class="exec-card" id="overviewBenchCard" style="--exec-accent:#FFB3B3"
-               onclick="drillBenchKPI()" title="Click to see employees on bench this week">
-            <div class="exec-card-label">On Bench</div>
-            <div class="exec-card-number">
-              <span class="exec-card-num" id="overviewBench">—</span>
-              <span class="exec-card-unit">people</span>
-            </div>
-            <div class="exec-card-trend" id="overviewBenchTrend">Loading…</div>
-          </div>
+          <p class="ov-card-trend" id="overviewUtilTrend">Loading…</p>
         </div>
-        <div class="overview-actions">
-          <button class="quick-action-btn" onclick="navigateTo('staffing')">View Staffing <span class="arrow">→</span></button>
-          <button class="quick-action-btn" onclick="navigateTo('needs')">View Needs <span class="arrow">→</span></button>
-          <button class="quick-action-btn quick-action-btn--primary" onclick="navigateTo('ask')">Ask Claude <span class="arrow">→</span></button>
+
+        <!-- Card 2: Available Hours -->
+        <div class="ov-card" id="overviewAvailCard" style="--ov-accent:#A8C7FA"
+             onclick="navigateTo('staffing')" title="View staffing availability">
+          <div class="ov-card-label">Available Hours</div>
+          <div class="ov-card-main">
+            <div class="ov-card-left">
+              <div class="ov-num-row">
+                <span class="ov-num" id="overviewAvailHours">—</span>
+                <span class="ov-unit">h</span>
+              </div>
+              <p class="ov-secondary" id="overviewAvailSecondary">unbooked this week</p>
+            </div>
+          </div>
+          <p class="ov-card-trend" id="overviewAvailTrend">Loading…</p>
         </div>
+
+        <!-- Card 3: Unmet Needs -->
+        <div class="ov-card" id="overviewNeedsCard" style="--ov-accent:#FFB3B3"
+             onclick="drillDemandKPI()" title="Click for demand detail">
+          <div class="ov-card-label">Unmet Needs</div>
+          <div class="ov-card-main">
+            <div class="ov-card-left">
+              <div class="ov-num-row">
+                <span class="ov-num" id="overviewUnmet">—</span>
+                <span class="ov-unit">roles</span>
+              </div>
+              <p class="ov-secondary" id="overviewNeedsSecondary">open demand roles</p>
+            </div>
+          </div>
+          <p class="ov-card-trend" id="overviewUnmetTrend">Loading…</p>
+        </div>
+
+        <!-- Card 4: On Bench -->
+        <div class="ov-card" id="overviewBenchCard" style="--ov-accent:#FFB3B3"
+             onclick="drillBenchKPI()" title="Click to see employees on bench this week">
+          <div class="ov-card-label">On Bench</div>
+          <div class="ov-card-main">
+            <div class="ov-card-left">
+              <div class="ov-num-row">
+                <span class="ov-num" id="overviewBench">—</span>
+                <span class="ov-unit">people</span>
+              </div>
+              <p class="ov-secondary" id="overviewBenchSecondary">of — consultants total</p>
+            </div>
+          </div>
+          <p class="ov-card-trend" id="overviewBenchTrend">Loading…</p>
+        </div>
+
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="ov-actions">
+        <button class="quick-action-btn" onclick="navigateTo('staffing')">View Staffing <span class="arrow">→</span></button>
+        <button class="quick-action-btn" onclick="navigateTo('needs')">View Needs <span class="arrow">→</span></button>
+        <button class="quick-action-btn quick-action-btn--primary" onclick="navigateTo('ask')">Ask Claude <span class="arrow">→</span></button>
       </div>
 
     </div>

@@ -111,8 +111,17 @@ async function loadDashboard() {
     rawData.heatmap       = heatmapRes.ok   ? await heatmapRes.json()   : null;
 
     setStatus('ok', 'Live data');
-    document.getElementById('dataTimestamp').textContent =
-      `Last updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    // Week ending date (Saturday) + update time
+    (function() {
+      const now = new Date();
+      const daysToSat = (6 - now.getDay() + 7) % 7;
+      const weekEnd = new Date(now);
+      weekEnd.setDate(now.getDate() + daysToSat);
+      const weekLabel = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+      const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const tsEl = document.getElementById('dataTimestamp');
+      if (tsEl) tsEl.textContent = `Week ending ${weekLabel} · Updated ${timeLabel}`;
+    })();
 
     renderKPIs(data);
     renderOverviewStats(data, rawData.heatmap);
@@ -132,106 +141,140 @@ function renderKPIs(data) {
   if (!document.getElementById('kpiHeadcount')) return; // strip removed from Overview
 }
 
-// ── Overview Executive Stat Cards ────────────────────────────────
+// ── Overview Executive Dashboard ──────────────────────────────────
 function renderOverviewStats(data, heatmapData) {
-  // Greeting + date (week ending Saturday)
+  // ── Greeting (time-based, no week date — that's in the header) ──
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const today = new Date();
-  const daysToSat = (6 - today.getDay() + 7) % 7;
-  const weekEnd = new Date(today);
-  weekEnd.setDate(today.getDate() + daysToSat);
-  const weekLabel = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   const greetEl = document.getElementById('overviewGreeting');
-  if (greetEl) greetEl.textContent = `${greeting} — staffing snapshot for week ending ${weekLabel}`;
+  if (greetEl) greetEl.textContent = `${greeting} — here is your practice snapshot`;
 
-  // ── Available Hours ──────────────────────────────────────────────
-  let totalAvail = 0, benchThisWeek = 0;
-  if (heatmapData && heatmapData.employees) {
-    for (const emp of heatmapData.employees) {
-      totalAvail += Math.max(0, 45 - (emp.weeklyHours[0] || 0));
-      if ((emp.weeklyHours[0] || 0) === 0) benchThisWeek++;
-    }
-  }
-  const availEl = document.getElementById('overviewAvailHours');
-  if (availEl) availEl.textContent = totalAvail ? String(totalAvail) : '—';
-
-  const availTrendEl = document.getElementById('overviewAvailTrend');
-  if (availTrendEl) {
-    if (totalAvail > 0) {
-      const benchNote = benchThisWeek > 0 ? ` · ${benchThisWeek} fully free` : '';
-      availTrendEl.textContent = `Unbooked capacity this week${benchNote}`;
-      availTrendEl.className = 'exec-card-trend';
-    } else {
-      availTrendEl.textContent = '✓ Team fully booked this week';
-      availTrendEl.className = 'exec-card-trend ok';
-    }
-  }
-
-  // ── Utilization ──────────────────────────────────────────────────
+  // ── Shared data ──────────────────────────────────────────────────
   const levels    = data.utilizationByLevel || [];
   const headcount = levels.reduce((s, l) => s + l.headcount, 0);
   const avgUtil   = headcount
     ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount) : 0;
-  const utilEl = document.getElementById('overviewUtil');
-  if (utilEl) utilEl.textContent = headcount ? String(avgUtil) : '—';
 
-  const utilColor = avgUtil >= 90 ? '#A8E6CF' : avgUtil >= 70 ? '#FFF3A3' : '#FFB3B3';
-  const utilCard  = document.getElementById('overviewUtilCard');
-  if (utilCard) utilCard.style.setProperty('--exec-accent', utilColor);
-
-  const utilTrendEl = document.getElementById('overviewUtilTrend');
-  if (utilTrendEl && headcount) {
-    if (avgUtil >= 90) {
-      utilTrendEl.textContent = '✓ Fully utilized team';
-      utilTrendEl.className = 'exec-card-trend ok';
-    } else if (avgUtil >= 70) {
-      utilTrendEl.textContent = `↑ ${90 - avgUtil}% to full utilization`;
-      utilTrendEl.className = 'exec-card-trend';
-    } else {
-      utilTrendEl.textContent = `⚠ ${90 - avgUtil}% below target`;
-      utilTrendEl.className = 'exec-card-trend warn';
+  let totalAvail = 0, benchThisWeek = 0, bookedCount = 0;
+  const totalConsultants = heatmapData && heatmapData.employees ? heatmapData.employees.length : headcount;
+  if (heatmapData && heatmapData.employees) {
+    for (const emp of heatmapData.employees) {
+      const hrs = emp.weeklyHours[0] || 0;
+      totalAvail += Math.max(0, 45 - hrs);
+      if (hrs === 0) benchThisWeek++;
+      else bookedCount++;
     }
   }
 
-  // ── Unmet Needs ──────────────────────────────────────────────────
-  const summary = (data.needsCoverage || {}).summary || {};
-  const unmet   = summary.unmet || 0;
+  // ── Card 1: Utilization ──────────────────────────────────────────
+  const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
+  const utilCard  = document.getElementById('overviewUtilCard');
+  if (utilCard) utilCard.style.setProperty('--ov-accent', utilColor);
+
+  const utilEl = document.getElementById('overviewUtil');
+  if (utilEl) utilEl.textContent = headcount ? String(avgUtil) : '—';
+
+  const utilSecondary = document.getElementById('overviewUtilSecondary');
+  if (utilSecondary && headcount) {
+    utilSecondary.textContent = `${bookedCount} of ${totalConsultants} consultants booked`;
+  }
+
+  // Update semi-circular gauge
+  const gaugeLen  = 157.08; // π × 50 (semicircle circumference)
+  const gaugeFill = document.getElementById('utilGaugeFill');
+  if (gaugeFill && headcount) {
+    const pct = Math.min(Math.max(avgUtil, 0), 100) / 100;
+    gaugeFill.setAttribute('stroke-dashoffset', String(Math.round(gaugeLen * (1 - pct))));
+    gaugeFill.setAttribute('stroke', utilColor);
+  }
+
+  const utilTrendEl = document.getElementById('overviewUtilTrend');
+  if (utilTrendEl && headcount) {
+    if (avgUtil >= 80) {
+      utilTrendEl.textContent = '↑ At or above 80% target';
+      utilTrendEl.className = 'ov-card-trend ok';
+    } else {
+      utilTrendEl.textContent = `↓ Below 80% target`;
+      utilTrendEl.className = 'ov-card-trend warn';
+    }
+  }
+
+  // ── Card 2: Available Hours ──────────────────────────────────────
+  const availEl = document.getElementById('overviewAvailHours');
+  if (availEl) availEl.textContent = totalAvail ? String(totalAvail) : '—';
+
+  const availSecondary = document.getElementById('overviewAvailSecondary');
+  if (availSecondary && totalConsultants) {
+    const totalCap = totalConsultants * 45;
+    const capUsedPct = totalCap > 0 ? Math.round((totalCap - totalAvail) / totalCap * 100) : 0;
+    availSecondary.textContent = `${capUsedPct}% of total capacity booked`;
+  }
+
+  const availTrendEl = document.getElementById('overviewAvailTrend');
+  if (availTrendEl) {
+    if (benchThisWeek > 0) {
+      availTrendEl.textContent = `${benchThisWeek} consultant${benchThisWeek !== 1 ? 's' : ''} fully free`;
+      availTrendEl.className = 'ov-card-trend warn';
+    } else if (totalAvail === 0) {
+      availTrendEl.textContent = '✓ Team fully booked this week';
+      availTrendEl.className = 'ov-card-trend ok';
+    } else {
+      availTrendEl.textContent = 'Unbooked capacity available';
+      availTrendEl.className = 'ov-card-trend';
+    }
+  }
+
+  // ── Card 3: Unmet Needs ──────────────────────────────────────────
+  const summary   = (data.needsCoverage || {}).summary || {};
+  const unmet     = summary.unmet || 0;
+  const totalRoles = (summary.met || 0) + (summary.partial || 0) + unmet;
+  const needsColor = unmet > 0 ? '#FFB3B3' : '#A8E6CF';
+  const needsCard  = document.getElementById('overviewNeedsCard');
+  if (needsCard) needsCard.style.setProperty('--ov-accent', needsColor);
+
   const unmetEl = document.getElementById('overviewUnmet');
   if (unmetEl) unmetEl.textContent = String(unmet);
 
-  const needsColor = unmet > 0 ? '#FFB3B3' : '#A8E6CF';
-  const needsCard  = document.getElementById('overviewNeedsCard');
-  if (needsCard) needsCard.style.setProperty('--exec-accent', needsColor);
+  const needsSecondary = document.getElementById('overviewNeedsSecondary');
+  if (needsSecondary) {
+    needsSecondary.textContent = totalRoles > 0
+      ? `of ${totalRoles} open demand roles`
+      : 'open demand roles';
+  }
 
   const unmetTrendEl = document.getElementById('overviewUnmetTrend');
   if (unmetTrendEl) {
     if (unmet > 0) {
       unmetTrendEl.textContent = `⚠ ${unmet} role${unmet !== 1 ? 's' : ''} need attention`;
-      unmetTrendEl.className = 'exec-card-trend warn';
+      unmetTrendEl.className = 'ov-card-trend warn';
     } else {
-      unmetTrendEl.textContent = '✓ All needs covered';
-      unmetTrendEl.className = 'exec-card-trend ok';
+      unmetTrendEl.textContent = '✓ All demand roles covered';
+      unmetTrendEl.className = 'ov-card-trend ok';
     }
   }
 
-  // ── On Bench ─────────────────────────────────────────────────────
-  const benchCount  = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
-  const benchEl     = document.getElementById('overviewBench');
-  const benchCard   = document.getElementById('overviewBenchCard');
+  // ── Card 4: On Bench ─────────────────────────────────────────────
+  const benchCount = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
+  const benchColor = benchCount > 0 ? '#FFB3B3' : '#A8E6CF';
+  const benchCard  = document.getElementById('overviewBenchCard');
+  if (benchCard) benchCard.style.setProperty('--ov-accent', benchColor);
+
+  const benchEl = document.getElementById('overviewBench');
   if (benchEl) benchEl.textContent = String(benchCount);
 
-  const benchColor = benchCount > 0 ? '#FFB3B3' : '#A8E6CF';
-  if (benchCard) benchCard.style.setProperty('--exec-accent', benchColor);
+  const benchSecondary = document.getElementById('overviewBenchSecondary');
+  if (benchSecondary && totalConsultants) {
+    benchSecondary.textContent = `of ${totalConsultants} consultants total`;
+  }
 
   const benchTrendEl = document.getElementById('overviewBenchTrend');
   if (benchTrendEl) {
     if (benchCount > 0) {
-      benchTrendEl.textContent = `⚠ ${benchCount} person${benchCount !== 1 ? 's' : ''} available`;
-      benchTrendEl.className = 'exec-card-trend warn';
+      benchTrendEl.textContent = `⚠ ${benchCount} person${benchCount !== 1 ? 's' : ''} available to assign`;
+      benchTrendEl.className = 'ov-card-trend warn';
     } else {
       benchTrendEl.textContent = '✓ All consultants booked';
-      benchTrendEl.className = 'exec-card-trend ok';
+      benchTrendEl.className = 'ov-card-trend ok';
     }
   }
 }

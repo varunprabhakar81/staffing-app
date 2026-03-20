@@ -205,9 +205,9 @@ body {
 }
 
 #tab-overview {
-  overflow: hidden;
-  padding: 12px 16px 12px 12px;
-  gap: 10px;
+  overflow-y: auto;
+  padding: 20px 24px 32px;
+  gap: 16px;
   box-sizing: border-box;
 }
 
@@ -623,111 +623,143 @@ body {
 .empty-state p { font-size: 13px; }
 
 /* ── Overview Tab ───────────────────────────────────────────────── */
-.overview-summary {
-  flex: 1;
-  min-height: 0;
+
+/* Header row: greeting left, week-label + refresh right */
+.ov-header {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6vh 32px 32px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
-.overview-greeting {
-  font-size: 16px;
+.ov-greeting {
+  font-size: 17px;
+  font-weight: 500;
+  color: #C4CCDF;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ov-week-label {
+  font-size: 12px;
   color: #8892B0;
-  text-align: center;
+  white-space: nowrap;
 }
 
-.overview-divider {
-  width: 100%;
-  max-width: 940px;
-  height: 1px;
-  background: var(--border);
-}
-
-/* ── Executive Stat Cards ───────────────────────────────────────── */
-.exec-cards {
+/* Hero KPI cards grid */
+.ov-kpi-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  width: 100%;
-  max-width: 940px;
+  gap: 14px;
+  flex-shrink: 0;
 }
 
-.exec-card {
+/* KPI card base */
+.ov-card {
   background: #1A1D27;
-  border-top: 1px solid #2E3250;
-  border-right: 1px solid #2E3250;
-  border-bottom: 1px solid #2E3250;
-  border-left: 4px solid var(--exec-accent, #2E3250);
-  border-radius: 16px;
-  padding: 24px;
-  min-height: 160px;
+  border: 1px solid #2A2E44;
+  border-top: 3px solid var(--ov-accent, #2E3250);
+  border-radius: 14px;
+  padding: 16px 20px;
+  min-height: 140px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   cursor: pointer;
-  transition: transform 0.2s ease, border-top-color 0.2s, border-right-color 0.2s, border-bottom-color 0.2s;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-top-color 0.2s;
 }
 
-.exec-card:hover {
-  transform: scale(1.02);
-  border-top-color: #4A5180;
-  border-right-color: #4A5180;
-  border-bottom-color: #4A5180;
+.ov-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 
-.exec-card-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.8px;
+.ov-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
   text-transform: uppercase;
-  color: var(--exec-accent, #8892B0);
+  color: var(--ov-accent, #8892B0);
+  flex-shrink: 0;
 }
 
-.exec-card-number {
+/* Main body: number left, visual right */
+.ov-card-main {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: flex-start;
+  justify-content: space-between;
   flex: 1;
-  padding-bottom: 4px;
+  gap: 8px;
+  min-height: 0;
 }
 
-.exec-card-num {
-  font-size: 72px;
-  font-weight: 800;
-  color: var(--exec-accent, #FFFFFF);
+.ov-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ov-num-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   line-height: 1;
-  letter-spacing: -3px;
 }
 
-.exec-card-unit {
-  font-size: 24px;
+.ov-num {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--ov-accent, #FFFFFF);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.ov-unit {
+  font-size: 18px;
   font-weight: 400;
   color: #8892B0;
   line-height: 1;
-  padding-bottom: 10px;
+  padding-bottom: 6px;
 }
 
-.exec-card-trend {
-  font-size: 12px;
+.ov-secondary {
+  font-size: 11px;
   color: #8892B0;
-  min-height: 16px;
+  line-height: 1.4;
 }
-.exec-card-trend.up   { color: var(--mint); }
-.exec-card-trend.down { color: var(--coral); }
-.exec-card-trend.warn { color: var(--coral); }
-.exec-card-trend.ok   { color: var(--mint); }
+
+.ov-card-gauge {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.ov-card-trend {
+  font-size: 11px;
+  color: #8892B0;
+  flex-shrink: 0;
+}
+.ov-card-trend.ok   { color: var(--mint); }
+.ov-card-trend.warn { color: var(--coral); }
 
 /* ── Quick Actions ──────────────────────────────────────────────── */
-.overview-actions {
+.ov-actions {
   display: flex;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .quick-action-btn {
