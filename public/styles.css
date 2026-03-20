@@ -160,15 +160,14 @@ body {
 
 .sidebar-meta {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
   padding: 2px 2px;
-  overflow: hidden;
-  opacity: 1;
-  transition: opacity 0.15s ease;
 }
 
-.sidebar.collapsed .sidebar-meta { opacity: 0; pointer-events: none; }
+.sidebar.collapsed .sidebar-live-dot { display: none; }
+.sidebar.collapsed .sidebar-week-info { display: none; }
+.sidebar.collapsed .sidebar-meta { justify-content: center; }
 
 .sidebar-live-dot {
   width: 6px;
@@ -322,7 +321,6 @@ body {
   transition: background 0.15s ease, color 0.15s ease;
 }
 .sidebar-refresh-btn:hover { background: #2E3250; color: #FFFFFF; }
-.sidebar.collapsed .sidebar-refresh-btn { display: none; }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
 .kpi-strip {
