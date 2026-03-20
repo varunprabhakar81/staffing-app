@@ -6,10 +6,10 @@
 Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
 
 // ── Tab switching ─────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
+document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
@@ -27,8 +27,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 function navigateTo(tabName) {
-  const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  const btn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
   if (btn) btn.click();
+}
+
+// ── Sidebar collapse ───────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
 }
 
 // Close drilldown on Escape
@@ -110,7 +115,7 @@ async function loadDashboard() {
       const weekLabel = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
       const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const tsEl = document.getElementById('dataTimestamp');
-      if (tsEl) tsEl.textContent = `Week ending ${weekLabel} · Updated ${timeLabel}`;
+      if (tsEl) tsEl.innerHTML = `<span class="sidebar-week-date">Week ending ${weekLabel}</span><span class="sidebar-week-time">Updated ${timeLabel}</span>`;
     })();
 
     renderKPIs(data);
