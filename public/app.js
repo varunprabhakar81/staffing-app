@@ -151,11 +151,7 @@ function renderKPIs(data) {
 
 // ── Overview Executive Dashboard ──────────────────────────────────
 function renderOverviewStats(data, heatmapData) {
-  // ── Greeting (time-based, no week date — that's in the header) ──
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const greetEl = document.getElementById('overviewGreeting');
-  if (greetEl) greetEl.textContent = `${greeting} — here is your practice snapshot`;
+  // Greeting line removed — saves 32px vertical space
 
   // ── Shared data ──────────────────────────────────────────────────
   const levels           = data.utilizationByLevel || [];
