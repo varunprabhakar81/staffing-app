@@ -24,3 +24,9 @@ manage-project-board.js
 *.log
 *_out.txt
 *.txt
+
+# Temp/scratch files
+*_tmp.json
+*_temp.json
+temp_*.json
+tmp_*.json
