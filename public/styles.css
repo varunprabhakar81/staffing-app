@@ -808,8 +808,8 @@ body {
 .ov-level-panel { align-self: start; }
 /* Cliff panel: size to content so items are never clipped mid-row */
 .ov-cliff-panel { overflow: hidden; }
-/* Needs panel: still fills the remaining right-column height */
-.ov-needs-panel { flex: 1; min-height: 0; overflow: hidden; }
+/* Needs panel: size to content so items are never clipped mid-row */
+.ov-needs-panel { overflow: hidden; }
 
 .ov-panel-header {
   display: flex;
@@ -893,13 +893,12 @@ body {
   max-height: 296px;   /* ~4 full items (each ~68px) + 3 gaps */
   overflow-y: auto;
 }
-/* Needs list: still fills whatever height the needs panel provides */
+/* Needs list: cap height so panel doesn't grow unbounded */
 .ov-needs-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  flex: 1;
-  min-height: 0;
+  max-height: 296px;   /* ~4 full items + gaps, scrolls beyond that */
   overflow-y: auto;
 }
 .ov-cliff-item {
