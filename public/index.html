@@ -111,10 +111,10 @@
           <p class="ov-card-trend" id="overviewUtilTrend">Loading…</p>
         </div>
 
-        <!-- Card 2: Available Hours -->
+        <!-- Card 2: Available Capacity -->
         <div class="ov-card" id="overviewAvailCard" style="--ov-accent:#A8C7FA"
              onclick="navigateTo('staffing')" title="View staffing availability">
-          <div class="ov-card-label">Available Hours</div>
+          <div class="ov-card-label">Available Capacity</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
               <div class="ov-num-row">
@@ -122,22 +122,31 @@
                 <span class="ov-unit">h</span>
               </div>
               <p class="ov-secondary" id="overviewAvailSecondary">unbooked this week</p>
+              <div class="ov-cap-bar-wrap">
+                <div class="ov-cap-bar-track">
+                  <div class="ov-cap-bar-fill" id="ovCapBarFill"></div>
+                </div>
+                <p class="ov-cap-bar-label" id="ovCapBarLabel"></p>
+              </div>
             </div>
           </div>
           <p class="ov-card-trend" id="overviewAvailTrend">Loading…</p>
         </div>
 
-        <!-- Card 3: Unmet Needs -->
+        <!-- Card 3: Pipeline Coverage -->
         <div class="ov-card" id="overviewNeedsCard" style="--ov-accent:#FFB3B3"
              onclick="drillDemandKPI()" title="Click for demand detail">
-          <div class="ov-card-label">Unmet Needs</div>
+          <div class="ov-card-label">Pipeline Coverage</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
               <div class="ov-num-row">
                 <span class="ov-num" id="overviewUnmet">—</span>
-                <span class="ov-unit">roles</span>
+                <span class="ov-unit">unmet</span>
               </div>
               <p class="ov-secondary" id="overviewNeedsSecondary">open demand roles</p>
+            </div>
+            <div class="ov-card-gauge">
+              <canvas id="overviewNeedsDonut" width="56" height="56"></canvas>
             </div>
           </div>
           <p class="ov-card-trend" id="overviewUnmetTrend">Loading…</p>
@@ -161,11 +170,50 @@
 
       </div>
 
-      <!-- Quick Actions -->
-      <div class="ov-actions">
-        <button class="quick-action-btn" onclick="navigateTo('staffing')">View Staffing <span class="arrow">→</span></button>
-        <button class="quick-action-btn" onclick="navigateTo('needs')">View Needs <span class="arrow">→</span></button>
-        <button class="quick-action-btn quick-action-btn--primary" onclick="navigateTo('ask')">Ask Claude <span class="arrow">→</span></button>
+      <!-- Row 2: Level Breakdown (left) + Rolling Off + Needs Attention (right) -->
+      <div class="ov-row2">
+
+        <!-- Left: Utilization by Level -->
+        <div class="ov-panel ov-level-panel">
+          <div class="ov-panel-header">
+            <span class="ov-panel-title">Utilization by Level</span>
+          </div>
+          <div id="ovLevelBreakdown" class="ov-level-list">
+            <div class="ov-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- Right: two stacked panels -->
+        <div class="ov-right-col">
+
+          <!-- Rolling Off Soon -->
+          <div class="ov-panel ov-cliff-panel">
+            <div class="ov-panel-header">
+              <span class="ov-panel-title">📅 Rolling Off Soon</span>
+              <a class="ov-panel-link" onclick="navigateTo('staffing')">→ View heatmap</a>
+            </div>
+            <div id="ovRollingOff" class="ov-cliff-list">
+              <div class="ov-empty">Loading…</div>
+            </div>
+          </div>
+
+          <!-- Needs Attention -->
+          <div class="ov-panel ov-needs-panel">
+            <div class="ov-panel-header">
+              <span class="ov-panel-title">⚠ Needs Attention</span>
+              <a class="ov-panel-link" onclick="navigateTo('needs')">→ View all needs</a>
+            </div>
+            <div id="ovNeedsAttention" class="ov-needs-list">
+              <div class="ov-empty">Loading…</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Row 3: Bench This Week -->
+      <div class="ov-bench-row ov-bench-empty" id="ovBenchRow">
+        <span class="ov-bench-all-booked" style="color:#8892B0">Loading…</span>
       </div>
 
     </div>

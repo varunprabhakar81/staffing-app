@@ -224,10 +224,18 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
 
-  // ── Card 3: Unmet Needs ──────────────────────────────────────────
-  const summary   = (data.needsCoverage || {}).summary || {};
-  const unmet     = summary.unmet || 0;
-  const totalRoles = (summary.met || 0) + (summary.partial || 0) + unmet;
+  // ── Card 2: capacity bar ─────────────────────────────────────────
+  const totalCap  = totalConsultants * 45;
+  const bookedHrs = totalCap - totalAvail;
+  const capFill   = document.getElementById('ovCapBarFill');
+  const capLabel  = document.getElementById('ovCapBarLabel');
+  if (capFill) capFill.style.width = totalCap > 0 ? `${Math.round(bookedHrs / totalCap * 100)}%` : '0%';
+  if (capLabel && totalCap > 0) capLabel.textContent = `${bookedHrs}h booked · ${totalAvail}h available`;
+
+  // ── Card 3: Pipeline Coverage ─────────────────────────────────────
+  const summary    = (data.needsCoverage || {}).summary || {};
+  const unmet      = summary.unmet || 0;
+  const totalRoles = (summary.fully_met || 0) + (summary.partially_met || 0) + unmet;
   const needsColor = unmet > 0 ? '#FFB3B3' : '#A8E6CF';
   const needsCard  = document.getElementById('overviewNeedsCard');
   if (needsCard) needsCard.style.setProperty('--ov-accent', needsColor);
@@ -238,8 +246,22 @@ function renderOverviewStats(data, heatmapData) {
   const needsSecondary = document.getElementById('overviewNeedsSecondary');
   if (needsSecondary) {
     needsSecondary.textContent = totalRoles > 0
-      ? `of ${totalRoles} open demand roles`
-      : 'open demand roles';
+      ? `${unmet} unmet · ${summary.partially_met || 0} partial`
+      : 'no open demand roles';
+  }
+
+  // Mini donut for Card 3
+  if (charts.needsDonut) { try { charts.needsDonut.destroy(); } catch(e) {} charts.needsDonut = null; }
+  const donutCanvas = document.getElementById('overviewNeedsDonut');
+  if (donutCanvas && totalRoles > 0) {
+    charts.needsDonut = new Chart(donutCanvas, {
+      type: 'doughnut',
+      data: { datasets: [{ data: [summary.fully_met || 0, summary.partially_met || 0, unmet],
+        backgroundColor: ['#A8E6CF', '#FFF3A3', '#FFB3B3'], borderWidth: 0, hoverOffset: 0 }] },
+      options: { responsive: false, cutout: '60%',
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { duration: 600 } }
+    });
   }
 
   const unmetTrendEl = document.getElementById('overviewUnmetTrend');
@@ -277,6 +299,147 @@ function renderOverviewStats(data, heatmapData) {
       benchTrendEl.className = 'ov-card-trend ok';
     }
   }
+
+  // ── Row 2 & 3 panels ─────────────────────────────────────────────
+  renderLevelBreakdown(heatmapData);
+  renderRollingOff(heatmapData);
+  renderNeedsAttention(data);
+  renderBenchRow(heatmapData, totalConsultants);
+}
+
+// ── Level Breakdown (Row 2 left) ──────────────────────────────────
+const LEVEL_ORDER_OV = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+
+function renderLevelBreakdown(heatmapData) {
+  const el = document.getElementById('ovLevelBreakdown');
+  if (!el) return;
+  if (!heatmapData || !heatmapData.employees) {
+    el.innerHTML = '<div class="ov-empty">No data available</div>'; return;
+  }
+  const byLevel = {};
+  for (const emp of heatmapData.employees) {
+    if (!byLevel[emp.level]) byLevel[emp.level] = { hours: 0, count: 0 };
+    byLevel[emp.level].hours += emp.weeklyHours[0] || 0;
+    byLevel[emp.level].count++;
+  }
+  const rows = LEVEL_ORDER_OV.filter(l => byLevel[l]).map(l => {
+    const { hours, count } = byLevel[l];
+    return { level: l, count, utilPct: Math.round(hours / (count * 45) * 100) };
+  });
+  if (!rows.length) { el.innerHTML = '<div class="ov-empty">No data available</div>'; return; }
+  el.innerHTML = rows.map((r, i) => {
+    const color  = r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
+    const rowBg  = i % 2 === 0 ? '#1A1D27' : '#16192A';
+    return `<div class="ov-level-row" style="background:${rowBg}">
+      <span class="ov-level-name">${r.level}</span>
+      <span class="ov-level-count">(${r.count})</span>
+      <div class="ov-level-bar-track">
+        <div class="ov-level-bar-fill" style="width:${r.utilPct}%;background:${color}"></div>
+      </div>
+      <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Rolling Off Soon (Row 2 right top) ────────────────────────────
+function renderRollingOff(heatmapData) {
+  const el = document.getElementById('ovRollingOff');
+  if (!el) return;
+  if (!heatmapData || !heatmapData.employees) {
+    el.innerHTML = '<div class="ov-empty ok">✓ No major roll-offs in next 2 weeks</div>'; return;
+  }
+  const weeks   = heatmapData.weeks || [];
+  const results = [];
+  for (const emp of heatmapData.employees) {
+    const w0 = emp.weeklyHours[0] || 0;
+    const w1 = emp.weeklyHours[1] || 0;
+    const w2 = emp.weeklyHours[2] || 0;
+    if (w0 < 20) continue;
+    if (w0 - w1 >= 20) {
+      results.push({ name: emp.name, level: emp.level, skillSet: emp.skillSet,
+        fromH: w0, toH: w1, weekLabel: weeks[1] || 'next week', urgency: 'coral' });
+    } else if (w0 - w2 >= 20) {
+      results.push({ name: emp.name, level: emp.level, skillSet: emp.skillSet,
+        fromH: w0, toH: w2, weekLabel: weeks[2] || 'week 3', urgency: 'yellow' });
+    }
+  }
+  results.sort((a, b) => a.urgency === b.urgency ? b.fromH - a.fromH : a.urgency === 'coral' ? -1 : 1);
+  if (!results.length) {
+    el.innerHTML = '<div class="ov-empty ok">✓ No major roll-offs in next 2 weeks</div>'; return;
+  }
+  el.innerHTML = results.slice(0, 4).map(r => {
+    const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
+    return `<div class="ov-cliff-item" style="border-left-color:${bc}">
+      <div class="ov-cliff-name">${r.name}</div>
+      <div class="ov-cliff-meta">${r.level}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
+      <div class="ov-cliff-detail">
+        <span style="color:${bc};font-size:11px">Week of ${r.weekLabel}</span>
+        <span class="ov-cliff-hours">${r.fromH}h → ${r.toH}h</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Needs Attention (Row 2 right bottom) ─────────────────────────
+function renderNeedsAttention(data) {
+  const el = document.getElementById('ovNeedsAttention');
+  if (!el) return;
+  const roles  = (data.needsCoverage || {}).roles || [];
+  const urgent = roles
+    .filter(r => r.status === 'unmet' || r.status === 'partially_met')
+    .sort((a, b) => {
+      const da = a.startDate ? new Date(a.startDate) : new Date('9999');
+      const db = b.startDate ? new Date(b.startDate) : new Date('9999');
+      return da - db;
+    });
+  if (!urgent.length) {
+    el.innerHTML = '<div class="ov-empty ok">✓ All current needs are covered</div>'; return;
+  }
+  const today = new Date();
+  el.innerHTML = urgent.slice(0, 4).map(r => {
+    const isUnmet   = r.status === 'unmet';
+    const bc        = isUnmet ? '#FFB3B3' : '#FFF3A3';
+    const startD    = r.startDate ? new Date(r.startDate) : null;
+    const dateCol   = startD && startD <= today ? '#FFB3B3' : '#FFF3A3';
+    return `<div class="ov-needs-item">
+      <div class="ov-needs-row">
+        <span class="ov-needs-project">${r.project || '—'}</span>
+        <span class="ov-needs-badge" style="background:${bc}22;color:${bc};border-color:${bc}">${isUnmet ? 'Unmet' : 'Partial'}</span>
+      </div>
+      <div class="ov-needs-meta">${r.level || ''}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
+      <div class="ov-needs-date" style="color:${dateCol}">From ${r.startDate || '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Bench This Week (Row 3) ───────────────────────────────────────
+const OV_AVATAR_COLORS = ['#A8C7FA', '#A8E6CF', '#FFF3A3', '#FFB3B3', '#C9B8FF', '#FFDAB9'];
+
+function renderBenchRow(heatmapData, totalConsultants) {
+  const el = document.getElementById('ovBenchRow');
+  if (!el) return;
+  const benchEmps = heatmapData && heatmapData.employees
+    ? heatmapData.employees.filter(e => (e.weeklyHours[0] || 0) === 0) : [];
+  if (!benchEmps.length) {
+    el.className = 'ov-bench-row ov-bench-empty';
+    el.innerHTML = `<span class="ov-bench-all-booked">✓ All ${totalConsultants} consultants are currently booked this week</span>`;
+    return;
+  }
+  el.className = 'ov-bench-row ov-bench-has-bench';
+  el.innerHTML = `<div class="ov-bench-label">⚠ On bench this week</div>
+    <div class="ov-bench-people">
+      ${benchEmps.map((emp, i) => {
+        const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        const col = OV_AVATAR_COLORS[i % OV_AVATAR_COLORS.length];
+        return `<div class="ov-bench-person">
+          <div class="ov-bench-avatar" style="background:${col}22;color:${col};border-color:${col}">${initials}</div>
+          <div class="ov-bench-info">
+            <span class="ov-bench-name">${emp.name}</span>
+            <span class="ov-bench-meta">${emp.level}${emp.skillSet ? ' · ' + emp.skillSet : ''}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
 
 // ══════════════════════════════════════════════════════════════════
