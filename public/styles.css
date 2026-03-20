@@ -970,7 +970,6 @@ body {
 /* Top Projects panel */
 .ov-projects-panel {
   height: auto;
-  align-self: start;
 }
 .ov-projects-list {
   display: flex;
