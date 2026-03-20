@@ -899,6 +899,7 @@ body {
   padding: 6px 10px;
   border-radius: 0 6px 6px 0;
   background: #16192A;
+  flex-shrink: 0;       /* never compress — all 3 lines must stay fully visible */
 }
 .ov-cliff-name {
   font-size: 12px;
