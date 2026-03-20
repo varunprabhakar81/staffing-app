@@ -206,8 +206,8 @@ body {
 
 #tab-overview {
   overflow: hidden;
-  padding: 20px 24px 16px;
-  gap: 12px;
+  padding: 16px 24px 12px;
+  gap: 10px;
   box-sizing: border-box;
 }
 
@@ -661,7 +661,7 @@ body {
 .ov-kpi-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -671,8 +671,8 @@ body {
   border: 1px solid #2A2E44;
   border-top: 3px solid var(--ov-accent, #2E3250);
   border-radius: 14px;
-  padding: 16px 20px;
-  min-height: 140px;
+  padding: 14px 20px;
+  min-height: 130px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -834,6 +834,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   gap: 2px;
 }
@@ -886,6 +887,7 @@ body {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 .ov-cliff-item {

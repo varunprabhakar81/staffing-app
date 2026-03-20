@@ -150,21 +150,26 @@ function renderOverviewStats(data, heatmapData) {
   if (greetEl) greetEl.textContent = `${greeting} — here is your practice snapshot`;
 
   // ── Shared data ──────────────────────────────────────────────────
-  const levels    = data.utilizationByLevel || [];
-  const headcount = levels.reduce((s, l) => s + l.headcount, 0);
-  const avgUtil   = headcount
-    ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount) : 0;
-
-  let totalAvail = 0, benchThisWeek = 0, bookedCount = 0;
+  const levels           = data.utilizationByLevel || [];
+  const headcount        = levels.reduce((s, l) => s + l.headcount, 0);
   const totalConsultants = heatmapData && heatmapData.employees ? heatmapData.employees.length : headcount;
+
+  // Compute all metrics from current-week heatmap so utilization % and bookedCount match
+  let totalAvail = 0, benchThisWeek = 0, bookedCount = 0, currentWeekHours = 0;
   if (heatmapData && heatmapData.employees) {
     for (const emp of heatmapData.employees) {
       const hrs = emp.weeklyHours[0] || 0;
-      totalAvail += Math.max(0, 45 - hrs);
+      totalAvail      += Math.max(0, 45 - hrs);
+      currentWeekHours += hrs;
       if (hrs === 0) benchThisWeek++;
       else bookedCount++;
     }
   }
+  const heatTotalCap = totalConsultants * 45;
+  // Current-week utilization from heatmap; fall back to API average if no heatmap data
+  const avgUtil = heatTotalCap > 0
+    ? Math.round(currentWeekHours / heatTotalCap * 100)
+    : (headcount ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount) : 0);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
@@ -313,30 +318,34 @@ const LEVEL_ORDER_OV = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consu
 function renderLevelBreakdown(heatmapData) {
   const el = document.getElementById('ovLevelBreakdown');
   if (!el) return;
-  if (!heatmapData || !heatmapData.employees) {
-    el.innerHTML = '<div class="ov-empty">No data available</div>'; return;
-  }
   const byLevel = {};
-  for (const emp of heatmapData.employees) {
-    if (!byLevel[emp.level]) byLevel[emp.level] = { hours: 0, count: 0 };
-    byLevel[emp.level].hours += emp.weeklyHours[0] || 0;
-    byLevel[emp.level].count++;
+  if (heatmapData && heatmapData.employees) {
+    for (const emp of heatmapData.employees) {
+      if (!byLevel[emp.level]) byLevel[emp.level] = { hours: 0, count: 0 };
+      byLevel[emp.level].hours += emp.weeklyHours[0] || 0;
+      byLevel[emp.level].count++;
+    }
   }
-  const rows = LEVEL_ORDER_OV.filter(l => byLevel[l]).map(l => {
-    const { hours, count } = byLevel[l];
-    return { level: l, count, utilPct: Math.round(hours / (count * 45) * 100) };
+  // Always render all 6 levels in order; show 0 count/% for levels with no data
+  const rows = LEVEL_ORDER_OV.map(l => {
+    if (byLevel[l]) {
+      const { hours, count } = byLevel[l];
+      return { level: l, count, utilPct: Math.round(hours / (count * 45) * 100) };
+    }
+    return { level: l, count: 0, utilPct: 0 };
   });
-  if (!rows.length) { el.innerHTML = '<div class="ov-empty">No data available</div>'; return; }
   el.innerHTML = rows.map((r, i) => {
-    const color  = r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
+    const color  = r.count === 0 ? '#8892B0'
+      : r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
     const rowBg  = i % 2 === 0 ? '#1A1D27' : '#16192A';
+    const pctLabel = r.count === 0 ? '—' : `${r.utilPct}%`;
     return `<div class="ov-level-row" style="background:${rowBg}">
-      <span class="ov-level-name">${r.level}</span>
+      <span class="ov-level-name" style="color:${r.count===0?'#8892B0':'#FFFFFF'}">${r.level}</span>
       <span class="ov-level-count">(${r.count})</span>
       <div class="ov-level-bar-track">
         <div class="ov-level-bar-fill" style="width:${r.utilPct}%;background:${color}"></div>
       </div>
-      <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>
+      <span class="ov-level-pct" style="color:${color}">${pctLabel}</span>
     </div>`;
   }).join('');
 }
