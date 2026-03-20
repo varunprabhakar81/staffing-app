@@ -378,7 +378,7 @@ function renderRollingOff(heatmapData) {
     const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
     return `<div class="ov-cliff-item" style="border-left-color:${bc}">
       <div class="ov-cliff-name">${r.name}</div>
-      <div class="ov-cliff-meta">${r.level}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
+      <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
         <span style="color:${bc};font-size:11px">Week of ${r.weekLabel}</span>
         <span class="ov-cliff-hours">${r.fromH}h → ${r.toH}h</span>

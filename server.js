@@ -319,7 +319,11 @@ app.get('/api/heatmap', async (req, res) => {
     const name = row.employeeName;
     if (!empData[name]) {
       empData[name] = {};
-      empMeta[name] = { skillSet: row.skillSet, level: levelMap[name] || row.level || 'Unknown' };
+      empMeta[name] = { skillSet: row.skillSet || null, level: levelMap[name] || row.level || null };
+    } else {
+      // Subsequent rows: fill in any missing skillSet or level from supply rows
+      if (!empMeta[name].skillSet && row.skillSet) empMeta[name].skillSet = row.skillSet;
+      if (!empMeta[name].level && row.level) empMeta[name].level = row.level;
     }
     const project = row.projectAssigned || 'Unassigned';
     for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
@@ -342,7 +346,8 @@ app.get('/api/heatmap', async (req, res) => {
         .filter(([, h]) => h > 0)
         .map(([project, hours]) => ({ project, hours }));
     });
-    return { name, level: empMeta[name].level, skillSet: empMeta[name].skillSet, weeklyHours, weeklyProjects };
+    const meta = empMeta[name] || {};
+    return { name, level: levelMap[name] || meta.level || 'Unknown', skillSet: meta.skillSet || null, weeklyHours, weeklyProjects };
   });
 
   empList.sort((a, b) => {
