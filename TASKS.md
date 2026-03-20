@@ -52,11 +52,12 @@
 - [x] #56 Heatmap - minor polish items (truncation, hover highlight, border fixes, row spacing)
 - [x] #57 Move Bench Report snapshot to Overview tab as 4th stat card
 - [x] #59 Overview tab - executive dashboard redesign (polished)
+
+### Phase 5b - SaaS Polish & UX (remaining)
 - [ ] #48 Left sidebar navigation to replace top tab bar
 - [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
-- [x] #49 Overview tab - fill empty space (superseded by #59)
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
@@ -93,4 +94,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**34 complete [x] · 24 open [ ] · 58 tracked**
+**33 complete [x] · 24 open [ ] · 57 tracked**
