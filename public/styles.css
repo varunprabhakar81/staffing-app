@@ -893,8 +893,10 @@ body {
   overflow: visible;
 }
 .ov-needs-list {
-  height: auto;
-  overflow: visible;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 #0F1117;
 }
 .ov-cliff-item {
   flex-shrink: 0;

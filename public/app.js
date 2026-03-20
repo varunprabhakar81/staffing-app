@@ -365,7 +365,7 @@ function renderTopProjects(heatmapData) {
       }
     }
   }
-  const sorted = Object.entries(projectHours).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const sorted = Object.entries(projectHours).sort((a, b) => b[1] - a[1]).slice(0, 3);
   if (!sorted.length) {
     el.innerHTML = '<div class="ov-empty">No projects this week</div>'; return;
   }
