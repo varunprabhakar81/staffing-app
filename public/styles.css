@@ -791,6 +791,7 @@ body {
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+  height: 100%;
 }
 
 /* Panel base */
@@ -806,19 +807,12 @@ body {
 .ov-level-panel { overflow: hidden; }
 /* Level panel: only as tall as its content — no stretch to full grid row */
 .ov-level-panel { align-self: start; }
-.ov-cliff-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
-}
+.ov-cliff-panel,
 .ov-needs-panel {
+  height: calc(50% - 5px);   /* half the right col minus half the 10px gap */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  flex: 1;
-  min-height: 0;
 }
 
 .ov-panel-header {
@@ -914,6 +908,7 @@ body {
   padding: 8px 0;
   border-bottom: 1px solid #2E3250;
 }
+.ov-cliff-item:last-child { border-bottom: none; }
 .ov-cliff-name {
   font-size: 12px;
   font-weight: 500;
@@ -941,6 +936,7 @@ body {
   padding: 8px 0;
   border-bottom: 1px solid #2E3250;
 }
+.ov-needs-item:last-child { border-bottom: none; }
 .ov-needs-row {
   display: flex;
   justify-content: space-between;
