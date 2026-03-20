@@ -806,10 +806,20 @@ body {
 .ov-level-panel { overflow: hidden; }
 /* Level panel: only as tall as its content — no stretch to full grid row */
 .ov-level-panel { align-self: start; }
-/* Cliff panel: size to content so items are never clipped mid-row */
-.ov-cliff-panel { overflow: hidden; }
-/* Needs panel: size to content so items are never clipped mid-row */
-.ov-needs-panel { overflow: hidden; }
+.ov-cliff-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+.ov-needs-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
 
 .ov-panel-header {
   display: flex;
@@ -885,28 +895,24 @@ body {
   flex-shrink: 0;
 }
 
-/* Rolling Off list: cap height so panel doesn't grow unbounded */
 .ov-cliff-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 296px;   /* ~4 full items (each ~68px) + 3 gaps */
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 #0F1117;
 }
-/* Needs list: cap height so panel doesn't grow unbounded */
 .ov-needs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 296px;   /* ~4 full items + gaps, scrolls beyond that */
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 #0F1117;
 }
 .ov-cliff-item {
-  border-left: 3px solid #FFB3B3;
-  padding: 6px 10px;
-  border-radius: 0 6px 6px 0;
-  background: #16192A;
-  flex-shrink: 0;       /* never compress — all 3 lines must stay fully visible */
+  flex-shrink: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #2E3250;
 }
 .ov-cliff-name {
   font-size: 12px;
@@ -931,9 +937,9 @@ body {
 
 /* Needs Attention items */
 .ov-needs-item {
-  padding: 7px 10px;
-  background: #16192A;
-  border-radius: 6px;
+  flex-shrink: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #2E3250;
 }
 .ov-needs-row {
   display: flex;
