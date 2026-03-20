@@ -97,6 +97,7 @@
 (Depends on Phase 10 SQLite being complete)
 - [ ] #62 Role-Based Access Control (RBAC)
 - [ ] #63 User Management UI for Admin role
+- [ ] #64 Export and Import Excel for Supply and Needs data
 
 ---
-**35 complete [x] · 26 open [ ] · 61 tracked**
+**35 complete [x] · 27 open [ ] · 62 tracked**
