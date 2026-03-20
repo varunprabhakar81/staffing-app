@@ -53,7 +53,7 @@
 - [x] #57 Move Bench Report snapshot to Overview tab as 4th stat card
 - [x] #59 Overview tab - executive dashboard redesign
 - [x] #48 Left sidebar navigation to replace top tab bar
-- [ ] #50 Needs tab - rename, add dates, hours per week and improve layout
+- [x] #50 Needs tab - rename, add dates, hours per week and improve layout
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
 - [ ] #60 Sidebar, Overview and keyboard navigation polish
@@ -93,4 +93,4 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ---
-**34 complete [x] · 24 open [ ] · 58 tracked**
+**35 complete [x] · 23 open [ ] · 58 tracked**

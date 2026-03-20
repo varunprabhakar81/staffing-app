@@ -259,7 +259,7 @@ function renderOverviewStats(data, heatmapData) {
   if (needsSecondary) {
     needsSecondary.textContent = totalRoles > 0
       ? `${unmet} unmet · ${summary.partially_met || 0} partial`
-      : 'no open demand roles';
+      : 'no open needs';
   }
 
   // Mini donut for Card 3
@@ -282,7 +282,7 @@ function renderOverviewStats(data, heatmapData) {
       unmetTrendEl.textContent = `⚠ ${unmet} role${unmet !== 1 ? 's' : ''} need attention`;
       unmetTrendEl.className = 'ov-card-trend warn';
     } else {
-      unmetTrendEl.textContent = '✓ All demand roles covered';
+      unmetTrendEl.textContent = '✓ All needs covered';
       unmetTrendEl.className = 'ov-card-trend ok';
     }
   }
@@ -890,7 +890,7 @@ function renderCoverageChart(coverage) {
   const total        = fullyMet + partiallyMet + unmet;
 
   const badge = document.getElementById('coverageBadge');
-  badge.textContent = total ? `${total} open roles` : 'No open roles';
+  badge.textContent = total ? `${total} open needs` : 'No open needs';
   badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
 
   charts.coverage = new Chart(document.getElementById('chartCoverage'), {
@@ -957,21 +957,32 @@ function renderCoverageChart(coverage) {
 
   const tableEl = document.getElementById('coverageTable');
   if (!coverage.roles || !coverage.roles.length) {
-    tableEl.innerHTML = '<p style="font-size:13px;color:#94a3b8;padding:8px 0">No open demand roles</p>';
+    tableEl.innerHTML = '<p style="font-size:13px;color:#94a3b8;padding:8px 0">No open needs</p>';
     return;
   }
 
+  const fmtDate = (s) => {
+    if (!s) return '—';
+    const p = String(s).split('/');
+    if (p.length < 2) return s;
+    const yr = p[2] ? '/' + p[2].slice(-2) : '';
+    return `${parseInt(p[0])}/${parseInt(p[1])}${yr}`;
+  };
+
   const statusBadge = (status) => {
     if (status === 'fully_met')    return '<span class="badge-covered">Fully Met</span>';
-    if (status === 'partially_met') return '<span style="background:#FFF3A3;color:#7a6500;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">Partial</span>';
+    if (status === 'partially_met') return '<span class="badge-partial">Partial</span>';
     return '<span class="badge-uncovered">Unmet</span>';
   };
 
   const rows = coverage.roles.map((r, i) => `
     <tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click for details">
-      <td>${r.project || '—'}</td>
-      <td>${r.skillSet || '—'}</td>
+      <td class="col-project">${r.project || '—'}</td>
+      <td class="col-skill">${r.skillSet || '—'}</td>
       <td>${r.level || '—'}</td>
+      <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
+      <td class="col-center">${fmtDate(r.startDate)}</td>
+      <td class="col-center">${fmtDate(r.endDate)}</td>
       <td>${statusBadge(r.status)}</td>
     </tr>
   `).join('');
@@ -979,7 +990,11 @@ function renderCoverageChart(coverage) {
   tableEl.innerHTML = `
     <table>
       <thead><tr>
-        <th>Project</th><th>Skill</th><th>Level</th><th>Status</th>
+        <th>Project</th><th>Skill</th><th>Level</th>
+        <th class="col-center">Hrs/Wk</th>
+        <th class="col-center">Start</th>
+        <th class="col-center">End</th>
+        <th>Status</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
