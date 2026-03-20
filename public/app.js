@@ -146,28 +146,25 @@ function renderOverviewStats(data, heatmapData) {
   if (greetEl) greetEl.textContent = `${greeting} — staffing snapshot for week ending ${weekLabel}`;
 
   // ── Available Hours ──────────────────────────────────────────────
-  let totalAvail = 0, totalAvailLast = 0;
+  let totalAvail = 0, benchThisWeek = 0;
   if (heatmapData && heatmapData.employees) {
     for (const emp of heatmapData.employees) {
-      totalAvail     += Math.max(0, 45 - (emp.weeklyHours[0] || 0));
-      totalAvailLast += Math.max(0, 45 - (emp.weeklyHours[1] || 0));
+      totalAvail += Math.max(0, 45 - (emp.weeklyHours[0] || 0));
+      if ((emp.weeklyHours[0] || 0) === 0) benchThisWeek++;
     }
   }
   const availEl = document.getElementById('overviewAvailHours');
   if (availEl) availEl.textContent = totalAvail ? String(totalAvail) : '—';
 
-  const availDiff   = totalAvail - totalAvailLast;
   const availTrendEl = document.getElementById('overviewAvailTrend');
-  if (availTrendEl && totalAvail) {
-    if (availDiff > 0) {
-      availTrendEl.textContent = `↑ ${availDiff}h more than last week`;
-      availTrendEl.className = 'exec-card-trend up';
-    } else if (availDiff < 0) {
-      availTrendEl.textContent = `↓ ${Math.abs(availDiff)}h less than last week`;
-      availTrendEl.className = 'exec-card-trend down';
-    } else {
-      availTrendEl.textContent = '→ Same as last week';
+  if (availTrendEl) {
+    if (totalAvail > 0) {
+      const benchNote = benchThisWeek > 0 ? ` · ${benchThisWeek} fully free` : '';
+      availTrendEl.textContent = `Unbooked capacity this week${benchNote}`;
       availTrendEl.className = 'exec-card-trend';
+    } else {
+      availTrendEl.textContent = '✓ Team fully booked this week';
+      availTrendEl.className = 'exec-card-trend ok';
     }
   }
 

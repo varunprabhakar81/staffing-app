@@ -243,6 +243,10 @@ body {
 .section-header .section-sub {
   margin-top: 0;
   font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .section-title {
@@ -272,6 +276,8 @@ body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .refresh-btn:hover {
@@ -623,11 +629,11 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 32px;
+  padding: 24px 32px;
 }
 
 .overview-greeting {
@@ -678,9 +684,9 @@ body {
 .exec-card-label {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
-  color: #8892B0;
+  color: var(--exec-accent, #8892B0);
 }
 
 .exec-card-number {
@@ -692,19 +698,19 @@ body {
 }
 
 .exec-card-num {
-  font-size: 52px;
-  font-weight: 700;
+  font-size: 64px;
+  font-weight: 800;
   color: var(--exec-accent, #FFFFFF);
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -3px;
 }
 
 .exec-card-unit {
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 24px;
+  font-weight: 400;
   color: #8892B0;
   line-height: 1;
-  padding-bottom: 7px;
+  padding-bottom: 10px;
 }
 
 .exec-card-trend {
