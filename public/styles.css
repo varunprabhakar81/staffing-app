@@ -273,9 +273,9 @@ body {
 }
 
 #tab-needs {
-  overflow: hidden;
+  overflow-y: auto;
   padding: 12px;
-  gap: 10px;
+  gap: 8px;
   box-sizing: border-box;
 }
 
@@ -1153,12 +1153,12 @@ body {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px 24px;
+  padding: 14px 20px;
 }
 
 .ai-placeholder-inner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
 }
 
