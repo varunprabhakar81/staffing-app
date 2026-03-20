@@ -313,7 +313,6 @@ function renderOverviewStats(data, heatmapData) {
   renderTopProjects(heatmapData);
   renderRollingOff(heatmapData);
   renderNeedsAttention(data);
-  renderBenchRow(heatmapData, totalConsultants);
 }
 
 // ── Level Breakdown (Row 2 left) ──────────────────────────────────
@@ -453,36 +452,6 @@ function renderNeedsAttention(data) {
       <div class="ov-needs-date" style="color:${dateCol}">From ${r.startDate || '—'}</div>
     </div>`;
   }).join('');
-}
-
-// ── Bench This Week (Row 3) ───────────────────────────────────────
-const OV_AVATAR_COLORS = ['#A8C7FA', '#A8E6CF', '#FFF3A3', '#FFB3B3', '#C9B8FF', '#FFDAB9'];
-
-function renderBenchRow(heatmapData, totalConsultants) {
-  const el = document.getElementById('ovBenchRow');
-  if (!el) return;
-  const benchEmps = heatmapData && heatmapData.employees
-    ? heatmapData.employees.filter(e => (e.weeklyHours[0] || 0) === 0) : [];
-  if (!benchEmps.length) {
-    el.className = 'ov-bench-row ov-bench-empty';
-    el.innerHTML = `<span class="ov-bench-all-booked">✓ All ${totalConsultants} consultants are currently booked this week</span>`;
-    return;
-  }
-  el.className = 'ov-bench-row ov-bench-has-bench';
-  el.innerHTML = `<div class="ov-bench-label">⚠ On bench this week</div>
-    <div class="ov-bench-people">
-      ${benchEmps.map((emp, i) => {
-        const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        const col = OV_AVATAR_COLORS[i % OV_AVATAR_COLORS.length];
-        return `<div class="ov-bench-person">
-          <div class="ov-bench-avatar" style="background:${col}22;color:${col};border-color:${col}">${initials}</div>
-          <div class="ov-bench-info">
-            <span class="ov-bench-name">${emp.name}</span>
-            <span class="ov-bench-meta">${emp.level}${emp.skillSet ? ' · ' + emp.skillSet : ''}</span>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
 }
 
 // ══════════════════════════════════════════════════════════════════
