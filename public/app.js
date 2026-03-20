@@ -43,14 +43,6 @@ const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heat
 // ── Tracks which employee rows are expanded in the heatmap ────────
 const _hmExpanded = new Set();
 
-// ── Status indicator ──────────────────────────────────────────────
-function setStatus(type, msg) {
-  const dot  = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  dot.className  = `status-dot ${type}`;
-  text.textContent = msg;
-}
-
 // ── Utilization status helper ─────────────────────────────────────
 function utilStatus(hours) {
   if (hours > 45)  return { label: 'Overbooked',     cls: 'status-overbooked' };
@@ -91,7 +83,6 @@ function fmtWeek(wk) {
 
 // ── Load Dashboard ────────────────────────────────────────────────
 async function loadDashboard() {
-  setStatus('loading', 'Loading data…');
   try {
     const [dashRes, supplyRes, empRes, heatmapRes] = await Promise.all([
       fetch('/api/dashboard'),
@@ -110,7 +101,6 @@ async function loadDashboard() {
     rawData.coverageRoles = (data.needsCoverage || {}).roles || [];
     rawData.heatmap       = heatmapRes.ok   ? await heatmapRes.json()   : null;
 
-    setStatus('ok', 'Live data');
     // Week ending date (Saturday) + update time
     (function() {
       const now = new Date();
@@ -138,7 +128,6 @@ async function loadDashboard() {
     });
 
   } catch (err) {
-    setStatus('error', 'Connection error');
     document.getElementById('dataTimestamp').textContent = 'Could not load data — check server';
     console.error('[Dashboard]', err);
   }
