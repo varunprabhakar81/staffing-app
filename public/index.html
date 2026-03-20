@@ -57,7 +57,7 @@
       <!-- Hero KPI Cards -->
       <div class="ov-kpi-row">
 
-        <!-- Card 1: Utilization (with semi-circular gauge) -->
+        <!-- Card 1: Utilization -->
         <div class="ov-card" id="overviewUtilCard" style="--ov-accent:#FFB3B3"
              onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
           <div class="ov-card-label">Utilization</div>
@@ -68,20 +68,6 @@
                 <span class="ov-unit">%</span>
               </div>
               <p class="ov-secondary" id="overviewUtilSecondary">— consultants booked</p>
-            </div>
-            <div class="ov-card-gauge">
-              <svg viewBox="-4 0 128 72" width="90" height="51" aria-hidden="true" style="overflow:visible">
-                <!-- Background arc -->
-                <path d="M 10,62 A 50,50 0 0,1 110,62" fill="none" stroke="#2E3250" stroke-width="8" stroke-linecap="round"/>
-                <!-- Fill arc (JS-controlled) -->
-                <path id="utilGaugeFill" d="M 10,62 A 50,50 0 0,1 110,62" fill="none"
-                      stroke="#FFB3B3" stroke-width="8" stroke-linecap="round"
-                      stroke-dasharray="157.08" stroke-dashoffset="157.08"
-                      style="transition: stroke-dashoffset 0.6s ease-out, stroke 0.3s"/>
-                <!-- Target marker at 80% (36° from right/positive-x axis) -->
-                <line x1="96" y1="37" x2="105" y2="29" stroke="#8892B0" stroke-width="1.5" stroke-linecap="round"/>
-                <text x="77" y="52" fill="#8892B0" font-size="6.5" text-anchor="middle" font-family="Inter, sans-serif">Target: 80%</text>
-              </svg>
             </div>
           </div>
           <p class="ov-card-trend" id="overviewUtilTrend">Loading…</p>

@@ -688,14 +688,6 @@ body {
   line-height: 1.4;
 }
 
-.ov-card-gauge {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
-  padding-top: 2px;
-  padding-right: 10px;
-  overflow: visible;
-}
 
 .ov-card-trend {
   font-size: 11px;
@@ -739,6 +731,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  height: 100%;
 }
 
 .ov-right-col {
@@ -925,6 +918,7 @@ body {
 /* Top Projects panel */
 .ov-projects-panel {
   flex: 1;
+  min-height: 0;
 }
 .ov-projects-list {
   display: flex;

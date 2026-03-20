@@ -169,8 +169,14 @@ function renderOverviewStats(data, heatmapData) {
       bookedSet.add(row.employeeName);
     }
   });
+  const allWithHours = currentWeekKey
+    ? new Set((rawData.supply || []).filter(r => (r.weeklyHours || {})[currentWeekKey] > 0).map(r => r.employeeName)).size
+    : 0;
   const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
-  console.log('[Overview] avgUtil:', avgUtil, '% | bookedCount:', bookedCount, '/', headcount, '| week:', currentWeekKey);
+  console.log('[Overview] supply employees total:', (rawData.employees || []).length,
+    '| with any hours this week:', allWithHours,
+    '| with client project hours (booked):', bookedCount,
+    '| week:', currentWeekKey);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
@@ -184,15 +190,6 @@ function renderOverviewStats(data, heatmapData) {
   if (utilSecondary && headcount) {
     const avgHrs = headcount > 0 ? Math.round(currentWeekHours / headcount) : 0;
     utilSecondary.textContent = `${bookedCount} of ${headcount} booked · avg ${avgHrs}h/wk`;
-  }
-
-  // Update semi-circular gauge
-  const gaugeLen  = 157.08; // π × 50 (semicircle circumference)
-  const gaugeFill = document.getElementById('utilGaugeFill');
-  if (gaugeFill && headcount) {
-    const pct = Math.min(Math.max(avgUtil, 0), 100) / 100;
-    gaugeFill.setAttribute('stroke-dashoffset', String(Math.round(gaugeLen * (1 - pct))));
-    gaugeFill.setAttribute('stroke', utilColor);
   }
 
   const utilTrendEl = document.getElementById('overviewUtilTrend');
