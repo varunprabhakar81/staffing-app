@@ -13,6 +13,11 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
+    // Clear search input on every tab switch
+    const searchInput = document.querySelector('.hdr-search-input');
+    if (searchInput) searchInput.value = '';
+    // Update bell badge on every tab switch
+    updateBellBadge();
     // Re-render virtual scroll after tab layout settles (clientHeight was 0 while hidden)
     if (tab === 'staffing') {
       requestAnimationFrame(() => _vsRenderVisible());
@@ -48,6 +53,152 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeDrilldown(); return; }
   if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); loadDashboard(); }
 });
+
+// ── Header: Date Range Selector ───────────────────────────────────
+window.selectedDateRange = { type: 'current', weekOffset: 0 };
+
+(function initDateRange() {
+  function getWeekEndDate(offsetWeeks) {
+    const today = new Date();
+    const daysToSat = (6 - today.getDay() + 7) % 7;
+    const sat = new Date(today);
+    sat.setDate(today.getDate() + daysToSat + offsetWeeks * 7);
+    return sat;
+  }
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function formatWeekLabel(date) {
+    return `Week of ${MONTHS[date.getMonth()]} ${date.getDate()}`;
+  }
+
+  const labelBtn  = document.getElementById('dateRangeLabel');
+  const dropdown  = document.getElementById('dateRangeDropdown');
+  const prevBtn   = document.getElementById('dateRangePrev');
+  const nextBtn   = document.getElementById('dateRangeNext');
+
+  if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(0));
+
+  function applyWeekOffset() {
+    window.selectedDateRange.type = 'custom';
+    if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(window.selectedDateRange.weekOffset));
+    document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
+  }
+
+  if (labelBtn) {
+    labelBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (dropdown) dropdown.classList.toggle('hidden');
+    });
+  }
+
+  document.querySelectorAll('.hdr-date-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const range = btn.dataset.range;
+      window.selectedDateRange.type = range;
+      window.selectedDateRange.weekOffset = 0;
+      const labels = { current: 'Current Week', next2: 'Next 2 Weeks', next4: 'Next 4 Weeks', month: 'This Month' };
+      if (labelBtn) labelBtn.textContent = labels[range] || 'Current Week';
+      if (dropdown) dropdown.classList.add('hidden');
+      document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
+    });
+  });
+
+  if (prevBtn) prevBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset--; applyWeekOffset(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset++; applyWeekOffset(); });
+
+  document.addEventListener('click', () => { if (dropdown) dropdown.classList.add('hidden'); });
+})();
+
+// ── Header: Search Bar ────────────────────────────────────────────
+(function initHeaderSearch() {
+  const input = document.getElementById('headerSearch');
+  if (!input) return;
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { input.value = ''; input.blur(); e.stopPropagation(); }
+  });
+
+  input.addEventListener('input', () => {
+    console.log('[Search]', input.value);
+  });
+})();
+
+// ── Header: Notification Bell ─────────────────────────────────────
+function closeBellDropdown() {
+  const dd = document.getElementById('bellDropdown');
+  if (dd) dd.classList.add('hidden');
+}
+
+function updateBellBadge() {
+  const badge     = document.getElementById('bellBadge');
+  const alertList = document.getElementById('bellAlertList');
+  if (!badge || !alertList) return;
+
+  const unmetCount = (rawData.coverageRoles || []).filter(r => r.status === 'unmet').length;
+
+  const empTotals = {};
+  for (const row of rawData.supply || []) {
+    const n = row.employeeName;
+    if (!empTotals[n]) empTotals[n] = [];
+    for (const hrs of Object.values(row.weeklyHours || {})) empTotals[n].push(hrs || 0);
+  }
+  const overbookedCount = Object.values(empTotals).filter(weeks => {
+    const avg = weeks.length ? weeks.reduce((a, b) => a + b, 0) / weeks.length : 0;
+    return avg > 45;
+  }).length;
+
+  const total = unmetCount + overbookedCount;
+
+  // If data hasn't loaded yet keep the hardcoded fallback badge visible
+  if (rawData.coverageRoles.length === 0 && rawData.supply.length === 0) return;
+
+  badge.textContent = String(total);
+  badge.style.display = total > 0 ? '' : 'none';
+
+  let html = '';
+  if (unmetCount > 0) {
+    html += `<div class="hdr-alert-item">
+      <span class="hdr-alert-icon">⚠️</span>
+      <span class="hdr-alert-text">${unmetCount} unmet staffing need${unmetCount !== 1 ? 's' : ''}</span>
+      <button class="hdr-alert-link" onclick="navigateTo('needs');closeBellDropdown()">View →</button>
+    </div>`;
+  }
+  if (overbookedCount > 0) {
+    html += `<div class="hdr-alert-item">
+      <span class="hdr-alert-icon">🔴</span>
+      <span class="hdr-alert-text">${overbookedCount} employee${overbookedCount !== 1 ? 's' : ''} overbooked</span>
+      <button class="hdr-alert-link" onclick="navigateTo('staffing');closeBellDropdown()">View →</button>
+    </div>`;
+  }
+  if (total === 0) {
+    html = '<div class="hdr-alert-empty">No active alerts</div>';
+  }
+  alertList.innerHTML = html;
+}
+
+(function initBell() {
+  const bellBtn  = document.getElementById('bellBtn');
+  const dropdown = document.getElementById('bellDropdown');
+  if (!bellBtn || !dropdown) return;
+
+  bellBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('hidden');
+    if (!dropdown.classList.contains('hidden')) updateBellBadge();
+  });
+
+  document.addEventListener('click', e => {
+    if (!bellBtn.contains(e.target)) dropdown.classList.add('hidden');
+  });
+})();
 
 // ── Chart registry (so we can destroy + re-render on refresh) ─────
 const charts = {};
@@ -134,6 +285,7 @@ async function loadDashboard() {
     renderBenchReport(data.benchReport);
     if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
     loadSuggestedQuestions();
+    updateBellBadge();
 
     // DEBUG: viewport fit measurement — remove after tuning
     requestAnimationFrame(() => {
