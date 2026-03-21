@@ -273,13 +273,15 @@
         </div>
 
         <div class="ask-examples">
-          <span class="examples-label">Try asking:</span>
-          <div class="examples-chips">
-            <button class="chip" onclick="setQuestion(this)">Who is available next week?</button>
-            <button class="chip" onclick="setQuestion(this)">Which projects are understaffed?</button>
-            <button class="chip" onclick="setQuestion(this)">Who has the highest utilization?</button>
-            <button class="chip" onclick="setQuestion(this)">Are there any upcoming staffing cliffs?</button>
-            <button class="chip" onclick="setQuestion(this)">Summarize the bench by skill set</button>
+          <span class="examples-label">Suggested questions:</span>
+          <div id="suggestedChips" class="examples-chips">
+            <div id="chipsLoading" class="chips-loading">
+              <div class="chip-skeleton" style="width:210px"></div>
+              <div class="chip-skeleton" style="width:180px"></div>
+              <div class="chip-skeleton" style="width:230px"></div>
+              <div class="chip-skeleton" style="width:195px"></div>
+              <div class="chip-skeleton" style="width:175px"></div>
+            </div>
           </div>
         </div>
 

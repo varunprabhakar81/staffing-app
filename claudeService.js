@@ -94,7 +94,110 @@ async function askClaude(question, staffingData) {
   }
 }
 
-module.exports = { askClaude };
+// Build a compact data summary for the suggestions prompt
+function buildDataSummary(data) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  // Per-employee week totals
+  const empTotals = {};
+  for (const row of data.supply) {
+    const n = row.employeeName;
+    if (!empTotals[n]) empTotals[n] = { weekTotals: {}, skillSet: row.skillSet, projects: [] };
+    if (row.projectAssigned && !empTotals[n].projects.includes(row.projectAssigned))
+      empTotals[n].projects.push(row.projectAssigned);
+    for (const [wk, hrs] of Object.entries(row.weeklyHours))
+      empTotals[n].weekTotals[wk] = (empTotals[n].weekTotals[wk] || 0) + (hrs || 0);
+  }
+
+  const weekKeys = data.supply.length ? Object.keys(data.supply[0].weeklyHours) : [];
+
+  function parseWkLabel(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+
+  // Current week key (first week-ending >= today)
+  let currentWk = weekKeys[0] || null;
+  for (const wk of weekKeys) {
+    const d = parseWkLabel(wk);
+    if (d && d >= today) { currentWk = wk; break; }
+  }
+
+  // Bench count (< 10h this week)
+  let benchCount = 0;
+  const benchNames = [];
+  for (const [name, info] of Object.entries(empTotals)) {
+    const hrs = info.weekTotals[currentWk] || 0;
+    if (hrs < 10) { benchCount++; benchNames.push(name); }
+  }
+
+  // Avg utilization
+  const avgs = Object.values(empTotals).map(info => {
+    const vals = Object.values(info.weekTotals);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  });
+  const avgUtil = avgs.length ? Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length / 45) * 100) : 0;
+
+  // Rolloffs in next 30 days: employees whose hours drop by >= 20h week-over-week within 30 days
+  const in30 = new Date(today); in30.setDate(today.getDate() + 30);
+  const rolloffs = [];
+  const wkDates = weekKeys.map(wk => ({ wk, d: parseWkLabel(wk) }));
+  for (const [name, info] of Object.entries(empTotals)) {
+    for (let i = 1; i < wkDates.length; i++) {
+      const { wk, d } = wkDates[i];
+      if (!d || d < today || d > in30) continue;
+      const prev = info.weekTotals[wkDates[i - 1].wk] || 0;
+      const curr = info.weekTotals[wk] || 0;
+      if (prev >= 20 && prev - curr >= 20) {
+        const wkLabel = wk.replace('Week ending ', '');
+        rolloffs.push(`${name} (${prev}h → ${curr}h week of ${wkLabel})`);
+        break;
+      }
+    }
+  }
+
+  // Open needs
+  const unmetNeeds = data.demand.map(r =>
+    `${r.projectName} needs ${r.resourceLevel}/${r.skillSet} from ${r.startDate} to ${r.endDate}`
+  );
+
+  const lines = [
+    `Headcount: ${data.employees.length}`,
+    `Average utilization: ${avgUtil}%`,
+    `On bench this week (< 10h): ${benchCount}${benchNames.length ? ' — ' + benchNames.slice(0, 5).join(', ') : ''}`,
+    `Roll-offs in next 30 days: ${rolloffs.length ? rolloffs.join('; ') : 'none detected'}`,
+    `Open demand roles (${unmetNeeds.length}): ${unmetNeeds.slice(0, 8).join(' | ') || 'none'}`,
+  ];
+
+  return lines.join('\n');
+}
+
+async function getSuggestedQuestions(staffingData) {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+
+  try {
+    const summary = buildDataSummary(staffingData);
+    const prompt = `You are a staffing analyst assistant. Here is a live summary of the staffing data:\n\n${summary}\n\nGenerate exactly 5 specific, insightful questions an executive or staffing manager would want to ask about this data right now. Requirements:\n- Return ONLY a JSON array of 5 strings, no markdown, no preamble, no explanation\n- Each question must reference real names, project names, dates, or numbers from the data above\n- Mix question types: availability gaps, rolloff risks, bench optimization, coverage holes, utilization outliers\n- Keep each question under 80 characters\n- Example format: ["Question 1?","Question 2?","Question 3?","Question 4?","Question 5?"]`;
+
+    const response = await client.messages.create({
+      model:      MODEL,
+      max_tokens: 512,
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content[0].text.trim();
+    // Strip any accidental markdown fences
+    const clean = text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+    const questions = JSON.parse(clean);
+    if (!Array.isArray(questions) || questions.length === 0) return null;
+    return questions.slice(0, 5);
+  } catch (err) {
+    console.warn('[getSuggestedQuestions] failed:', err.message);
+    return null;
+  }
+}
+
+module.exports = { askClaude, getSuggestedQuestions };
 
 // ── Quick test when run directly ─────────────────────────────────────────────
 if (require.main === module) {

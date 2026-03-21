@@ -54,7 +54,7 @@
 - [x] #59 Overview tab - executive dashboard redesign
 - [x] #48 Left sidebar navigation to replace top tab bar
 - [x] #50 Needs tab - rename, add dates, hours per week and improve layout
-- [ ] #52 Ask Claude - dynamic suggested questions based on current data
+- [x] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
 - [ ] #60 Sidebar, Overview and keyboard navigation polish
 - [ ] #65 Refresh button visibility in sidebar footer
@@ -101,4 +101,4 @@
 - [ ] #64 Export and Import Excel for Supply and Needs data
 
 ---
-**35 complete [x] · 28 open [ ] · 63 tracked**
+**36 complete [x] · 27 open [ ] · 63 tracked**

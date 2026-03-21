@@ -23,6 +23,10 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
         Object.values(charts).forEach(c => c && typeof c.resize === 'function' && c.resize());
       });
     }
+    // Refresh suggested questions each time Ask tab is opened
+    if (tab === 'ask') {
+      loadSuggestedQuestions();
+    }
   });
 });
 
@@ -126,6 +130,7 @@ async function loadDashboard() {
     renderCoverageChart(data.needsCoverage);
     renderBenchReport(data.benchReport);
     if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
+    loadSuggestedQuestions();
 
     // DEBUG: viewport fit measurement — remove after tuning
     requestAnimationFrame(() => {
@@ -1550,6 +1555,50 @@ function drillDemandKPI() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`);
+}
+
+// ── Ask Claude — Dynamic Suggested Questions ──────────────────────
+const STATIC_FALLBACK_QUESTIONS = [
+  'Who is available next week?',
+  'Which projects are understaffed?',
+  'Who has the highest utilization?',
+  'Are there any upcoming staffing cliffs?',
+  'Summarize the bench by skill set',
+];
+
+async function loadSuggestedQuestions() {
+  // Show skeleton while loading
+  const container = document.getElementById('suggestedChips');
+  if (!container) return;
+  const loading = document.getElementById('chipsLoading');
+  if (loading) loading.style.display = 'flex';
+  // Remove any previously rendered chips
+  container.querySelectorAll('.suggestion-chip').forEach(el => el.remove());
+
+  try {
+    const res = await fetch('/api/suggested-questions');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data.questions) || !data.questions.length) throw new Error('empty');
+    renderChips(data.questions);
+  } catch (_) {
+    renderChips(STATIC_FALLBACK_QUESTIONS);
+  }
+}
+
+function renderChips(questions) {
+  const container = document.getElementById('suggestedChips');
+  if (!container) return;
+  const loading = document.getElementById('chipsLoading');
+  if (loading) loading.style.display = 'none';
+  container.querySelectorAll('.suggestion-chip').forEach(el => el.remove());
+  for (const q of questions) {
+    const btn = document.createElement('button');
+    btn.className = 'suggestion-chip';
+    btn.textContent = q;
+    btn.addEventListener('click', () => setQuestion(btn));
+    container.appendChild(btn);
+  }
 }
 
 // ── Ask Claude ────────────────────────────────────────────────────

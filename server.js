@@ -4,7 +4,7 @@ const express              = require('express');
 const cors                 = require('cors');
 const path                 = require('path');
 const { readStaffingData } = require('./excelReader');
-const { askClaude }        = require('./claudeService');
+const { askClaude, getSuggestedQuestions } = require('./claudeService');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -358,6 +358,20 @@ app.get('/api/heatmap', async (req, res) => {
   });
 
   res.json({ weeks, employees: empList });
+});
+
+// GET /api/suggested-questions
+app.get('/api/suggested-questions', async (req, res) => {
+  try {
+    const freshData = await readStaffingData();
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+    staffingData = freshData;
+    const questions = await getSuggestedQuestions(freshData);
+    if (!questions) return res.status(500).json({ error: 'Could not generate suggestions' });
+    res.json({ questions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/ask?question=...
