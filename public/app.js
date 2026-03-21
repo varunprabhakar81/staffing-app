@@ -291,7 +291,7 @@ async function loadDashboard() {
       const weekLabel = `${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
       const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const tsEl = document.getElementById('dataTimestamp');
-      if (tsEl) tsEl.innerHTML = `<span class="sidebar-week-date">Week ending ${weekLabel}</span><span class="sidebar-week-time">Updated ${timeLabel}</span>`;
+      if (tsEl) tsEl.innerHTML = `<span class="sidebar-week-time">Updated ${timeLabel}</span>`;
     })();
 
     renderKPIs(data);
