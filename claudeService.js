@@ -177,12 +177,12 @@ async function getSuggestedQuestions(staffingData) {
 
   try {
     const summary = buildDataSummary(staffingData);
-    const prompt = `You are a staffing analyst assistant. Here is a live summary of the staffing data:\n\n${summary}\n\nGenerate exactly 5 specific, insightful questions an executive or staffing manager would want to ask about this data right now. Requirements:\n- Return ONLY a JSON array of 5 strings, no markdown, no preamble, no explanation\n- Each question must reference real names, project names, dates, or numbers from the data above\n- Mix question types: availability gaps, rolloff risks, bench optimization, coverage holes, utilization outliers\n- Keep each question under 80 characters\n- Example format: ["Question 1?","Question 2?","Question 3?","Question 4?","Question 5?"]`;
 
     const response = await client.messages.create({
       model:      MODEL,
       max_tokens: 512,
-      messages:   [{ role: 'user', content: prompt }],
+      system:     'You are a staffing intelligence assistant. Generate exactly 5 short, specific, actionable questions a manager would want to ask right now based on this staffing data. Each question must be 12 words or fewer. Return ONLY a JSON array of 5 strings. No preamble, no markdown, no explanation.',
+      messages:   [{ role: 'user', content: summary + '\n\nRemember: each question must be 12 words or fewer.' }],
     });
 
     const text = response.content[0].text.trim();

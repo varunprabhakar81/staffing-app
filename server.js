@@ -360,8 +360,8 @@ app.get('/api/heatmap', async (req, res) => {
   res.json({ weeks, employees: empList });
 });
 
-// GET /api/suggested-questions
-app.get('/api/suggested-questions', async (req, res) => {
+// POST /api/suggested-questions
+app.post('/api/suggested-questions', async (req, res) => {
   try {
     const freshData = await readStaffingData();
     if (freshData.error) return res.status(503).json({ error: freshData.error });

@@ -1284,7 +1284,11 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  white-space: normal;
+  text-overflow: unset;
+  overflow: visible;
+  max-width: 100%;
+  text-align: left;
 }
 
 .suggestion-chip:hover {

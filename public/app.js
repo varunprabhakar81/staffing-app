@@ -43,8 +43,11 @@ function toggleSidebar() {
   if (icon) icon.textContent = sidebar.classList.contains('collapsed') ? '›' : '‹';
 }
 
-// Close drilldown on Escape
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrilldown(); });
+// Close drilldown on Escape; Ctrl+R refreshes data
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDrilldown(); return; }
+  if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); loadDashboard(); }
+});
 
 // ── Chart registry (so we can destroy + re-render on refresh) ─────
 const charts = {};
@@ -1559,11 +1562,11 @@ function drillDemandKPI() {
 
 // ── Ask Claude — Dynamic Suggested Questions ──────────────────────
 const STATIC_FALLBACK_QUESTIONS = [
-  'Who is available next week?',
-  'Which projects are understaffed?',
-  'Who has the highest utilization?',
-  'Are there any upcoming staffing cliffs?',
-  'Summarize the bench by skill set',
+  'Who has the most available capacity this week?',
+  'Which projects have unmet staffing needs?',
+  'Who is rolling off a project in the next 2 weeks?',
+  'What is our current overall utilization rate?',
+  'Which employees are overbooked right now?',
 ];
 
 async function loadSuggestedQuestions() {
@@ -1576,7 +1579,7 @@ async function loadSuggestedQuestions() {
   container.querySelectorAll('.suggestion-chip').forEach(el => el.remove());
 
   try {
-    const res = await fetch('/api/suggested-questions');
+    const res = await fetch('/api/suggested-questions', { method: 'POST' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data.questions) || !data.questions.length) throw new Error('empty');
