@@ -49,6 +49,13 @@ body {
 *::-webkit-scrollbar-thumb:hover { background: #3A4060; }
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
+.sidebar-wrap {
+  position: relative;
+  flex-shrink: 0;
+  height: 100vh;
+  z-index: 10;
+}
+
 .sidebar {
   width: 220px;
   height: 100vh;
@@ -56,11 +63,8 @@ body {
   border-right: 1px solid #2E3250;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
   transition: width 0.2s ease;
   overflow: hidden;
-  position: relative;
-  z-index: 10;
 }
 
 .sidebar.collapsed { width: 56px; }
@@ -105,7 +109,7 @@ body {
   gap: 10px;
   padding: 8px 10px;
   border-radius: 6px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   font-family: var(--font);
   color: #8892B0;
@@ -206,30 +210,32 @@ body {
 }
 
 
-/* Collapse button — circle, clearly visible */
-.sidebar-collapse-btn {
+/* Sidebar toggle tab — anchored to right edge, vertically centered */
+.sidebar-toggle-tab {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 48px;
+  background: #2E3250;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  color: #FFFFFF;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #2E3250;
-  border: 1px solid #4A5080;
-  border-radius: 50%;
-  color: #FFFFFF;
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
-  margin: 0 auto 12px;
-  flex-shrink: 0;
-  box-shadow: 0 0 8px rgba(0,0,0,0.4);
-  font-size: 16px;
+  font-size: 13px;
+  font-family: var(--font);
   line-height: 1;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  padding: 0;
+  z-index: 11;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.sidebar-collapse-btn:hover { background: #3A4070; color: #A8C7FA; border-color: #A8C7FA; }
+.sidebar-toggle-tab:hover { background: #A8C7FA; color: #0F1117; }
 
-.collapse-icon {
-  font-style: normal;
-}
+.collapse-icon { font-style: normal; }
 
 /* ── Main Content ───────────────────────────────────────────────── */
 .main-content {
@@ -965,7 +971,7 @@ body {
 .ov-card {
   background: #1A1D27;
   border: 1px solid #2A2E44;
-  border-top: 3px solid var(--ov-accent, #2E3250);
+  border-top: 4px solid var(--ov-accent, #2E3250);
   border-radius: 12px;
   padding: 14px 20px;
   display: flex;
@@ -1078,7 +1084,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: 100%;
+  min-height: 0;
 }
 
 .ov-right-col {
@@ -1770,6 +1776,90 @@ body {
 
 /* ── Utility ────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+
+/* ── Keyboard Shortcut Guide ────────────────────────────────────── */
+.shortcut-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.shortcut-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.shortcut-modal {
+  background: #1A1D27;
+  border: 1px solid #2E3250;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: slideIn 0.2s ease;
+}
+
+.shortcut-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shortcut-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.shortcut-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.shortcut-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8892B0;
+  margin-bottom: 10px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(46,50,80,0.4);
+}
+.shortcut-row:last-child { border-bottom: none; }
+
+.shortcut-key {
+  background: #2E3250;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: 'Menlo', 'Consolas', monospace;
+  color: #A8C7FA;
+  white-space: nowrap;
+  min-width: 68px;
+  text-align: center;
+}
+
+.shortcut-desc {
+  font-size: 13px;
+  color: #CCD6F6;
+}
 
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 1100px) {

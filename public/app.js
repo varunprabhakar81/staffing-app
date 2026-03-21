@@ -48,11 +48,26 @@ function toggleSidebar() {
   if (icon) icon.textContent = sidebar.classList.contains('collapsed') ? '›' : '‹';
 }
 
-// Close drilldown on Escape; Ctrl+R refreshes data
+// ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeDrilldown(); return; }
-  if (e.key === 'r' && e.ctrlKey) { e.preventDefault(); loadDashboard(); }
+  const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); return; }
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
+    if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
+    if (e.key === '2') { e.preventDefault(); navigateTo('staffing'); return; }
+    if (e.key === '3') { e.preventDefault(); navigateTo('needs');    return; }
+    if (e.key === '4') { e.preventDefault(); navigateTo('ask');      return; }
+    if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
+  }
+  if (e.key === '?' && !inInput) { e.preventDefault(); toggleShortcutGuide(); }
 });
+
+// ── Keyboard shortcut guide ───────────────────────────────────────
+function openShortcutGuide()   { document.getElementById('shortcutOverlay').classList.add('active'); }
+function closeShortcutGuide()  { const el = document.getElementById('shortcutOverlay'); if (el) el.classList.remove('active'); }
+function toggleShortcutGuide() { const el = document.getElementById('shortcutOverlay'); if (el) el.classList.toggle('active'); }
+function handleShortcutOverlayClick(e) { if (e.target === e.currentTarget) closeShortcutGuide(); }
 
 // ── Header: Date Range Selector ───────────────────────────────────
 window.selectedDateRange = { type: 'current', weekOffset: 0 };

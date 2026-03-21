@@ -6,13 +6,14 @@
   <title>Staffing Intelligence | Resource Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=24">
+  <link rel="stylesheet" href="styles.css?v=25">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
 <body>
 
   <!-- ── Left Sidebar ────────────────────────────────────────────── -->
+  <div class="sidebar-wrap">
   <aside class="sidebar" id="sidebar">
 
     <!-- Brand -->
@@ -23,19 +24,19 @@
 
     <!-- Nav items -->
     <nav class="sidebar-nav">
-      <button class="nav-item active" data-tab="overview" title="Overview">
+      <button class="nav-item active" data-tab="overview" title="Overview (Ctrl+1)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
         <span class="nav-label">Overview</span>
       </button>
-      <button class="nav-item" data-tab="staffing" title="Staffing">
+      <button class="nav-item" data-tab="staffing" title="Staffing (Ctrl+2)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="4.5" r="2.5" fill="currentColor"/><path d="M1 13c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="5" r="2" fill="currentColor" opacity=".5"/><path d="M14 13c0-2.209-1.343-4-3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>
         <span class="nav-label">Staffing</span>
       </button>
-      <button class="nav-item" data-tab="needs" title="Needs">
+      <button class="nav-item" data-tab="needs" title="Needs (Ctrl+3)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="3" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="5.5" y1="7.5" x2="10.5" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="5.5" y1="10" x2="8.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         <span class="nav-label">Needs</span>
       </button>
-      <button class="nav-item" data-tab="ask" title="Ask Claude">
+      <button class="nav-item" data-tab="ask" title="Ask Claude (Ctrl+4)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 7c0 3.314-2.686 6-6 6a5.97 5.97 0 01-3-.8L2 14l1.8-3A5.97 5.97 0 012 7c0-3.314 2.686-6 6-6s6 2.686 6 6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="7" r=".7" fill="currentColor"/><circle cx="8" cy="7" r=".7" fill="currentColor"/><circle cx="10" cy="7" r=".7" fill="currentColor"/></svg>
         <span class="nav-label">Ask Claude</span>
       </button>
@@ -45,7 +46,7 @@
       </button>
     </nav>
 
-    <!-- Footer: week indicator + collapse -->
+    <!-- Footer: week indicator -->
     <div class="sidebar-footer">
       <div class="sidebar-meta">
         <span class="sidebar-live-dot"></span>
@@ -56,13 +57,16 @@
           <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
-      <!-- Collapse toggle: centered circle button -->
-      <button class="sidebar-collapse-btn" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
-        <span class="collapse-icon">‹</span>
-      </button>
     </div>
 
   </aside>
+
+  <!-- Sidebar toggle tab — anchored to right edge, vertically centered -->
+  <button class="sidebar-toggle-tab" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar (Ctrl+B)">
+    <span class="collapse-icon">‹</span>
+  </button>
+
+  </div><!-- /.sidebar-wrap -->
 
   <!-- ── Main Content ────────────────────────────────────────────── -->
   <main class="main-content">
@@ -382,6 +386,36 @@
     </div>
   </div>
 
-  <script src="app.js?v=6"></script>
+  <!-- ── Keyboard Shortcut Guide ────────────────────────────────── -->
+  <div id="shortcutOverlay" class="shortcut-overlay" onclick="handleShortcutOverlayClick(event)">
+    <div class="shortcut-modal">
+      <div class="shortcut-modal-header">
+        <h3 class="shortcut-modal-title">Keyboard Shortcuts</h3>
+        <button class="drilldown-close" onclick="closeShortcutGuide()">✕</button>
+      </div>
+      <div class="shortcut-modal-body">
+        <div class="shortcut-section">
+          <div class="shortcut-section-title">Navigation</div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+1</span><span class="shortcut-desc">Overview</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+2</span><span class="shortcut-desc">Staffing</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+3</span><span class="shortcut-desc">Needs</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+4</span><span class="shortcut-desc">Ask Claude</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+B</span><span class="shortcut-desc">Toggle sidebar</span></div>
+        </div>
+        <div class="shortcut-section">
+          <div class="shortcut-section-title">Data</div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+R</span><span class="shortcut-desc">Refresh data</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+K</span><span class="shortcut-desc">Focus search</span></div>
+        </div>
+        <div class="shortcut-section">
+          <div class="shortcut-section-title">General</div>
+          <div class="shortcut-row"><span class="shortcut-key">?</span><span class="shortcut-desc">Show this guide</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Esc</span><span class="shortcut-desc">Close / clear</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=7"></script>
 </body>
 </html>
