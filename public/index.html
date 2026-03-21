@@ -6,7 +6,7 @@
   <title>Staffing Intelligence | Resource Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -286,12 +286,24 @@
     <!-- ── Needs Tab ─────────────────────────────────────────────────── -->
     <div class="tab-panel" id="tab-needs">
 
+      <!-- Pending Assignments Bar (hidden when empty) -->
+      <div class="needs-pending-bar hidden" id="needsPendingBar">
+        <div class="needs-pending-left">
+          <span class="needs-pending-count" id="needsPendingCount">0 assignments pending</span>
+          <div class="needs-pending-items" id="needsPendingItems"></div>
+        </div>
+        <div class="needs-pending-actions">
+          <button class="manage-btn-ghost" onclick="clearNeedsPending()">Clear</button>
+          <button class="manage-btn-primary" id="needsSaveBtn" onclick="saveAllAssignments()">Save All</button>
+        </div>
+      </div>
+
       <!-- Needs Coverage -->
       <div class="chart-card needs-coverage-card">
         <div class="chart-card-header">
           <div>
             <h3 class="chart-title">Needs Coverage</h3>
-            <p class="chart-sub">Fully Met · Partially Met · Unmet — based on weekly availability</p>
+            <p class="chart-sub">Fully Met · Partially Met · Unmet — click a row to see AI-matched consultants</p>
           </div>
           <span class="chart-badge" id="coverageBadge">—</span>
         </div>
@@ -303,17 +315,6 @@
             <div class="coverage-legend" id="coverageLegend"></div>
           </div>
           <div class="coverage-table" id="coverageTable"></div>
-        </div>
-      </div>
-
-      <!-- AI Recommendations Placeholder -->
-      <div class="ai-placeholder-card">
-        <div class="ai-placeholder-inner">
-          <span class="ai-placeholder-icon">🤖</span>
-          <div>
-            <div class="ai-placeholder-title">AI Recommendations</div>
-            <p class="ai-placeholder-text">Claude will automatically match open needs to available resources — coming in Phase 6</p>
-          </div>
         </div>
       </div>
 
@@ -452,6 +453,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

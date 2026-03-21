@@ -5,7 +5,7 @@ const cors                 = require('cors');
 const path                 = require('path');
 const ExcelJS              = require('exceljs');
 const { readStaffingData } = require('./excelReader');
-const { askClaude, getSuggestedQuestions } = require('./claudeService');
+const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -627,6 +627,120 @@ app.post('/api/supply/update', async (req, res) => {
     }
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/recommendations — AI-matched consultants for each open need
+app.get('/api/recommendations', async (req, res) => {
+  const freshData = await readStaffingData();
+  if (freshData.error) return res.status(503).json({ error: freshData.error });
+  staffingData = freshData;
+
+  const { supply, demand, employees } = freshData;
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+  const year     = today.getFullYear();
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+
+  function parseWeekKey(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+  function parseDemandDate(str) {
+    if (!str) return null;
+    const parts = String(str).split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+  }
+
+  // Build level map from Employee Master
+  const levelMap = {};
+  for (const emp of employees) levelMap[emp.employeeName] = emp.level;
+
+  // Build per-employee weekly hour totals
+  const empWeekMap = {};
+  for (const row of supply) {
+    const name = row.employeeName;
+    if (!empWeekMap[name]) {
+      empWeekMap[name] = { skillSet: row.skillSet || '', level: levelMap[name] || row.level || '', weekTotals: {} };
+    }
+    for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
+      empWeekMap[name].weekTotals[wk] = (empWeekMap[name].weekTotals[wk] || 0) + (hrs || 0);
+    }
+  }
+
+  // Pre-compute week dates
+  const weekDateMap = {};
+  for (const wk of weekKeys) weekDateMap[wk] = parseWeekKey(wk);
+
+  const needsWithMatches = [];
+
+  for (const need of demand) {
+    const startDate   = parseDemandDate(need.startDate);
+    const endDate     = parseDemandDate(need.endDate);
+    const hoursNeeded = Number(need.hoursPerWeek) || 40;
+
+    // Weeks in the supply data that fall within the need's date range
+    const demandWeeks = weekKeys.filter(wk => {
+      const d = weekDateMap[wk];
+      return d && startDate && endDate && d >= startDate && d <= endDate;
+    });
+
+    if (!demandWeeks.length) {
+      needsWithMatches.push({ need, matches: [] });
+      continue;
+    }
+
+    const matches = [];
+    for (const [name, info] of Object.entries(empWeekMap)) {
+      if (info.level !== need.resourceLevel) continue;
+      if (info.skillSet !== need.skillSet) continue;
+
+      // Consultant qualifies only if they have capacity every week in the range
+      let qualifies  = true;
+      let totalHours = 0;
+      for (const wk of demandWeeks) {
+        const booked = info.weekTotals[wk] || 0;
+        if (booked > 45 - hoursNeeded) { qualifies = false; break; }
+        totalHours += booked;
+      }
+      if (!qualifies) continue;
+
+      const avgBooked          = totalHours / demandWeeks.length;
+      const availableHours     = Math.round((45 - avgBooked) * 10) / 10;
+      const currentUtilization = Math.round((avgBooked / 45) * 100);
+      const weeklyBreakdown    = demandWeeks.map(wk => ({
+        week: wk,
+        bookedHours:    info.weekTotals[wk] || 0,
+        availableHours: Math.max(0, 45 - (info.weekTotals[wk] || 0)),
+      }));
+
+      matches.push({ employeeName: name, level: info.level, skillSet: info.skillSet,
+                     availableHours, currentUtilization, weeklyBreakdown });
+    }
+
+    // Sort by highest available hours first
+    matches.sort((a, b) => b.availableHours - a.availableHours);
+
+    const topMatches = matches.slice(0, 5);
+    let matchesWithReasoning = topMatches;
+
+    if (topMatches.length > 0) {
+      try {
+        const reasonings = await getMatchReasonings(need, topMatches);
+        matchesWithReasoning = topMatches.map((m, i) => ({
+          ...m, reasoning: reasonings[i] || 'Strong skill set and availability match.',
+        }));
+      } catch (err) {
+        console.warn('[recommendations] reasoning failed:', err.message);
+        matchesWithReasoning = topMatches.map(m => ({
+          ...m, reasoning: 'Available capacity meets requirement.',
+        }));
+      }
+    }
+
+    needsWithMatches.push({ need, matches: matchesWithReasoning });
+  }
+
+  res.json({ needs: needsWithMatches });
 });
 
 // Serve static files after API routes so they don't shadow API paths

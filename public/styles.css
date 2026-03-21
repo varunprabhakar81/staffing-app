@@ -2780,3 +2780,217 @@ body {
   color: var(--text-secondary);
   margin-top: 2px;
 }
+
+/* ── Needs Tab: Pending Assignments Bar ─────────────────────────── */
+.needs-pending-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: -12px -12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: #1A1D27;
+  border-bottom: 1px solid #2E3250;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.needs-pending-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.needs-pending-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--yellow);
+  white-space: nowrap;
+}
+
+.needs-pending-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pending-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(168,199,250,0.1);
+  border: 1px solid rgba(168,199,250,0.2);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.pending-item-text { white-space: nowrap; }
+
+.pending-item-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 10px;
+  padding: 0 1px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.pending-item-remove:hover { color: var(--coral); }
+
+.needs-pending-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Needs Tab: Expandable Row & Match Panel ────────────────────── */
+.need-chevron {
+  display: inline-block;
+  width: 12px;
+  margin-right: 5px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: normal;
+  transition: transform 0.2s ease;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.need-chevron.open {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+.need-expansion-row > td.need-expansion-cell {
+  padding: 0;
+  border-bottom: 1px solid rgba(46,50,80,0.5);
+}
+
+.need-match-panel {
+  padding: 12px 16px 16px;
+  background: #0F1117;
+}
+
+@keyframes needsPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.need-match-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  animation: needsPulse 1.5s ease-in-out infinite;
+}
+
+.need-match-error {
+  font-size: 13px;
+  color: var(--coral);
+  padding: 8px 0;
+}
+
+.need-match-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  font-style: italic;
+}
+
+.match-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Match Cards ─────────────────────────────────────────────────── */
+.match-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 14px;
+  background: #1A1D27;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #A8C7FA;
+}
+
+.match-card-info { flex: 1; min-width: 0; }
+
+.match-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.match-card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.match-card-reasoning {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.match-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Available Hours Badge ───────────────────────────────────────── */
+.match-avail-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-avail-green  { background: rgba(168,230,207,0.18); color: var(--mint); }
+.badge-avail-yellow { background: rgba(255,243,163,0.18); color: #c8a200; }
+.badge-avail-coral  { background: rgba(255,179,179,0.18); color: var(--coral); }
+
+.match-util {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Accept Button ───────────────────────────────────────────────── */
+.match-accept-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: #0F1117;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.match-accept-btn:hover:not(:disabled) { background: #bdd4fc; transform: translateY(-1px); }
+.match-accept-btn.accepted {
+  background: rgba(168,230,207,0.15);
+  color: var(--mint);
+  cursor: default;
+  transform: none;
+}

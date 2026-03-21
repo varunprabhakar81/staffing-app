@@ -1058,10 +1058,23 @@ function drillHeatmapWeek(weekIdx) {
   openDrilldown(`Week of ${week} — Availability Summary`, html);
 }
 
+// ── Needs Tab AI Recommendations State ───────────────────────────
+const _needs = {
+  recommendations: null,  // cached from /api/recommendations; array matching demand order
+  loadState: 'idle',      // 'idle' | 'loading' | 'loaded' | 'error'
+  expanded: new Set(),    // set of currently expanded roleIdx
+  pending: [],            // [{ needIdx, need, consultant }]
+};
+
 // ── Needs Coverage ────────────────────────────────────────────────
 function renderCoverageChart(coverage) {
   if (charts.coverage) charts.coverage.destroy();
   if (!coverage) return;
+
+  // Reset recommendations cache on data refresh (preserve pending)
+  _needs.recommendations = null;
+  _needs.loadState = 'idle';
+  _needs.expanded.clear();
 
   const summary      = coverage.summary || {};
   const fullyMet     = summary.fully_met    || 0;
@@ -1156,14 +1169,21 @@ function renderCoverageChart(coverage) {
   };
 
   const rows = coverage.roles.map((r, i) => `
-    <tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click for details">
-      <td class="col-project">${r.project || '—'}</td>
+    <tr class="dd-clickable need-row" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+      <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
       <td class="col-skill">${r.skillSet || '—'}</td>
       <td>${r.level || '—'}</td>
       <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
       <td class="col-center">${fmtDate(r.startDate)}</td>
       <td class="col-center">${fmtDate(r.endDate)}</td>
       <td>${statusBadge(r.status)}</td>
+    </tr>
+    <tr class="need-expansion-row hidden" id="need-exp-${i}">
+      <td colspan="7" class="need-expansion-cell">
+        <div class="need-match-panel" id="need-match-panel-${i}">
+          <div class="need-match-loading">Finding matches…</div>
+        </div>
+      </td>
     </tr>
   `).join('');
 
@@ -1179,6 +1199,198 @@ function renderCoverageChart(coverage) {
       <tbody>${rows}</tbody>
     </table>
   `;
+}
+
+// ── AI Recommendations: Expandable Row Logic ─────────────────────
+
+function toggleNeedExpansion(roleIdx, event) {
+  if (event) event.stopPropagation();
+  const row  = document.getElementById(`need-exp-${roleIdx}`);
+  const chev = document.getElementById(`need-chev-${roleIdx}`);
+  if (!row) return;
+
+  const isOpen = !row.classList.contains('hidden');
+  if (isOpen) {
+    row.classList.add('hidden');
+    _needs.expanded.delete(roleIdx);
+    if (chev) chev.classList.remove('open');
+    return;
+  }
+
+  row.classList.remove('hidden');
+  _needs.expanded.add(roleIdx);
+  if (chev) chev.classList.add('open');
+
+  if (_needs.loadState === 'loaded') {
+    renderNeedMatchPanel(roleIdx);
+  } else if (_needs.loadState === 'idle') {
+    _needs.loadState = 'loading';
+    fetch('/api/recommendations')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        _needs.recommendations = data.needs;
+        _needs.loadState = 'loaded';
+        _needs.expanded.forEach(idx => renderNeedMatchPanel(idx));
+      })
+      .catch(err => {
+        _needs.loadState = 'error';
+        _needs.expanded.forEach(idx => {
+          const panel = document.getElementById(`need-match-panel-${idx}`);
+          if (panel) panel.innerHTML = `<div class="need-match-error">Failed to load: ${_esc(err.message)}</div>`;
+        });
+      });
+  }
+  // If 'loading': panel already shows "Finding matches…" — will render when fetch completes
+}
+
+function renderNeedMatchPanel(roleIdx) {
+  const panel = document.getElementById(`need-match-panel-${roleIdx}`);
+  if (!panel || !_needs.recommendations) return;
+
+  const needData = _needs.recommendations[roleIdx];
+  if (!needData) {
+    panel.innerHTML = '<div class="need-match-empty">No match data available.</div>';
+    return;
+  }
+
+  const { need, matches } = needData;
+  const hoursNeeded = Number(need.hoursPerWeek) || 40;
+
+  if (!matches || matches.length === 0) {
+    panel.innerHTML = '<div class="need-match-empty">No available consultants match this need.</div>';
+    return;
+  }
+
+  const acceptedNames = new Set(
+    _needs.pending.filter(p => p.needIdx === roleIdx).map(p => p.consultant.employeeName)
+  );
+
+  const cards = matches.map((m, mi) => {
+    const isAccepted  = acceptedNames.has(m.employeeName);
+    const badgeClass  = m.availableHours >= hoursNeeded        ? 'badge-avail-green'
+                      : m.availableHours >= hoursNeeded - 10   ? 'badge-avail-yellow'
+                      : 'badge-avail-coral';
+    return `
+      <div class="match-card">
+        <div class="match-card-info">
+          <div class="match-card-name">${_esc(m.employeeName)}</div>
+          <div class="match-card-meta">${_esc(m.level)} · ${_esc(m.skillSet)}</div>
+          <div class="match-card-reasoning">${_esc(m.reasoning || '')}</div>
+        </div>
+        <div class="match-card-right">
+          <span class="match-avail-badge ${badgeClass}">${m.availableHours}h avail</span>
+          <span class="match-util">${m.currentUtilization}% utilized</span>
+          ${isAccepted
+            ? '<button class="match-accept-btn accepted" disabled>Accepted</button>'
+            : `<button class="match-accept-btn" onclick="acceptMatch(${roleIdx}, ${mi}, event)">Accept</button>`
+          }
+        </div>
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="match-cards-container">${cards}</div>`;
+}
+
+function acceptMatch(needIdx, matchIdx, event) {
+  if (event) event.stopPropagation();
+  if (!_needs.recommendations) return;
+  const needData = _needs.recommendations[needIdx];
+  if (!needData) return;
+  const match = needData.matches[matchIdx];
+  if (!match) return;
+
+  const already = _needs.pending.some(
+    p => p.needIdx === needIdx && p.consultant.employeeName === match.employeeName
+  );
+  if (already) return;
+
+  _needs.pending.push({ needIdx, need: needData.need, consultant: match });
+  updateNeedsPendingBar();
+  renderNeedMatchPanel(needIdx);
+}
+
+function removeFromNeedsPending(idx, event) {
+  if (event) event.stopPropagation();
+  const item = _needs.pending[idx];
+  _needs.pending.splice(idx, 1);
+  updateNeedsPendingBar();
+  if (item && _needs.expanded.has(item.needIdx)) renderNeedMatchPanel(item.needIdx);
+}
+
+function updateNeedsPendingBar() {
+  const bar     = document.getElementById('needsPendingBar');
+  const countEl = document.getElementById('needsPendingCount');
+  const itemsEl = document.getElementById('needsPendingItems');
+  if (!bar || !countEl || !itemsEl) return;
+
+  const n = _needs.pending.length;
+  if (n === 0) { bar.classList.add('hidden'); return; }
+
+  bar.classList.remove('hidden');
+  countEl.textContent  = `${n} assignment${n !== 1 ? 's' : ''} pending`;
+  countEl.style.color  = '';
+  itemsEl.innerHTML = _needs.pending.map((p, i) => `
+    <span class="pending-item">
+      <span class="pending-item-text">${_esc(p.consultant.employeeName)} → ${_esc(p.need.projectName)}</span>
+      <button class="pending-item-remove" onclick="removeFromNeedsPending(${i}, event)" title="Remove">✕</button>
+    </span>
+  `).join('');
+}
+
+function clearNeedsPending() {
+  _needs.pending = [];
+  updateNeedsPendingBar();
+  _needs.expanded.forEach(idx => renderNeedMatchPanel(idx));
+}
+
+async function saveAllAssignments() {
+  const saveBtn = document.getElementById('needsSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+  const changes = _needs.pending.map(p => ({
+    type:         'add',
+    employeeName: p.consultant.employeeName,
+    project:      p.need.projectName,
+    skillSet:     p.consultant.skillSet,
+    startDate:    p.need.startDate,
+    endDate:      p.need.endDate,
+    hoursPerWeek: Number(p.need.hoursPerWeek),
+  }));
+
+  try {
+    const res  = await fetch('/api/supply/update', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ changes }),
+    });
+    const data = await res.json();
+    if (res.status === 423) {
+      const countEl = document.getElementById('needsPendingCount');
+      if (countEl) { countEl.textContent = data.error; countEl.style.color = 'var(--coral)'; }
+      return;
+    }
+    if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+
+    const savedCount = _needs.pending.length;
+    _needs.pending = [];
+    updateNeedsPendingBar();
+    await loadDashboard();
+
+    // Brief success flash
+    const bar     = document.getElementById('needsPendingBar');
+    const countEl = document.getElementById('needsPendingCount');
+    if (bar && countEl) {
+      bar.classList.remove('hidden');
+      countEl.textContent = `${savedCount} assignment${savedCount !== 1 ? 's' : ''} saved`;
+      countEl.style.color = 'var(--mint)';
+      setTimeout(() => { bar.classList.add('hidden'); countEl.style.color = ''; }, 3000);
+    }
+  } catch (err) {
+    alert(`Save failed: ${err.message}`);
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save All'; }
+  }
 }
 
 // ── Bench Report ──────────────────────────────────────────────────

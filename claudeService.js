@@ -197,7 +197,36 @@ async function getSuggestedQuestions(staffingData) {
   }
 }
 
-module.exports = { askClaude, getSuggestedQuestions };
+async function getMatchReasonings(need, matches) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return matches.map(() => 'Available capacity meets requirement.');
+  }
+  try {
+    const matchList = matches.map((m, i) =>
+      `${i + 1}. ${m.employeeName}: ${m.availableHours}h/week available (${m.currentUtilization}% utilized)`
+    ).join('\n');
+
+    const prompt = `Need: ${need.projectName} requires a ${need.resourceLevel} with ${need.skillSet} skills, ${need.hoursPerWeek}h/week from ${need.startDate} to ${need.endDate}.\n\nTop consultant matches:\n${matchList}\n\nFor each match, write exactly one sentence (15 words or fewer) explaining why they fit this need. Return ONLY a JSON array of ${matches.length} strings. No markdown, no preamble.`;
+
+    const response = await client.messages.create({
+      model:      MODEL,
+      max_tokens: 512,
+      system:     'You are a staffing analyst. Write concise, specific match reasoning. Return only JSON arrays.',
+      messages:   [{ role: 'user', content: prompt }],
+    });
+
+    const text  = response.content[0].text.trim();
+    const clean = text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+    const reasonings = JSON.parse(clean);
+    if (!Array.isArray(reasonings)) throw new Error('Not an array');
+    return reasonings;
+  } catch (err) {
+    console.warn('[getMatchReasonings] failed:', err.message);
+    return matches.map(() => 'Available capacity meets requirement.');
+  }
+}
+
+module.exports = { askClaude, getSuggestedQuestions, getMatchReasonings };
 
 // ── Quick test when run directly ─────────────────────────────────────────────
 if (require.main === module) {
