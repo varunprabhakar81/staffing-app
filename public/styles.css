@@ -309,18 +309,19 @@ body {
 
 /* sidebar refresh icon button */
 .sidebar-refresh-btn {
-  background: transparent;
-  border: none;
+  background: #2E3250;
+  border: 1px solid #4A5080;
   border-radius: 4px;
-  color: #8892B0;
+  color: #FFFFFF;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 8px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.sidebar-refresh-btn:hover { background: #2E3250; color: #FFFFFF; }
+.sidebar-refresh-btn:hover { background: #3A4070; color: #A8C7FA; }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
 .kpi-strip {
