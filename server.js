@@ -3,6 +3,7 @@ require('dotenv').config();
 const express              = require('express');
 const cors                 = require('cors');
 const path                 = require('path');
+const ExcelJS              = require('exceljs');
 const { readStaffingData } = require('./excelReader');
 const { askClaude, getSuggestedQuestions } = require('./claudeService');
 
@@ -386,6 +387,245 @@ app.get('/api/ask', async (req, res) => {
     res.json({ question, answer });
   } catch (err) {
     res.status(500).json({ error: `Claude API error: ${err.message}` });
+  }
+});
+
+// GET /api/manage — supply data grouped by employee for the Manage tab
+app.get('/api/manage', async (req, res) => {
+  const freshData = await readStaffingData();
+  if (freshData.error) return res.status(503).json({ error: freshData.error });
+  staffingData = freshData;
+
+  const { supply, projects, employees } = freshData;
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+  const year = new Date().getFullYear();
+
+  function parseWkToDate(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+  function wkToDisplayDate(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    if (!m) return null;
+    const d = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+
+  const levelOrder = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+  const empMap = {};
+
+  supply.forEach((row, idx) => {
+    const name = row.employeeName;
+    if (!name) return;
+    if (!empMap[name]) {
+      empMap[name] = { name, level: row.level || 'Unknown', assignments: [] };
+    }
+
+    const nonZeroWeeks = weekKeys.filter(wk => (row.weeklyHours[wk] || 0) > 0);
+    let startDate = null, endDate = null, hoursPerWeek = 0;
+    if (nonZeroWeeks.length > 0) {
+      startDate = wkToDisplayDate(nonZeroWeeks[0]);
+      endDate   = wkToDisplayDate(nonZeroWeeks[nonZeroWeeks.length - 1]);
+      const total = nonZeroWeeks.reduce((s, wk) => s + (row.weeklyHours[wk] || 0), 0);
+      hoursPerWeek = Math.round(total / nonZeroWeeks.length);
+    }
+
+    empMap[name].assignments.push({
+      rowIndex:    idx,   // 0-based index into supply array
+      project:     row.projectAssigned || '',
+      skillSet:    row.skillSet || '',
+      startDate,
+      endDate,
+      hoursPerWeek,
+    });
+  });
+
+  const empList = Object.values(empMap).sort((a, b) => {
+    const ai = levelOrder.indexOf(a.level), bi = levelOrder.indexOf(b.level);
+    const an = ai === -1 ? 99 : ai, bn = bi === -1 ? 99 : bi;
+    if (an !== bn) return an - bn;
+    return a.name.localeCompare(b.name);
+  });
+
+  const projectNames = [...new Set([
+    ...projects.map(p => p.projectName).filter(Boolean),
+    ...supply.map(s => s.projectAssigned).filter(Boolean),
+  ])].sort();
+
+  res.json({ employees: empList, projects: projectNames, weekKeys });
+});
+
+// POST /api/supply/update — apply changes to Supply tab in resourcing.xlsx
+app.post('/api/supply/update', async (req, res) => {
+  const { changes } = req.body || {};
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return res.status(400).json({ error: 'changes array is required' });
+  }
+
+  const EXCEL_PATH = path.join(__dirname, 'data', 'resourcing.xlsx');
+
+  try {
+    // 1. Read current supply data fresh
+    const freshData = await readStaffingData();
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+    const { supply, demand, employees: empMaster } = freshData;
+    console.log(`[supply/update] Phase 1 – readStaffingData() returned ${supply.length} supply rows`);
+    const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+    const year = new Date().getFullYear();
+
+    function parseDateStr(str) {
+      if (!str) return null;
+      const parts = String(str).split('/');
+      if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+      // Also handle YYYY-MM-DD (from date input)
+      if (str.includes('-')) {
+        const [y, mo, d] = str.split('-');
+        return new Date(parseInt(y), parseInt(mo) - 1, parseInt(d));
+      }
+      return null;
+    }
+
+    function parseWkDate(wk) {
+      const m = wk.match(/(\d+)\/(\d+)/);
+      return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+    }
+
+    // 2. Apply changes to in-memory supply array (clone it)
+    let updatedSupply = supply.map(r => ({ ...r, weeklyHours: { ...r.weeklyHours } }));
+
+    // Index changes by employeeName+project for reliable matching
+    const deleteSet  = new Set();
+    const updateMap  = {};
+    const addRows    = [];
+
+    const rowKey = (employeeName, project) => `${employeeName}|${project}`;
+
+    for (const ch of changes) {
+      if (ch.type === 'delete') {
+        deleteSet.add(rowKey(ch.employeeName, ch.project));
+      } else if (ch.type === 'update') {
+        updateMap[rowKey(ch.employeeName, ch.project)] = ch;
+      } else if (ch.type === 'add') {
+        addRows.push(ch);
+      }
+    }
+
+    // Rebuild matching by employeeName + project
+    updatedSupply = supply
+      .map((row) => {
+        const key = rowKey(row.employeeName, row.projectAssigned);
+        if (deleteSet.has(key)) return null;
+        const r = { ...row, weeklyHours: { ...row.weeklyHours } };
+        if (updateMap[key]) {
+          const ch = updateMap[key];
+          if (ch.project  !== undefined) r.projectAssigned = ch.project;
+          if (ch.skillSet !== undefined) r.skillSet        = ch.skillSet;
+          // Only recompute weekly hours if all 3 scheduling fields are explicitly present
+          if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
+            const start = parseDateStr(ch.startDate);
+            const end   = parseDateStr(ch.endDate);
+            const hrs   = Number(ch.hoursPerWeek);
+            if (start && end) {
+              for (const wk of weekKeys) {
+                const wkDate = parseWkDate(wk);
+                if (wkDate && wkDate >= start && wkDate <= end) {
+                  r.weeklyHours[wk] = hrs;
+                  // weeks outside range: untouched — original value kept
+                }
+              }
+            }
+          }
+        }
+        return r;
+      })
+      .filter(Boolean);
+
+    // Apply adds
+    for (const ch of addRows) {
+      const start = parseDateStr(ch.startDate);
+      const end   = parseDateStr(ch.endDate);
+      const hrs   = Number(ch.hoursPerWeek) || 0;
+      const weekly = {};
+      for (const wk of weekKeys) {
+        const wkDate = parseWkDate(wk);
+        weekly[wk] = (start && end && wkDate && wkDate >= start && wkDate <= end) ? hrs : 0;
+      }
+      // Get level from employee master
+      const empEntry = empMaster.find(e => e.employeeName === ch.employeeName);
+      updatedSupply.push({
+        employeeName:    ch.employeeName,
+        level:           empEntry ? empEntry.level : (ch.level || ''),
+        skillSet:        ch.skillSet || '',
+        projectAssigned: ch.project || '',
+        weeklyHours:     weekly,
+      });
+    }
+
+    // 3. Write back to Excel — rebuild Supply worksheet from scratch
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(EXCEL_PATH);
+    const existingWs = workbook.getWorksheet('Supply');
+    if (!existingWs) return res.status(500).json({ error: 'Supply worksheet not found' });
+    console.log(`[supply/update] Phase 3 – Supply worksheet after readFile: ${existingWs.rowCount - 1} data rows (rowCount=${existingWs.rowCount})`);
+    console.log(`[supply/update] Phase 2 – updatedSupply has ${updatedSupply.length} rows before write`);
+
+    // Capture header row values
+    const headerRow = existingWs.getRow(1);
+    const headers = [];
+    headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
+      headers[col] = cell.value ? String(cell.value).trim() : null;
+    });
+
+    // Remove and re-add the Supply worksheet to avoid spliceRows issues
+    workbook.removeWorksheet(existingWs.id);
+    const ws = workbook.addWorksheet('Supply');
+
+    // Write header row first
+    const headerCols = headers.slice(1);
+    ws.addRow(headerCols);
+
+    // Build and write data rows in original order (updatedSupply preserves supply order, adds appended)
+    const rowArrays = updatedSupply.map(row => {
+      const rowData = {
+        'Employee Name':    row.employeeName,
+        'Level':            row.level,
+        'Skill Set':        row.skillSet,
+        'Project Assigned': row.projectAssigned,
+        ...Object.fromEntries(weekKeys.map(wk => [wk, row.weeklyHours[wk] || 0])),
+      };
+      return headerCols.map(h => h ? (rowData[h] ?? null) : null);
+    });
+
+    console.log(`[supply/update] Writing ${rowArrays.length} data rows to Supply worksheet`);
+
+    for (const rowArr of rowArrays) {
+      ws.addRow(rowArr);
+    }
+
+    try {
+      await workbook.xlsx.writeFile(EXCEL_PATH);
+      console.log(`[supply/update] writeFile succeeded (${rowArrays.length} rows written)`);
+    } catch (writeErr) {
+      console.error('[supply/update] writeFile failed:', writeErr);
+      throw writeErr;
+    }
+
+    // 4. Reload cached data
+    staffingData = await readStaffingData();
+
+    // 5. Recalculate demand status for affected projects and return summary
+    const affectedProjects = new Set(changes.map(c => c.project || c.originalProject).filter(Boolean));
+    const updatedRows = changes.length;
+
+    res.json({ success: true, updatedRows });
+
+  } catch (err) {
+    console.error('[supply/update]', err);
+    if (err.code === 'EBUSY') {
+      return res.status(423).json({ error: 'resourcing.xlsx is currently open in Excel. Please close it and try again.' });
+    }
+    res.status(500).json({ error: err.message });
   }
 });
 
