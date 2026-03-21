@@ -264,6 +264,8 @@ function fmtWeek(wk) {
 
 // ── Load Dashboard ────────────────────────────────────────────────
 async function loadDashboard() {
+  const refreshBtn = document.getElementById('headerRefreshBtn');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
   try {
     const [dashRes, supplyRes, empRes, heatmapRes] = await Promise.all([
       fetch('/api/dashboard'),
@@ -302,19 +304,47 @@ async function loadDashboard() {
     loadSuggestedQuestions();
     updateBellBadge();
 
-    // DEBUG: viewport fit measurement — remove after tuning
-    requestAnimationFrame(() => {
-      const el = document.getElementById('tab-overview');
-      console.log('Viewport height:', window.innerHeight);
-      console.log('Content height:', el ? el.scrollHeight : 'N/A');
-      console.log('Difference:', el ? el.scrollHeight - window.innerHeight : 'N/A');
-    });
-
   } catch (err) {
     document.getElementById('dataTimestamp').textContent = 'Could not load data — check server';
     console.error('[Dashboard]', err);
+  } finally {
+    const refreshBtn = document.getElementById('headerRefreshBtn');
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
   }
 }
+
+// ── Toast notification ────────────────────────────────────────────
+function showToast(msg, durationMs = 4000) {
+  let toast = document.getElementById('appToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'app-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('visible'), durationMs);
+}
+
+// ── SSE auto-refresh ──────────────────────────────────────────────
+(function initSSE() {
+  if (!window.EventSource) return;
+  const es = new EventSource('/api/events');
+  es.addEventListener('message', e => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type !== 'data-updated') return;
+      if (_pendingStaffing.size === 0) {
+        loadDashboard();
+      } else {
+        showToast('Excel file updated — refresh to see latest data');
+      }
+    } catch (_) {}
+  });
+  // on error EventSource auto-reconnects; no special handling needed
+})();
 
 // ── KPI Cards (KPI strip — kept for compatibility, no-ops if strip removed) ──
 function renderKPIs(data) {

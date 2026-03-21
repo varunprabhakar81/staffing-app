@@ -4,6 +4,7 @@ const express              = require('express');
 const cors                 = require('cors');
 const path                 = require('path');
 const ExcelJS              = require('exceljs');
+const chokidar             = require('chokidar');
 const { readStaffingData } = require('./excelReader');
 const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
 
@@ -835,6 +836,55 @@ app.get('/api/recommendations', async (req, res) => {
 
   res.json({ needs: needsWithMatches });
 });
+
+// ── SSE clients registry ─────────────────────────────────────────────────────
+const sseClients = new Set();
+
+function broadcastSSE(payload) {
+  const msg = `data: ${JSON.stringify(payload)}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(msg); } catch (_) { sseClients.delete(res); }
+  }
+}
+
+// GET /api/events — Server-Sent Events endpoint
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection',    'keep-alive');
+  res.flushHeaders();
+
+  sseClients.add(res);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (_) {}
+  }, 30000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(res);
+  });
+});
+
+// ── File watcher ─────────────────────────────────────────────────────────────
+const EXCEL_FILE = path.join(__dirname, 'data', 'resourcing.xlsx');
+let _watchDebounce = null;
+
+chokidar.watch(EXCEL_FILE, { persistent: true, ignoreInitial: true })
+  .on('change', () => {
+    clearTimeout(_watchDebounce);
+    _watchDebounce = setTimeout(async () => {
+      console.log('[chokidar] resourcing.xlsx changed — reloading cache…');
+      const fresh = await readStaffingData();
+      if (!fresh.error) {
+        staffingData = fresh;
+        console.log(`[chokidar] cache reloaded (${fresh.supply.length} supply rows) — notifying ${sseClients.size} client(s)`);
+        broadcastSSE({ type: 'data-updated', timestamp: Date.now() });
+      } else {
+        console.warn('[chokidar] reload failed:', fresh.error);
+      }
+    }, 500);
+  });
 
 // Serve static files after API routes so they don't shadow API paths
 app.use(express.static(path.join(__dirname, 'public')));

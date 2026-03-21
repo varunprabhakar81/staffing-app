@@ -262,13 +262,44 @@ body {
   background: #1A1D27;
   border-bottom: 1px solid #2E3250;
   display: grid;
-  grid-template-columns: 240px 1fr 120px;
+  grid-template-columns: 240px 1fr auto;
   align-items: center;
   padding: 0 24px;
   gap: 16px;
   flex-shrink: 0;
   position: relative;
   z-index: 20;
+}
+
+/* Header action buttons (refresh + bell) */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hdr-icon-btn {
+  background: transparent;
+  border: none;
+  color: #8892B0;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.hdr-icon-btn:hover { background: rgba(168,199,250,0.08); color: #FFFFFF; }
+.hdr-icon-btn svg { transition: transform 0.15s; }
+.hdr-icon-btn.spinning svg {
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Date Range Selector */
@@ -544,22 +575,31 @@ body {
   margin-top: 3px;
 }
 
-/* sidebar refresh icon button */
-.sidebar-refresh-btn {
-  background: #2E3250;
-  border: 1px solid #4A5080;
-  border-radius: 4px;
-  color: white !important;
-  opacity: 1 !important;
-  cursor: pointer;
-  padding: 4px 8px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+/* ── Toast notification ─────────────────────────────────────────── */
+.app-toast {
+  position: fixed;
+  top: 68px;
+  right: 24px;
+  background: #1E2235;
+  border: 1px solid #2E3250;
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  color: #CCD6F6;
+  font-size: 13px;
+  font-family: var(--font);
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  z-index: 500;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+  max-width: 320px;
 }
-.sidebar-refresh-btn:hover { background: #3A4070; color: #A8C7FA; }
+.app-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
 .kpi-strip {

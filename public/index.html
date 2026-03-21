@@ -6,7 +6,7 @@
   <title>Staffing Intelligence | Resource Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=27">
+  <link rel="stylesheet" href="styles.css?v=28">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -53,9 +53,6 @@
         <div class="sidebar-week-info" id="dataTimestamp">
           <span class="sidebar-week-date">Loading…</span>
         </div>
-        <button class="sidebar-refresh-btn" onclick="loadDashboard()" title="Refresh data (Ctrl+R)">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
       </div>
     </div>
 
@@ -99,22 +96,30 @@
         </div>
       </div>
 
-      <!-- Notification Bell -->
-      <div class="header-bell-wrap">
-        <button class="hdr-bell-btn" id="bellBtn" title="Alerts">
-          <svg width="16" height="17" viewBox="0 0 16 17" fill="none">
-            <path d="M8 1.5A4.5 4.5 0 003.5 6v3.5L2 11h12l-1.5-1.5V6A4.5 4.5 0 008 1.5z"
-                  stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-            <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- Header Actions: Refresh + Bell -->
+      <div class="header-actions">
+        <button class="hdr-icon-btn" id="headerRefreshBtn" onclick="loadDashboard()" title="Refresh data (Ctrl+R)">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M12 7A5 5 0 112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 4V7h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="hdr-bell-badge" id="bellBadge">4</span>
         </button>
-        <div class="hdr-bell-dropdown hidden" id="bellDropdown">
-          <div class="hdr-bell-title">Alerts</div>
-          <div id="bellAlertList">
-            <div class="hdr-alert-item">
-              <span class="hdr-alert-icon">⚠️</span>
-              <span class="hdr-alert-text">Loading alerts…</span>
+        <div class="header-bell-wrap">
+          <button class="hdr-bell-btn" id="bellBtn" title="Alerts">
+            <svg width="16" height="17" viewBox="0 0 16 17" fill="none">
+              <path d="M8 1.5A4.5 4.5 0 003.5 6v3.5L2 11h12l-1.5-1.5V6A4.5 4.5 0 008 1.5z"
+                    stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span class="hdr-bell-badge" id="bellBadge">4</span>
+          </button>
+          <div class="hdr-bell-dropdown hidden" id="bellDropdown">
+            <div class="hdr-bell-title">Alerts</div>
+            <div id="bellAlertList">
+              <div class="hdr-alert-item">
+                <span class="hdr-alert-icon">⚠️</span>
+                <span class="hdr-alert-text">Loading alerts…</span>
+              </div>
             </div>
           </div>
         </div>
@@ -450,6 +455,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
