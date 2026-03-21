@@ -57,6 +57,7 @@
 - [ ] #52 Ask Claude - dynamic suggested questions based on current data
 - [ ] #53 Header improvements - notifications, user avatar, search and date range
 - [ ] #60 Sidebar, Overview and keyboard navigation polish
+- [ ] #65 Refresh button visibility in sidebar footer
 
 ### Phase 6 - Core Features
 - [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
@@ -100,4 +101,4 @@
 - [ ] #64 Export and Import Excel for Supply and Needs data
 
 ---
-**35 complete [x] · 27 open [ ] · 62 tracked**
+**35 complete [x] · 28 open [ ] · 63 tracked**
