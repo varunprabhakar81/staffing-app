@@ -312,7 +312,8 @@ body {
   background: #2E3250;
   border: 1px solid #4A5080;
   border-radius: 4px;
-  color: #FFFFFF;
+  color: white !important;
+  opacity: 1 !important;
   cursor: pointer;
   padding: 4px 8px;
   font-size: 14px;
