@@ -214,7 +214,7 @@ app.get('/api/dashboard', async (req, res) => {
   const needsCoverageRoles = demand.map(role => {
     const startDate    = parseDemandDate(role.startDate);
     const endDate      = parseDemandDate(role.endDate);
-    const hoursNeeded  = Number(role.hoursPerWeek) || 40;
+    const hoursNeeded  = Number(role.hoursPerWeek) || 45;
 
     // Weeks in the supply data that fall within the demand date range
     const demandWeeks = weekKeys.filter(wk => {
@@ -676,7 +676,7 @@ app.get('/api/recommendations', async (req, res) => {
   for (const need of demand) {
     const startDate   = parseDemandDate(need.startDate);
     const endDate     = parseDemandDate(need.endDate);
-    const hoursNeeded = Number(need.hoursPerWeek) || 40;
+    const hoursNeeded = Number(need.hoursPerWeek) || 45;
 
     // Weeks in the supply data that fall within the need's date range
     const demandWeeks = weekKeys.filter(wk => {

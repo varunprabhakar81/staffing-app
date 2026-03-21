@@ -506,32 +506,95 @@ function renderLevelBreakdown(heatmapData) {
   const el = document.getElementById('ovLevelBreakdown');
   if (!el) return;
   const byLevel = {};
+  const weekLabels = (heatmapData && heatmapData.weeks) || [];
+  const numWeeks = (heatmapData && heatmapData.employees && heatmapData.employees[0])
+    ? (heatmapData.employees[0].weeklyHours || []).length
+    : 1;
   if (heatmapData && heatmapData.employees) {
     for (const emp of heatmapData.employees) {
-      if (!byLevel[emp.level]) byLevel[emp.level] = { hours: 0, count: 0 };
-      byLevel[emp.level].hours += emp.weeklyHours[0] || 0;
-      byLevel[emp.level].count++;
+      if (!byLevel[emp.level]) byLevel[emp.level] = { totalHours: 0, count: 0, weeklyTotals: {} };
+      const lvl = byLevel[emp.level];
+      lvl.count++;
+      for (let w = 0; w < (emp.weeklyHours || []).length; w++) {
+        lvl.totalHours += emp.weeklyHours[w] || 0;
+        lvl.weeklyTotals[w] = (lvl.weeklyTotals[w] || 0) + (emp.weeklyHours[w] || 0);
+      }
     }
   }
   // Only render levels that have employees in the current data
   const rows = LEVEL_ORDER_OV
     .filter(l => byLevel[l])
     .map(l => {
-      const { hours, count } = byLevel[l];
-      return { level: l, count, utilPct: Math.round(hours / (count * 45) * 100) };
+      const { totalHours, count, weeklyTotals } = byLevel[l];
+      const weeks = Math.max(numWeeks, 1);
+      const utilPct = Math.round(totalHours / (count * 45 * weeks) * 100);
+      // Build per-week avg data
+      const weekAvgs = Object.keys(weeklyTotals).map(wi => {
+        const idx = parseInt(wi, 10);
+        const avg = Math.round(weeklyTotals[idx] / count * 10) / 10;
+        return { idx, label: weekLabels[idx] || `Week ${idx + 1}`, avg };
+      });
+      const overallocated = weekAvgs.some(w => w.avg > 45);
+      // Rich tooltip: only overallocated weeks
+      const tooltipLines = weekAvgs
+        .filter(w => w.avg > 45)
+        .map(w => `Week ${w.label}: ${w.avg}h avg (cap: 45h)`)
+        .join('\n');
+      return { level: l, count, utilPct, overallocated, weekAvgs, tooltipLines };
     });
+
+  const safeId = l => l.replace(/[^a-zA-Z0-9]/g, '_');
+
   el.innerHTML = rows.map((r, i) => {
-    const color = r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
+    const color = r.utilPct > 100 ? '#FFB3B3' : r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
+    const barWidth = Math.min(r.utilPct, 100);
     const rowBg = i % 2 === 0 ? '#1A1D27' : '#16192A';
-    return `<div class="ov-level-row" style="background:${rowBg}">
-      <span class="ov-level-name">${r.level}</span>
-      <span class="ov-level-count">(${r.count})</span>
-      <div class="ov-level-bar-track">
-        <div class="ov-level-bar-fill" style="width:${r.utilPct}%;background:${color}"></div>
-      </div>
-      <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>
+    let warning = '';
+    let panel = '';
+    if (r.overallocated) {
+      const panelId = `overalloc-panel-${safeId(r.level)}`;
+      const tooltipAttr = r.tooltipLines.replace(/"/g, '&quot;');
+      warning = `<span class="ov-level-warn ov-level-warn--clickable" title="${tooltipAttr}" data-panel="${panelId}">⚠️<span class="ov-level-warn-hint">click for details</span></span>`;
+      const weekRows = r.weekAvgs.map(w => {
+        const over = w.avg > 45;
+        const statusCls = over ? 'ov-overalloc-status--over' : 'ov-overalloc-status--ok';
+        const statusLabel = over ? 'Over' : 'OK';
+        return `<tr>
+          <td>Week ${w.label}</td>
+          <td>${w.avg}h</td>
+          <td>45h</td>
+          <td><span class="ov-overalloc-status ${statusCls}">${statusLabel}</span></td>
+        </tr>`;
+      }).join('');
+      panel = `<div class="ov-overalloc-panel hidden" id="${panelId}">
+        <table class="ov-overalloc-table">
+          <thead><tr><th>Week</th><th>Avg Hours</th><th>Capacity</th><th>Status</th></tr></thead>
+          <tbody>${weekRows}</tbody>
+        </table>
+      </div>`;
+    }
+    return `<div class="ov-level-row-wrap">
+      <div class="ov-level-row" style="background:${rowBg}">
+        <span class="ov-level-name">${r.level}</span>
+        <span class="ov-level-count">(${r.count})</span>
+        <div class="ov-level-bar-track">
+          <div class="ov-level-bar-fill" style="width:${barWidth}%;background:${color}"></div>
+        </div>
+        <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>${warning}
+      </div>${panel}
     </div>`;
   }).join('');
+
+  // Toggle panel on ⚠️ click (remove previous listener to avoid stacking on re-render)
+  if (el._overallocHandler) el.removeEventListener('click', el._overallocHandler);
+  el._overallocHandler = function(e) {
+    const warn = e.target.closest('.ov-level-warn--clickable');
+    if (!warn) return;
+    e.stopPropagation();
+    const panel = document.getElementById(warn.dataset.panel);
+    if (panel) panel.classList.toggle('hidden');
+  };
+  el.addEventListener('click', el._overallocHandler);
 }
 
 // ── Top Projects This Week (Row 2 left bottom) ────────────────────
@@ -1255,7 +1318,7 @@ function renderNeedMatchPanel(roleIdx) {
   }
 
   const { need, matches } = needData;
-  const hoursNeeded = Number(need.hoursPerWeek) || 40;
+  const hoursNeeded = Number(need.hoursPerWeek) || 45;
 
   if (!matches || matches.length === 0) {
     panel.innerHTML = '<div class="need-match-empty">No available consultants match this need.</div>';

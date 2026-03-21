@@ -1183,6 +1183,73 @@ body {
   text-align: right;
   flex-shrink: 0;
 }
+.ov-level-warn {
+  font-size: 11px;
+  margin-left: 4px;
+  cursor: default;
+  flex-shrink: 0;
+}
+.ov-level-warn--clickable {
+  cursor: pointer;
+  animation: warn-pulse 2.4s ease-in-out infinite;
+}
+@keyframes warn-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0px transparent); }
+  50%       { filter: drop-shadow(0 0 5px #FFB30088); }
+}
+.ov-level-warn-hint {
+  font-size: 0.7rem;
+  color: #8892B0;
+  margin-left: 3px;
+  font-weight: 400;
+  vertical-align: middle;
+}
+.ov-level-row-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.ov-overalloc-panel {
+  background: #1A1D27;
+  border-top: 1px solid #2A2D3E;
+  padding: 6px 10px 8px;
+}
+.ov-overalloc-panel.hidden {
+  display: none;
+}
+.ov-overalloc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.ov-overalloc-table th {
+  color: #8892B0;
+  font-weight: 500;
+  text-align: left;
+  padding: 3px 8px 4px;
+  border-bottom: 1px solid #2A2D3E;
+}
+.ov-overalloc-table td {
+  color: #CCD6F6;
+  padding: 3px 8px;
+}
+.ov-overalloc-table tr:not(:last-child) td {
+  border-bottom: 1px solid #2A2D3E22;
+}
+.ov-overalloc-status {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.ov-overalloc-status--ok {
+  background: #1e3a2e;
+  color: #A8E6CF;
+}
+.ov-overalloc-status--over {
+  background: #3a1e1e;
+  color: #FF8A80;
+}
 
 .ov-cliff-list {
   height: auto;
@@ -1455,7 +1522,7 @@ body {
 }
 
 .examples-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 400;
   color: #8892B0;
   padding-top: 8px;
@@ -1568,18 +1635,17 @@ body {
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font);
-  color: #0F1117;
-  background: var(--accent);
-  border: none;
+  color: #fff;
+  background: #0F1117;
+  border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  min-height: 80px;
 }
 
 .ask-submit-btn:hover:not(:disabled) {
-  background: #bdd4fc;
+  background: var(--surface2);
   transform: translateY(-1px);
 }
 
@@ -2390,7 +2456,7 @@ body {
 }
 
 /* ── Clickable hint ─────────────────────────────────────────────── */
-.dd-clickable { cursor: pointer; }
+.dd-clickable { cursor: pointer; user-select: none; }
 
 .coverage-table .dd-clickable:hover td { background: rgba(168,199,250,0.06); }
 
