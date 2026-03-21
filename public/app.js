@@ -32,10 +32,6 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     if (tab === 'ask') {
       loadSuggestedQuestions();
     }
-    // Load manage tab data on first open
-    if (tab === 'manage') {
-      loadManageData();
-    }
   });
 });
 
@@ -62,7 +58,6 @@ document.addEventListener('keydown', e => {
     if (e.key === '2') { e.preventDefault(); navigateTo('staffing'); return; }
     if (e.key === '3') { e.preventDefault(); navigateTo('needs');    return; }
     if (e.key === '4') { e.preventDefault(); navigateTo('ask');      return; }
-    if (e.key === '5') { e.preventDefault(); navigateTo('manage');   return; }
     if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
   }
   if (e.key === '?' && !inInput) { e.preventDefault(); toggleShortcutGuide(); }
@@ -769,6 +764,38 @@ function _buildVsAllRows() {
   }
 }
 
+// ── Edit mode state ───────────────────────────────────────────────
+let _editMode       = false;
+let _editActiveCell = null;   // { empName, weekIdx, project } or null
+// pending changes: key = `${empName}||${weekLabel}||${project}` → hours
+const _pendingStaffing = new Map();
+
+// Compute pending display total for a cell (null = no pending)
+function _pendingDisplayTotal(empName, weekIdx) {
+  if (!_vsData) return null;
+  const weekLabel = _vsData.weeks[weekIdx];
+  const emp = _vsData.employees.find(e => e.name === empName);
+  const origProjects = (emp && emp.weeklyProjects[weekIdx]) || [];
+
+  let hasPending = false;
+  const pendingByProj = {};
+  for (const [key, hours] of _pendingStaffing) {
+    const parts = key.split('||');
+    if (parts[0] === empName && parts[1] === weekLabel) {
+      hasPending = true;
+      pendingByProj[parts[2]] = hours;
+    }
+  }
+  if (!hasPending) return null;
+
+  let total = 0;
+  for (const h of Object.values(pendingByProj)) total += h;
+  for (const p of origProjects) {
+    if (!(p.project in pendingByProj)) total += p.hours;
+  }
+  return total;
+}
+
 // Render a single virtual row to HTML
 function _vsRenderRow(row) {
   const C = _vsColCount;
@@ -784,9 +811,31 @@ function _vsRenderRow(row) {
     const tip = encodeAttr(`${emp.name}\n${emp.level}  ·  ${emp.skillSet || '—'}\nThis week: ${h0}h — ${st}`);
     const chv = _hmExpanded.has(emp.name) ? '▼' : '▶';
     const cells = emp.weeklyHours.map((h, i) => {
+      const isActive = _editMode && _editActiveCell &&
+        _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i && !_editActiveCell.project;
+      if (isActive) {
+        return `<td class="hm-cell hm-cell-editing">
+          <input class="hm-cell-input" type="number" min="0" max="100"
+            value="${h}" data-emp="${sn}" data-idx="${i}"
+            onblur="hmCellBlur(this)"
+            onkeydown="hmCellKeydown(event,this)"
+            onfocus="this.select()"></td>`;
+      }
+      const pendingH = _pendingDisplayTotal(emp.name, i);
+      const displayH = pendingH !== null ? pendingH : h;
+      const isPending = pendingH !== null;
       const projs    = emp.weeklyProjects[i];
       const projText = projs.length ? projs.map(p => `${p.project}: ${p.hours}h`).join('\n') : 'No bookings';
-      const ct = encodeAttr(`${h}h total\n${projText}`);
+      const ct = encodeAttr(`${displayH}h total\n${projText}`);
+      if (_editMode) {
+        return `<td class="hm-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
+          style="background:${isPending ? '#3A3512' : heatmapCellBg(h)};color:${isPending ? '#FFF3A3' : heatmapCellFg(h)}"
+          data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
+          onclick="hmCellClick('${sn}',${i})"
+          onmouseenter="showHmTooltip(event,this)"
+          onmousemove="positionHmTooltip(event)"
+          onmouseleave="hideHmTooltip()">${displayH}</td>`;
+      }
       return `<td class="hm-cell dd-clickable"
         style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}"
         data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
@@ -812,9 +861,37 @@ function _vsRenderRow(row) {
 
   if (row.type === 'sub') {
     const { emp, projName } = row;
-    const cells = emp.weeklyProjects.map(wkProjs => {
+    const sn = encodeAttr(emp.name);
+    const cells = emp.weeklyProjects.map((wkProjs, i) => {
       const match = wkProjs.find(p => p.project === projName);
-      const h = match ? match.hours : 0;
+      const origH = match ? match.hours : 0;
+
+      const isActive = _editMode && _editActiveCell &&
+        _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i &&
+        _editActiveCell.project === projName;
+      if (isActive) {
+        return `<td class="hm-sub-cell hm-cell-editing">
+          <input class="hm-cell-input" type="number" min="0" max="100"
+            value="${origH}" data-emp="${sn}" data-idx="${i}" data-proj="${encodeAttr(projName)}"
+            onblur="hmCellBlur(this)"
+            onkeydown="hmCellKeydown(event,this)"
+            onfocus="this.select()"></td>`;
+      }
+
+      const weekLabel = _vsData ? _vsData.weeks[i] : '';
+      const fillKey   = `${emp.name}||${weekLabel}||${projName}`;
+      const pending   = _pendingStaffing.has(fillKey) ? _pendingStaffing.get(fillKey) : null;
+      const h         = pending !== null ? pending : origH;
+      const isPending = pending !== null;
+
+      const bg = isPending ? '#3A3512' : (h > 0 ? heatmapCellBg(h) : '#16192A');
+      const fg = isPending ? '#FFF3A3' : (h > 0 ? heatmapCellFg(h) : '#4A5568');
+
+      if (_editMode) {
+        return `<td class="hm-sub-cell${isPending ? ' hm-cell-pending' : ''}"
+          style="background:${bg};color:${fg}"
+          onclick="hmSubCellClick('${sn}',${i},'${encodeAttr(projName)}')">${h > 0 ? h : '—'}</td>`;
+      }
       return `<td class="hm-sub-cell" style="background:${h > 0 ? heatmapCellBg(h) : '#16192A'};color:${h > 0 ? heatmapCellFg(h) : '#4A5568'}">${h > 0 ? h : '—'}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-visible">
@@ -822,9 +899,14 @@ function _vsRenderRow(row) {
   }
 
   if (row.type === 'total') {
-    const cells = row.emp.weeklyHours.map(h =>
-      `<td class="hm-sub-cell hm-sub-total-cell" style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}">${h}</td>`
-    ).join('');
+    const cells = row.emp.weeklyHours.map((h, i) => {
+      const pendingH = _pendingDisplayTotal(row.emp.name, i);
+      const displayH = pendingH !== null ? pendingH : h;
+      const isPending = pendingH !== null;
+      const bg = isPending ? '#3A3512' : heatmapCellBg(h);
+      const fg = isPending ? '#FFF3A3' : heatmapCellFg(h);
+      return `<td class="hm-sub-cell hm-sub-total-cell${isPending ? ' hm-cell-pending' : ''}" style="background:${bg};color:${fg}">${displayH}</td>`;
+    }).join('');
     return `<tr class="hm-sub-row hm-sub-total-row hm-sub-visible">
       <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>${cells}</tr>`;
   }
@@ -866,6 +948,7 @@ function _vsRenderVisible() {
 }
 
 function hmVsScroll() {
+  if (_editActiveCell) return; // freeze virtual scroll while a cell is being edited
   if (_vsScrollRaf) return;
   _vsScrollRaf = requestAnimationFrame(() => { _vsScrollRaf = null; _vsRenderVisible(); });
 }
@@ -905,11 +988,32 @@ function moveEmpTip(evt) {
 }
 function hideEmpTip() { clearTimeout(_empTipTimer); if (_hmTip) _hmTip.style.display = 'none'; }
 
+// ── Populate Quick Fill dropdowns from current heatmap data ───────
+function _populateQuickFillDropdowns(data) {
+  const empSel = document.getElementById('qfEmployee');
+  const projDL = document.getElementById('qfProjectList');
+  if (!empSel || !projDL) return;
+
+  const empNames = (data.employees || []).map(e => e.name).sort();
+  empSel.innerHTML = '<option value="">Employee…</option>' +
+    empNames.map(n => `<option value="${_esc(n)}">${_esc(n)}</option>`).join('');
+
+  const projSet = new Set();
+  for (const emp of (data.employees || [])) {
+    for (const wkProjs of (emp.weeklyProjects || [])) {
+      for (const p of wkProjs) projSet.add(p.project);
+    }
+  }
+  projDL.innerHTML = [...projSet].sort().map(p => `<option value="${_esc(p)}">`).join('');
+}
+
 // ── Build heatmap table ───────────────────────────────────────────
 function buildHeatmapTable(data) {
   const container = document.getElementById('heatmapContainer');
   if (!container) return;
   const { weeks, employees } = data;
+
+  _populateQuickFillDropdowns(data);
 
   // Store for virtual scroll
   _vsData = data;
@@ -2111,328 +2215,171 @@ function clearResponse() {
   document.getElementById('askInput').focus();
 }
 
-// ── Manage Resourcing Tab ─────────────────────────────────────────
+// ── Staffing Edit Mode ────────────────────────────────────────────
 
-const _manage = {
-  data:           null,   // { employees, projects, weekKeys }
-  pendingChanges: {},     // key → change object
-  loaded:         false,
-  expandedGroups: {},     // employeeName → bool (true = expanded)
-  tempIdCounter:  0,
-};
+function toggleEditMode() {
+  _editMode = !_editMode;
+  _editActiveCell = null;
 
-// Load (or reload) data from /api/manage
-async function loadManageData(force = false) {
-  if (_manage.loaded && !force) return;
-  const content = document.getElementById('manageContent');
-  if (content) content.innerHTML = '<div class="manage-loading">Loading…</div>';
+  const btn = document.getElementById('hmEditToggle');
+  const bar = document.getElementById('hmQuickFillBar');
+  if (btn) btn.classList.toggle('active', _editMode);
+  if (bar) bar.classList.toggle('hidden', !_editMode);
 
-  try {
-    const res  = await fetch('/api/manage');
-    if (!res.ok) throw new Error(`Server error ${res.status}`);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    _manage.data    = data;
-    _manage.loaded  = true;
-    // Default: expand all groups
-    data.employees.forEach(e => { _manage.expandedGroups[e.name] = true; });
-    renderManageTable();
-  } catch (err) {
-    if (content) content.innerHTML = `<div class="manage-loading" style="color:var(--coral)">Error: ${err.message}</div>`;
-  }
+  // Re-render heatmap cells with or without edit interactivity
+  _buildVsAllRows();
+  _vsRenderVisible();
+  updateHmSaveBar();
 }
 
-// Render the full manage table
-function renderManageTable() {
-  const content = document.getElementById('manageContent');
-  if (!content || !_manage.data) return;
-
-  const { employees, projects } = _manage.data;
-  const projOptions = projects.map(p =>
-    `<option value="${_esc(p)}">${_esc(p)}</option>`
-  ).join('');
-
-  let html = `
-    <table class="manage-table">
-      <thead>
-        <tr>
-          <th style="width:200px">Employee</th>
-          <th style="width:130px">Level</th>
-          <th style="min-width:160px;white-space:normal">Project</th>
-          <th style="min-width:160px;white-space:normal">Skill Set</th>
-          <th style="width:120px">Start Date</th>
-          <th style="width:120px">End Date</th>
-          <th style="width:90px">Hours/Week</th>
-          <th style="width:60px">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="manageTableBody">
-  `;
-
-  for (const emp of employees) {
-    const isExpanded = _manage.expandedGroups[emp.name] !== false;
-    const hiddenCls  = isExpanded ? '' : ' manage-group-hidden';
-    const chevronCls = isExpanded ? ' open' : '';
-    const safeEmp    = _esc(emp.name);
-
-    html += `
-      <tr class="manage-parent-row" data-emp="${safeEmp}" onclick="toggleManageGroup(this.dataset.emp)">
-        <td>
-          <svg class="manage-chevron${chevronCls}" width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div>
-            <div class="manage-emp-name">${safeEmp}</div>
-          </div>
-        </td>
-        <td><span class="manage-level-badge">${_esc(emp.level)}</span></td>
-        <td colspan="5"></td>
-        <td></td>
-      </tr>
-    `;
-
-    // Child rows: existing assignments (including pending adds)
-    const allAssignments = _manageGetAssignments(emp.name, emp.assignments);
-
-    for (const asgn of allAssignments) {
-      html += _renderManageChildRow(asgn, emp.name, projOptions, hiddenCls);
-    }
-
-    // Add Assignment row
-    html += `
-      <tr class="manage-add-row${hiddenCls}" data-emp="${safeEmp}">
-        <td colspan="8">
-          <button class="manage-btn-add" data-emp="${safeEmp}" onclick="addManageAssignment(this.dataset.emp, event)">
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-              <path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            Add Assignment
-          </button>
-        </td>
-      </tr>
-    `;
-  }
-
-  html += '</tbody></table>';
-  content.innerHTML = html;
+// ── Cell click handlers ───────────────────────────────────────────
+function hmCellClick(empName, weekIdx) {
+  if (!_editMode) return;
+  _editActiveCell = { empName, weekIdx, project: null };
+  _buildVsAllRows();
+  _vsRenderVisible();
+  setTimeout(() => {
+    const input = document.querySelector('.hm-cell-editing input');
+    if (input) { input.focus(); input.select(); }
+  }, 0);
 }
 
-// Return an employee's assignments merged with pending adds for that employee
-function _manageGetAssignments(empName, originalAssignments) {
-  const result = originalAssignments.map(a => ({ ...a }));
-  // Merge in pending changes for existing rows
-  for (const ch of Object.values(_manage.pendingChanges)) {
-    if (ch.type === 'add' && ch.employeeName === empName) {
-      result.push({ rowIndex: `new:${ch.tempId}`, project: ch.project || '', skillSet: ch.skillSet || '',
-        startDate: ch.startDate || '', endDate: ch.endDate || '', hoursPerWeek: ch.hoursPerWeek || 0, _isNew: true, _tempId: ch.tempId });
+function hmSubCellClick(empName, weekIdx, project) {
+  if (!_editMode) return;
+  _editActiveCell = { empName, weekIdx, project };
+  _buildVsAllRows();
+  _vsRenderVisible();
+  setTimeout(() => {
+    const input = document.querySelector('.hm-cell-editing input');
+    if (input) { input.focus(); input.select(); }
+  }, 0);
+}
+
+// ── Commit a cell edit ────────────────────────────────────────────
+function hmCellBlur(input) {
+  if (!_editActiveCell) return;
+  const empName  = input.dataset.emp;
+  const weekIdx  = parseInt(input.dataset.idx);
+  const project  = input.dataset.proj || null;
+  const newVal   = Math.max(0, Math.min(100, Number(input.value) || 0));
+  const weekLabel = _vsData ? _vsData.weeks[weekIdx] : null;
+  if (!weekLabel) { _editActiveCell = null; return; }
+
+  if (project) {
+    // Sub-row edit: project-level change
+    const key = `${empName}||${weekLabel}||${project}`;
+    _pendingStaffing.set(key, newVal);
+  } else {
+    // Total-row edit: distribute proportionally across existing projects
+    const emp = _vsData && _vsData.employees.find(e => e.name === empName);
+    const origProjs = (emp && emp.weeklyProjects[weekIdx]) || [];
+    const origTotal = (emp && emp.weeklyHours[weekIdx]) || 0;
+
+    if (origProjs.length === 0 || origTotal === 0) {
+      // No existing projects — create Unassigned entry
+      _pendingStaffing.set(`${empName}||${weekLabel}||Unassigned`, newVal);
+    } else if (newVal === 0) {
+      for (const p of origProjs) _pendingStaffing.set(`${empName}||${weekLabel}||${p.project}`, 0);
+    } else {
+      // Scale proportionally
+      const scale = newVal / origTotal;
+      let remaining = newVal;
+      for (let j = 0; j < origProjs.length; j++) {
+        const p   = origProjs[j];
+        const hrs = j === origProjs.length - 1
+          ? remaining
+          : Math.round(p.hours * scale);
+        _pendingStaffing.set(`${empName}||${weekLabel}||${p.project}`, hrs);
+        remaining -= hrs;
+      }
     }
   }
-  return result;
+
+  _editActiveCell = null;
+  _buildVsAllRows();
+  _vsRenderVisible();
+  updateHmSaveBar();
 }
 
-// Render a single child assignment row
-function _renderManageChildRow(asgn, empName, projOptions, hiddenCls) {
-  const key       = _manageKey(empName, asgn.rowIndex);
-  const pending   = _manage.pendingChanges[key];
-  const isDeleted = pending && pending.type === 'delete';
-  const isNew     = asgn._isNew;
+function hmCellKeydown(event, input) {
+  if (event.key === 'Escape') {
+    _editActiveCell = null;
+    _buildVsAllRows();
+    _vsRenderVisible();
+    return;
+  }
+  if (event.key === 'Tab' || event.key === 'Enter') {
+    event.preventDefault();
+    const weekIdx = parseInt(input.dataset.idx);
+    const empName = input.dataset.emp;
+    const project = input.dataset.proj || null;
+    hmCellBlur(input); // commit first
 
-  // Current displayed values (pending override originals)
-  const cur = pending && pending.type === 'update' ? { ...asgn, ...pending } : { ...asgn };
-  const addKey = `add:${asgn._tempId}`;
-  const addPending = isNew ? _manage.pendingChanges[addKey] : null;
-  const display = addPending ? { ...asgn, ...addPending } : cur;
-
-  const deletedCls = isDeleted ? ' deleted-row' : '';
-  const newCls     = isNew     ? ' new-row'     : '';
-  const dirtyProject  = _isDirtyField(empName, asgn.rowIndex, 'project')  || isNew;
-  const dirtySkillSet = _isDirtyField(empName, asgn.rowIndex, 'skillSet') || isNew;
-  const dirtyStart    = _isDirtyField(empName, asgn.rowIndex, 'startDate')|| isNew;
-  const dirtyEnd      = _isDirtyField(empName, asgn.rowIndex, 'endDate')  || isNew;
-  const dirtyHours    = _isDirtyField(empName, asgn.rowIndex, 'hoursPerWeek') || isNew;
-
-  const safeEmp  = _esc(empName);
-  const rowIdStr = String(asgn.rowIndex);
-
-  const startVal = _toDateInputVal(display.startDate);
-  const endVal   = _toDateInputVal(display.endDate);
-
-  return `
-    <tr class="manage-child-row${deletedCls}${newCls}${hiddenCls}" data-row="${_esc(rowIdStr)}" data-emp="${safeEmp}" data-start="${startVal}" data-end="${endVal}">
-      <td class="manage-child-indent"></td>
-      <td></td>
-      <td class="${dirtyProject ? 'manage-cell-dirty' : ''}">
-        <select class="manage-cell-select" data-field="project" data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-                onchange="onManageEdit(this)">
-          <option value="">— Select project —</option>
-          ${_projOptionsWithSelected(display.project)}
-        </select>
-      </td>
-      <td class="${dirtySkillSet ? 'manage-cell-dirty' : ''}">
-        <input class="manage-cell-input" type="text" data-field="skillSet" data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               value="${_esc(display.skillSet || '')}"
-               oninput="onManageEdit(this)" placeholder="Skill set"/>
-      </td>
-      <td class="${dirtyStart ? 'manage-cell-dirty' : ''}">
-        <input class="manage-cell-input" type="date" data-field="startDate" data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               value="${startVal}"
-               onchange="onManageEdit(this)"/>
-      </td>
-      <td class="${dirtyEnd ? 'manage-cell-dirty' : ''}">
-        <input class="manage-cell-input" type="date" data-field="endDate" data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               value="${endVal}"
-               onchange="onManageEdit(this)"/>
-      </td>
-      <td class="${dirtyHours ? 'manage-cell-dirty' : ''}">
-        <input class="manage-cell-input" type="number" min="0" max="100" data-field="hoursPerWeek"
-               data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               value="${display.hoursPerWeek || 0}"
-               oninput="onManageEdit(this)"/>
-      </td>
-      <td class="manage-actions-cell">
-        ${isDeleted
-          ? `<button class="manage-btn-ghost" style="font-size:11px;padding:3px 8px"
-               data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               onclick="undoManageDelete(this.dataset.emp, this.dataset.row, event)">Undo</button>`
-          : `<button class="manage-btn-delete" title="Remove assignment"
-               data-emp="${safeEmp}" data-row="${_esc(rowIdStr)}"
-               onclick="deleteManageAssignment(this.dataset.emp, this.dataset.row, event)">
-               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                 <path d="M2 3h9M5 3V2h3v1M4.5 5.5v4M8.5 5.5v4M3 3l.5 7.5h6L10 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-               </svg>
-             </button>`
-        }
-      </td>
-    </tr>
-  `;
+    if (event.key === 'Tab') {
+      const maxWeek = (_vsData ? _vsData.weeks.length : 1) - 1;
+      const nextIdx = event.shiftKey ? weekIdx - 1 : weekIdx + 1;
+      if (nextIdx >= 0 && nextIdx <= maxWeek) {
+        _editActiveCell = { empName, weekIdx: nextIdx, project };
+        _buildVsAllRows();
+        _vsRenderVisible();
+        setTimeout(() => {
+          const ni = document.querySelector('.hm-cell-editing input');
+          if (ni) { ni.focus(); ni.select(); }
+        }, 0);
+      }
+    }
+    // Enter: just commit; for "move down" we'd need employee ordering, skip for simplicity
+  }
 }
 
-// Build <option> list with the current value pre-selected
-function _projOptionsWithSelected(currentVal) {
-  if (!_manage.data) return '';
-  return _manage.data.projects.map(p => {
-    const sel = (p === currentVal) ? ' selected' : '';
-    return `<option value="${_esc(p)}"${sel}>${_esc(p)}</option>`;
-  }).join('');
-}
+// ── Quick Fill ────────────────────────────────────────────────────
+function applyQuickFill() {
+  const empName = document.getElementById('qfEmployee')?.value?.trim();
+  const project = document.getElementById('qfProject')?.value?.trim();
+  const fromVal = document.getElementById('qfFrom')?.value;
+  const toVal   = document.getElementById('qfTo')?.value;
+  const hours   = Math.max(0, Math.min(100, Number(document.getElementById('qfHours')?.value) || 0));
 
-// Convert MM/DD/YYYY or YYYY-MM-DD to YYYY-MM-DD for <input type="date">
-function _toDateInputVal(str) {
-  if (!str) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) return `${m[3]}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
-  return '';
-}
-
-// Generate a stable key for a pending change
-function _manageKey(empName, rowIndex) {
-  return `${empName}||${rowIndex}`;
-}
-
-function _isDirtyField(empName, rowIndex, field) {
-  const key = _manageKey(empName, rowIndex);
-  const ch  = _manage.pendingChanges[key];
-  if (!ch || ch.type === 'delete') return false;
-  if (ch.type === 'update') return field in ch;
-  return false; // adds tracked separately
-}
-
-// Toggle expand/collapse for an employee group
-function toggleManageGroup(empName) {
-  _manage.expandedGroups[empName] = !(_manage.expandedGroups[empName] !== false);
-  renderManageTable();
-}
-
-// Handle cell edits — reads emp/row/field from element's data-* attributes
-function onManageEdit(el) {
-  const empName    = el.dataset.emp;
-  const rowIndexStr = el.dataset.row;
-  const field      = el.dataset.field;
-  const rowIndex   = rowIndexStr.startsWith('new:') ? rowIndexStr : parseInt(rowIndexStr);
-  const key        = _manageKey(empName, rowIndex);
-  const val        = (field === 'hoursPerWeek') ? Number(el.value) : el.value;
-
-  if (rowIndexStr.startsWith('new:')) {
-    // Edit on a new (temp) add row
-    const tempId = parseInt(rowIndexStr.replace('new:', ''));
-    const addKey = `add:${tempId}`;
-    const existing = _manage.pendingChanges[addKey] || {};
-    _manage.pendingChanges[addKey] = { ...existing, type: 'add', tempId, employeeName: empName, [field]: val };
-  } else {
-    // Edit on an existing row
-    const existing = _manage.pendingChanges[key] || {};
-    if (existing.type === 'delete') return; // Can't edit deleted rows
-    const orig = _manage.data.employees
-      .find(e => e.name === empName)?.assignments
-      .find(a => a.rowIndex === rowIndex);
-    if (!orig) return;
-
-    // Build merged update
-    const updated = { ...existing, type: 'update', rowIndex, employeeName: empName,
-      originalProject: orig.project, [field]: val };
-    _manage.pendingChanges[key] = updated;
+  if (!empName || !project || !fromVal || !toVal) {
+    alert('Please fill in Employee, Project, From, and To fields.');
+    return;
   }
 
-  // Highlight the cell's parent td
-  const td = el.closest('td');
-  if (td) {
-    td.classList.add('dirty-cell');
-    console.log('[manage] dirty-cell added to td:', td, 'classList:', td.className);
+  const fromDate = new Date(fromVal + 'T00:00:00');
+  const toDate   = new Date(toVal   + 'T00:00:00');
+  if (fromDate > toDate) { alert('From date must be before To date.'); return; }
+
+  if (!_vsData) { alert('Heatmap data not loaded yet.'); return; }
+
+  const year = new Date().getFullYear();
+  let count = 0;
+  for (const weekLabel of _vsData.weeks) {
+    // weekLabel is "M/D" — parse to Date
+    const m = weekLabel.match(/(\d+)\/(\d+)/);
+    if (!m) continue;
+    const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+    if (wkDate >= fromDate && wkDate <= toDate) {
+      _pendingStaffing.set(`${empName}||${weekLabel}||${project}`, hours);
+      count++;
+    }
   }
 
-  updateManageUnsavedBar();
-}
-
-// Add a new blank assignment row for an employee
-function addManageAssignment(empName, event) {
-  if (event) event.stopPropagation();
-  const tempId = ++_manage.tempIdCounter;
-  _manage.pendingChanges[`add:${tempId}`] = {
-    type: 'add', tempId, employeeName: empName,
-    project: '', skillSet: '', startDate: '', endDate: '', hoursPerWeek: 0,
-  };
-  _manage.expandedGroups[empName] = true;
-  renderManageTable();
-  updateManageUnsavedBar();
-}
-
-// Mark an assignment as deleted
-function deleteManageAssignment(empName, rowIndexStr, event) {
-  if (event) event.stopPropagation();
-  if (rowIndexStr.startsWith('new:')) {
-    // Remove the pending add entirely
-    const tempId = parseInt(rowIndexStr.replace('new:', ''));
-    delete _manage.pendingChanges[`add:${tempId}`];
-  } else {
-    const rowIndex = parseInt(rowIndexStr);
-    const key = _manageKey(empName, rowIndex);
-    const orig = _manage.data.employees
-      .find(e => e.name === empName)?.assignments
-      .find(a => a.rowIndex === rowIndex);
-    if (!orig) return;
-    _manage.pendingChanges[key] = { type: 'delete', rowIndex, employeeName: empName, originalProject: orig.project };
+  if (count === 0) {
+    alert('No heatmap weeks fall within the selected date range.');
+    return;
   }
-  renderManageTable();
-  updateManageUnsavedBar();
+
+  _buildVsAllRows();
+  _vsRenderVisible();
+  updateHmSaveBar();
 }
 
-// Undo a delete
-function undoManageDelete(empName, rowIndexStr, event) {
-  if (event) event.stopPropagation();
-  const rowIndex = parseInt(rowIndexStr);
-  const key = _manageKey(empName, rowIndex);
-  delete _manage.pendingChanges[key];
-  renderManageTable();
-  updateManageUnsavedBar();
-}
-
-// Update the unsaved changes bar
-function updateManageUnsavedBar() {
-  const bar   = document.getElementById('manageUnsavedBar');
-  const count = document.getElementById('manageUnsavedCount');
+// ── Save / Cancel bar ─────────────────────────────────────────────
+function updateHmSaveBar() {
+  const bar   = document.getElementById('hmSaveBar');
+  const count = document.getElementById('hmSaveCount');
   if (!bar || !count) return;
-  const n = Object.keys(_manage.pendingChanges).length;
+  const n = _pendingStaffing.size;
   if (n === 0) {
     bar.classList.add('hidden');
   } else {
@@ -2441,75 +2388,49 @@ function updateManageUnsavedBar() {
   }
 }
 
-// Save all pending changes
-async function saveManageChanges() {
-  const saveBtn = document.getElementById('manageSaveBtn');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+async function saveStaffingChanges() {
+  const btn = document.getElementById('hmSaveBtnEl');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
-  // Build changes array for API
-  const changes = Object.values(_manage.pendingChanges).map(ch => {
-    if (ch.type === 'add') {
-      return { type: 'add', employeeName: ch.employeeName, project: ch.project,
-        skillSet: ch.skillSet, startDate: ch.startDate, endDate: ch.endDate, hoursPerWeek: ch.hoursPerWeek };
-    }
-    if (ch.type === 'delete') {
-      return { type: 'delete', rowIndex: ch.rowIndex, employeeName: ch.employeeName, originalProject: ch.originalProject };
-    }
-    // update
-    const rowEl = document.querySelector(`tr.manage-child-row[data-emp="${ch.employeeName}"][data-row="${ch.rowIndex}"]`);
-    return { type: 'update', rowIndex: ch.rowIndex, employeeName: ch.employeeName,
-      project: ch.originalProject, skillSet: ch.skillSet,
-      startDate: rowEl ? rowEl.dataset.start : ch.startDate,
-      endDate: rowEl ? rowEl.dataset.end : ch.endDate,
-      hoursPerWeek: ch.hoursPerWeek };
-  });
+  const changes = [];
+  for (const [key, hours] of _pendingStaffing) {
+    const parts = key.split('||');
+    changes.push({ employeeName: parts[0], weekLabel: parts[1], project: parts[2], hours });
+  }
 
   try {
-    const res  = await fetch('/api/supply/update', {
-      method: 'POST',
+    const res  = await fetch('/api/save-staffing', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ changes }),
+      body:    JSON.stringify({ changes }),
     });
     const data = await res.json();
     if (res.status === 423) {
-      const count = document.getElementById('manageUnsavedCount');
-      if (count) { count.textContent = data.error; count.style.color = '#FFB3B3'; }
+      const countEl = document.getElementById('hmSaveCount');
+      if (countEl) { countEl.textContent = data.error; countEl.style.color = '#FFB3B3'; }
       return;
     }
     if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
 
-    // Clear pending changes and reload
-    _manage.pendingChanges = {};
-    _manage.loaded = false;
-    updateManageUnsavedBar();
-    await loadManageData(true);
+    _pendingStaffing.clear();
+    _editActiveCell = null;
+    updateHmSaveBar();
+    await loadDashboard();
   } catch (err) {
     alert(`Save failed: ${err.message}`);
   } finally {
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; }
   }
 }
 
-// Cancel with confirmation dialog
-function cancelManageChanges() {
-  const n = Object.keys(_manage.pendingChanges).length;
-  const body = document.getElementById('manageConfirmBody');
-  if (body) body.textContent = `You have ${n} unsaved change${n === 1 ? '' : 's'} that will be lost.`;
-  document.getElementById('manageConfirmOverlay')?.classList.remove('hidden');
+function cancelStaffingChanges() {
+  _pendingStaffing.clear();
+  _editActiveCell = null;
+  _buildVsAllRows();
+  _vsRenderVisible();
+  updateHmSaveBar();
 }
 
-function closeManageConfirm() {
-  document.getElementById('manageConfirmOverlay')?.classList.add('hidden');
-}
-
-function confirmManageCancel() {
-  closeManageConfirm();
-  _manage.pendingChanges = {};
-  updateManageUnsavedBar();
-  renderManageTable();
-}
-
-// Escape HTML helper (small utility — reuse if already defined)
 function _esc(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }

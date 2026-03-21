@@ -455,6 +455,99 @@ app.get('/api/manage', async (req, res) => {
   res.json({ employees: empList, projects: projectNames, weekKeys });
 });
 
+// POST /api/save-staffing — inline edit / quick-fill save for Staffing heatmap
+app.post('/api/save-staffing', async (req, res) => {
+  const { changes } = req.body || {};
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return res.status(400).json({ error: 'changes array is required' });
+  }
+
+  const EXCEL_PATH = path.join(__dirname, 'data', 'resourcing.xlsx');
+
+  try {
+    const freshData = await readStaffingData();
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+    const { supply, employees: empMaster } = freshData;
+    const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+
+    // Map "M/D" display label back to full "Week ending M/D" key
+    function weekLabelToKey(label) {
+      return weekKeys.find(wk => {
+        const m = wk.match(/(\d+)\/(\d+)/);
+        return m && `${parseInt(m[1])}/${parseInt(m[2])}` === label;
+      });
+    }
+
+    // Clone supply
+    let updatedSupply = supply.map(r => ({ ...r, weeklyHours: { ...r.weeklyHours } }));
+
+    for (const ch of changes) {
+      const wk  = weekLabelToKey(ch.weekLabel);
+      if (!wk) continue;
+      const hrs = Math.max(0, Math.min(100, Number(ch.hours) || 0));
+
+      const rowIdx = updatedSupply.findIndex(r =>
+        r.employeeName === ch.employeeName && r.projectAssigned === ch.project
+      );
+      if (rowIdx >= 0) {
+        updatedSupply[rowIdx].weeklyHours[wk] = hrs;
+      } else {
+        // Create a new supply row
+        const empEntry = empMaster.find(e => e.employeeName === ch.employeeName);
+        const weekly   = Object.fromEntries(weekKeys.map(k => [k, 0]));
+        weekly[wk]     = hrs;
+        updatedSupply.push({
+          employeeName:    ch.employeeName,
+          level:           empEntry ? empEntry.level : '',
+          skillSet:        ch.skillSet || '',
+          projectAssigned: ch.project  || 'Unassigned',
+          weeklyHours:     weekly,
+        });
+      }
+    }
+
+    // Write back to Excel
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(EXCEL_PATH);
+    const existingWs = workbook.getWorksheet('Supply');
+    if (!existingWs) return res.status(500).json({ error: 'Supply worksheet not found' });
+
+    const headerRow = existingWs.getRow(1);
+    const headers   = [];
+    headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
+      headers[col] = cell.value ? String(cell.value).trim() : null;
+    });
+
+    workbook.removeWorksheet(existingWs.id);
+    const ws = workbook.addWorksheet('Supply');
+    const headerCols = headers.slice(1);
+    ws.addRow(headerCols);
+
+    for (const row of updatedSupply) {
+      const rowData = {
+        'Employee Name':    row.employeeName,
+        'Level':            row.level,
+        'Skill Set':        row.skillSet,
+        'Project Assigned': row.projectAssigned,
+        ...Object.fromEntries(weekKeys.map(wk => [wk, row.weeklyHours[wk] || 0])),
+      };
+      ws.addRow(headerCols.map(h => h ? (rowData[h] ?? null) : null));
+    }
+
+    await workbook.xlsx.writeFile(EXCEL_PATH);
+    staffingData = await readStaffingData();
+    res.json({ success: true, updatedRows: changes.length });
+
+  } catch (err) {
+    console.error('[save-staffing]', err);
+    if (err.code === 'EBUSY') {
+      return res.status(423).json({ error: 'resourcing.xlsx is currently open in Excel. Please close it and try again.' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/supply/update — apply changes to Supply tab in resourcing.xlsx
 app.post('/api/supply/update', async (req, res) => {
   const { changes } = req.body || {};

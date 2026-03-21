@@ -6,7 +6,7 @@
   <title>Staffing Intelligence | Resource Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -35,10 +35,6 @@
       <button class="nav-item" data-tab="needs" title="Needs (Ctrl+3)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="3" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="5.5" y1="7.5" x2="10.5" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="5.5" y1="10" x2="8.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         <span class="nav-label">Needs</span>
-      </button>
-      <button class="nav-item" data-tab="manage" title="Manage Resourcing (Ctrl+5)">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="3" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="7" width="14" height="2.5" rx="1" fill="currentColor" opacity=".35"/><rect x="1" y="11.5" width="14" height="2.5" rx="1" fill="currentColor" opacity=".35"/><path d="M11.5 8.5l1 .5-.5 1L11 9.5l.5-1z" fill="currentColor"/><path d="M10.5 10.5l.5-1 1 .5-.5 1-1-.5z" fill="currentColor"/></svg>
-        <span class="nav-label">Manage</span>
       </button>
       <button class="nav-item" data-tab="ask" title="Ask Claude (Ctrl+4)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 7c0 3.314-2.686 6-6 6a5.97 5.97 0 01-3-.8L2 14l1.8-3A5.97 5.97 0 012 7c0-3.314 2.686-6 6-6s6 2.686 6 6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="7" r=".7" fill="currentColor"/><circle cx="8" cy="7" r=".7" fill="currentColor"/><circle cx="10" cy="7" r=".7" fill="currentColor"/></svg>
@@ -274,8 +270,32 @@
             <h3 class="chart-title">Availability Heatmap</h3>
             <p class="chart-sub">Weekly hours by employee · Click names, cells, or week headers for details</p>
           </div>
-          <span class="chart-badge" id="heatmapBadge">—</span>
+          <div class="hm-header-right">
+            <span class="chart-badge" id="heatmapBadge">—</span>
+            <button class="hm-edit-toggle" id="hmEditToggle" onclick="toggleEditMode()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                <path d="M7.5 3.5l3 3" stroke="currentColor" stroke-width="1.4"/>
+              </svg>
+              Edit Mode
+            </button>
+          </div>
         </div>
+
+        <!-- Quick Fill bar — visible only in edit mode -->
+        <div class="hm-quickfill-bar hidden" id="hmQuickFillBar">
+          <span class="hm-qf-label">Quick Fill</span>
+          <select class="hm-qf-select" id="qfEmployee">
+            <option value="">Employee…</option>
+          </select>
+          <input class="hm-qf-input" id="qfProject" type="text" placeholder="Project…" autocomplete="off" list="qfProjectList">
+          <datalist id="qfProjectList"></datalist>
+          <input class="hm-qf-input hm-qf-date" id="qfFrom" type="date" title="From (week start)">
+          <input class="hm-qf-input hm-qf-date" id="qfTo" type="date" title="To (week end)">
+          <input class="hm-qf-input hm-qf-hours" id="qfHours" type="number" min="0" max="100" placeholder="h/wk">
+          <button class="hm-qf-apply" onclick="applyQuickFill()">Apply</button>
+        </div>
+
         <div id="heatmapContainer">
           <div style="padding:32px;text-align:center;color:#8892B0">Loading heatmap…</div>
         </div>
@@ -318,37 +338,6 @@
         </div>
       </div>
 
-    </div>
-
-    <!-- ── Manage Resourcing Tab ────────────────────────────────────── -->
-    <div class="tab-panel" id="tab-manage">
-
-      <!-- Unsaved Changes Bar -->
-      <div class="manage-unsaved-bar hidden" id="manageUnsavedBar">
-        <span class="manage-unsaved-count" id="manageUnsavedCount">0 unsaved changes</span>
-        <div class="manage-unsaved-actions">
-          <button class="manage-btn-ghost" onclick="cancelManageChanges()">Cancel</button>
-          <button class="manage-btn-primary" id="manageSaveBtn" onclick="saveManageChanges()">Save Changes</button>
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="manage-content" id="manageContent">
-        <div class="manage-loading">Loading…</div>
-      </div>
-
-    </div>
-
-    <!-- ── Manage Cancel Confirmation Dialog ────────────────────────── -->
-    <div class="manage-confirm-overlay hidden" id="manageConfirmOverlay">
-      <div class="manage-confirm-dialog">
-        <div class="manage-confirm-title" id="manageConfirmTitle">Discard unsaved changes?</div>
-        <div class="manage-confirm-body" id="manageConfirmBody"></div>
-        <div class="manage-confirm-actions">
-          <button class="manage-btn-ghost" onclick="closeManageConfirm()">Go Back</button>
-          <button class="manage-btn-danger" id="manageConfirmOk" onclick="confirmManageCancel()">Discard Changes</button>
-        </div>
-      </div>
     </div>
 
     <!-- ── Ask Claude Tab ──────────────────────────────────────────── -->
@@ -409,6 +398,15 @@
       </div>
     </div>
 
+  <!-- ── Staffing Edit Mode Save/Cancel Bar ────────────────────── -->
+  <div class="hm-save-bar hidden" id="hmSaveBar">
+    <span class="hm-save-count" id="hmSaveCount">0 unsaved changes</span>
+    <div class="hm-save-actions">
+      <button class="manage-btn-ghost" onclick="cancelStaffingChanges()">Cancel</button>
+      <button class="manage-btn-primary" id="hmSaveBtnEl" onclick="saveStaffingChanges()">Save Changes</button>
+    </div>
+  </div>
+
   </main>
 
   <!-- ── Drilldown Modal ─────────────────────────────────────────── -->
@@ -436,7 +434,6 @@
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+2</span><span class="shortcut-desc">Staffing</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+3</span><span class="shortcut-desc">Needs</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+4</span><span class="shortcut-desc">Ask Claude</span></div>
-          <div class="shortcut-row"><span class="shortcut-key">Ctrl+5</span><span class="shortcut-desc">Manage Resourcing</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+B</span><span class="shortcut-desc">Toggle sidebar</span></div>
         </div>
         <div class="shortcut-section">
@@ -453,6 +450,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
