@@ -2619,13 +2619,21 @@ function umFmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function umPill(color, text) {
+  return `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#0F1117;background:${color}">${text}</span>`;
+}
+
+let _deactivatedExpanded = false;
+
 async function loadUsers() {
-  const tbody = document.getElementById('userTableBody');
+  const tbody   = document.getElementById('userTableBody');
   const emptyEl = document.getElementById('userTableEmpty');
+  const deactEl = document.getElementById('deactivatedSection');
   if (!tbody) return;
 
   tbody.innerHTML = `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">Loading…</td></tr>`;
   emptyEl.classList.add('hidden');
+  if (deactEl) deactEl.innerHTML = '';
 
   let users;
   try {
@@ -2637,51 +2645,126 @@ async function loadUsers() {
     return;
   }
 
-  if (!users.length) {
+  const activeUsers      = users.filter(u => u.status !== 'deactivated');
+  const deactivatedUsers = users.filter(u => u.status === 'deactivated');
+
+  if (!activeUsers.length && !deactivatedUsers.length) {
     tbody.innerHTML = '';
     emptyEl.classList.remove('hidden');
     return;
   }
 
-  tbody.innerHTML = users.map(u => {
-    const roleColor = UM_ROLE_COLORS[u.role] || '#8892B0';
-    const roleLabel = UM_ROLE_LABELS[u.role] || (u.role || '—');
-    const isActive  = u.status === 'active';
-    const dimStyle  = isActive ? '' : 'opacity:0.6;';
+  tbody.innerHTML = activeUsers.length
+    ? activeUsers.map(u => _renderActiveRow(u)).join('')
+    : `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active users — invite someone above</td></tr>`;
 
-    const roleOptions = Object.entries(UM_ROLE_LABELS)
-      .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
-      .join('');
+  if (deactEl) _renderDeactivatedSection(deactEl, deactivatedUsers);
+}
 
-    const pill = (color, text) =>
-      `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#0F1117;background:${color}">${text}</span>`;
+function _renderActiveRow(u) {
+  const roleColor  = UM_ROLE_COLORS[u.role] || '#8892B0';
+  const roleLabel  = UM_ROLE_LABELS[u.role] || (u.role || '—');
+  const isInvited  = u.status === 'invited';
 
-    const actionBtn = isActive
-      ? `<button onclick="deactivateUser('${_esc(u.id)}')"
-           style="padding:5px 10px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
-           onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`
-      : `<button onclick="reactivateUser('${_esc(u.id)}')"
-           style="padding:5px 10px;background:rgba(168,230,207,.12);border:1px solid rgba(168,230,207,.25);border-radius:6px;color:#A8E6CF;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
-           onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>`;
+  const roleOptions = Object.entries(UM_ROLE_LABELS)
+    .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
+    .join('');
 
-    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${dimStyle}">
-      <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(u.name)}</td>
-      <td style="padding:13px 16px;color:#8892B0;font-size:12px">${_esc(u.email)}</td>
-      <td style="padding:13px 16px">${pill(roleColor, _esc(roleLabel))}</td>
-      <td style="padding:13px 16px">${isActive ? pill('#A8E6CF', 'Active') : pill('#8892B0', 'Deactivated')}</td>
-      <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.last_sign_in_at)}</td>
-      <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.created_at)}</td>
-      <td style="padding:13px 20px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <select onchange="changeUserRole('${_esc(u.id)}', this.value, this)"
-            style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#CBD5E0;font-size:12px;font-family:inherit;cursor:pointer;outline:none">
-            ${roleOptions}
-          </select>
-          ${actionBtn}
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
+  const statusPill = isInvited
+    ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#F59E0B;background:#451A03;border:1px solid rgba(245,158,11,0.3)">Invited</span>`
+    : `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)">Active</span>`;
+
+  const lastLoginCell = isInvited
+    ? `<span style="color:#6B6F76;font-style:italic;font-size:12px">Never logged in</span>`
+    : `<span style="color:#8892B0;font-size:12px">${umFmtDate(u.last_sign_in_at)}</span>`;
+
+  const roleSelect = isInvited
+    ? `<select disabled style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#4A4D5A;font-size:12px;font-family:inherit;cursor:not-allowed;outline:none;opacity:0.5">${roleOptions}</select>`
+    : `<select onchange="changeUserRole('${_esc(u.id)}', this.value, this)" style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#CBD5E0;font-size:12px;font-family:inherit;cursor:pointer;outline:none">${roleOptions}</select>`;
+
+  const actionBtns = isInvited
+    ? `<button onclick="resendInvite('${_esc(u.id)}')"
+         style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Resend Invite</button>
+       <button onclick="cancelInvite('${_esc(u.id)}')"
+         style="padding:5px 10px;background:transparent;border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#EF4444;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(239,68,68,.06)'" onmouseout="this.style.background='transparent'">Cancel Invite</button>`
+    : `<button onclick="deactivateUser('${_esc(u.id)}')"
+         style="padding:5px 10px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`;
+
+  return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${isInvited ? 'opacity:0.75;' : ''}">
+    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(u.name)}</td>
+    <td style="padding:13px 16px;color:#8892B0;font-size:12px">${_esc(u.email)}</td>
+    <td style="padding:13px 16px">${umPill(roleColor, _esc(roleLabel))}</td>
+    <td style="padding:13px 16px">${statusPill}</td>
+    <td style="padding:13px 16px;white-space:nowrap">${lastLoginCell}</td>
+    <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.created_at)}</td>
+    <td style="padding:13px 20px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        ${roleSelect}
+        ${actionBtns}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function _renderDeactivatedSection(container, users) {
+  _deactivatedExpanded = users.length === 0;
+  const countBadge = users.length > 0 ? ` (${users.length})` : '';
+
+  const rowsHtml = users.length === 0
+    ? `<div style="padding:24px;text-align:center;color:#4A4D5A;font-size:13px">No deactivated users</div>`
+    : `<div class="chart-card" style="padding:0;overflow:hidden;margin-top:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tbody>${users.map(u => _renderDeactivatedRow(u)).join('')}</tbody>
+        </table>
+      </div>`;
+
+  container.innerHTML = `
+    <div style="margin-top:16px">
+      <div onclick="toggleDeactivatedSection()"
+           style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:4px 0">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#4A4D5A;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap">
+          <span id="deactivatedArrow" style="font-size:9px">${_deactivatedExpanded ? '▼' : '▶'}</span>
+          Deactivated Users${countBadge}
+        </span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+      </div>
+      <div id="deactivatedContent" style="overflow:hidden;${_deactivatedExpanded ? '' : 'display:none'}">
+        ${rowsHtml}
+      </div>
+    </div>`;
+}
+
+function toggleDeactivatedSection() {
+  _deactivatedExpanded = !_deactivatedExpanded;
+  const content = document.getElementById('deactivatedContent');
+  const arrow   = document.getElementById('deactivatedArrow');
+  if (!content || !arrow) return;
+  content.style.display = _deactivatedExpanded ? '' : 'none';
+  arrow.textContent = _deactivatedExpanded ? '▼' : '▶';
+}
+
+function _renderDeactivatedRow(u) {
+  const roleColor  = UM_ROLE_COLORS[u.role] || '#8892B0';
+  const roleLabel  = UM_ROLE_LABELS[u.role] || (u.role || '—');
+  const statusPill = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#6B6F76;background:#1A1D27;border:1px solid rgba(255,255,255,0.1)">Deactivated</span>`;
+
+  return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);opacity:0.45">
+    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(u.name)}</td>
+    <td style="padding:13px 16px;color:#8892B0;font-size:12px">${_esc(u.email)}</td>
+    <td style="padding:13px 16px">${umPill(roleColor, _esc(roleLabel))}</td>
+    <td style="padding:13px 16px">${statusPill}</td>
+    <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.last_sign_in_at)}</td>
+    <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.created_at)}</td>
+    <td style="padding:13px 20px">
+      <button onclick="reactivateUser('${_esc(u.id)}')"
+        style="padding:5px 10px;background:rgba(168,230,207,.12);border:1px solid rgba(168,230,207,.25);border-radius:6px;color:#A8E6CF;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+        onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>
+    </td>
+  </tr>`;
 }
 
 async function changeUserRole(userId, newRole, selectEl) {
@@ -2716,6 +2799,28 @@ async function deactivateUser(userId) {
 async function reactivateUser(userId) {
   const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
   if (!res.ok) { showToast('Failed to reactivate user.'); return; }
+  loadUsers();
+}
+
+async function resendInvite(userId) {
+  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    showToast(data.error || 'Failed to resend invite.');
+    return;
+  }
+  showToast('Invite resent successfully.');
+}
+
+async function cancelInvite(userId) {
+  if (!confirm('Cancel this invite? The pending account will be permanently deleted.')) return;
+  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/invite`, { method: 'DELETE' });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    showToast(data.error || 'Failed to cancel invite.');
+    return;
+  }
+  showToast('Invite cancelled.');
   loadUsers();
 }
 

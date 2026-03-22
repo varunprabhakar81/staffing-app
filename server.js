@@ -843,7 +843,7 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
         email:          u.email,
         name:           u.user_metadata?.name || u.email.split('@')[0],
         role:           u.app_metadata?.role   || null,
-        status:         u.banned_until ? 'deactivated' : 'active',
+        status:         u.banned_until ? 'deactivated' : (!u.last_sign_in_at ? 'invited' : 'active'),
         last_sign_in_at: u.last_sign_in_at,
         created_at:     u.created_at,
       }));
@@ -939,6 +939,47 @@ app.patch('/api/admin/users/:id/reactivate', requireAuth, requireRole('admin'), 
     const { error } = await serviceClient.auth.admin.updateUserById(req.params.id, {
       ban_duration: 'none',
     });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/resend-invite — resend invite email to a pending user
+app.post('/api/admin/users/:id/resend-invite', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { data: userData, error: fetchErr } = await serviceClient.auth.admin.getUserById(req.params.id);
+    if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+    if (!userData?.user) return res.status(404).json({ error: 'User not found' });
+
+    const user = userData.user;
+    if (user.last_sign_in_at) {
+      return res.status(400).json({ error: 'User has already logged in — cannot resend invite' });
+    }
+
+    const { error } = await serviceClient.auth.admin.inviteUserByEmail(user.email, {
+      data: user.user_metadata || {},
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/users/:id/invite — cancel invite by deleting the unconfirmed user
+app.delete('/api/admin/users/:id/invite', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { data: userData, error: fetchErr } = await serviceClient.auth.admin.getUserById(req.params.id);
+    if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+    if (!userData?.user) return res.status(404).json({ error: 'User not found' });
+
+    if (userData.user.last_sign_in_at) {
+      return res.status(400).json({ error: 'Cannot cancel invite — user has already logged in' });
+    }
+
+    const { error } = await serviceClient.auth.admin.deleteUser(req.params.id);
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   } catch (err) {
