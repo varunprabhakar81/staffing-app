@@ -83,6 +83,17 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireRole(...allowedRoles) {
+  const roles = allowedRoles.flat();
+  return (req, res, next) => {
+    const userRole = req.session.role;
+    if (!userRole || !roles.includes(userRole)) {
+      return res.status(403).json({ error: 'Forbidden: insufficient role' });
+    }
+    next();
+  };
+}
+
 // ── Auth endpoints (exempt from requireAuth) ─────────────────────────────────
 
 // POST /api/auth/login
@@ -94,8 +105,10 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
     if (error) return res.status(401).json({ error: error.message });
-    req.session.token = data.session.access_token;
-    req.session.user  = data.user;
+    req.session.token     = data.session.access_token;
+    req.session.user      = data.user;
+    req.session.tenant_id = data.user.app_metadata?.tenant_id;
+    req.session.role      = data.user.app_metadata?.role;
     res.json({ user: data.user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -113,7 +126,11 @@ app.get('/api/auth/me', (req, res) => {
   if (!req.session || !req.session.token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  res.json({ user: req.session.user });
+  res.json({
+    user:      req.session.user,
+    role:      req.session.role,
+    tenant_id: req.session.tenant_id,
+  });
 });
 
 // Apply requireAuth to all /api/* routes defined after this point
@@ -132,7 +149,7 @@ app.get('/api/supply', (req, res) => {
 });
 
 // GET /api/demand
-app.get('/api/demand', (req, res) => {
+app.get('/api/demand', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
   if (!requireData(res)) return;
   res.json(staffingData.demand);
 });
@@ -144,8 +161,8 @@ app.get('/api/employees', (req, res) => {
 });
 
 // GET /api/dashboard
-app.get('/api/dashboard', async (req, res) => {
-  const freshData = await readStaffingData(req.session.token);
+app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) {
     return res.status(503).json({ error: freshData.error });
   }
@@ -343,8 +360,8 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 // GET /api/heatmap
-app.get('/api/heatmap', async (req, res) => {
-  const freshData = await readStaffingData(req.session.token);
+app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
   const { supply, employees } = freshData;
@@ -454,7 +471,7 @@ app.get('/api/ask', async (req, res) => {
 });
 
 // GET /api/manage — supply data grouped by employee for the Manage tab
-app.get('/api/manage', async (req, res) => {
+app.get('/api/manage', requireRole('admin', 'resource_manager'), async (req, res) => {
   const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
@@ -521,7 +538,7 @@ app.get('/api/manage', async (req, res) => {
 });
 
 // POST /api/save-staffing — inline edit / quick-fill save for Staffing heatmap
-app.post('/api/save-staffing', async (req, res) => {
+app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (req, res) => {
   const { changes } = req.body || {};
   if (!Array.isArray(changes) || changes.length === 0) {
     return res.status(400).json({ error: 'changes array is required' });
@@ -572,7 +589,7 @@ app.post('/api/save-staffing', async (req, res) => {
 });
 
 // POST /api/supply/update — apply add/update/delete changes to supply via Supabase
-app.post('/api/supply/update', async (req, res) => {
+app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (req, res) => {
   const { changes } = req.body || {};
   if (!Array.isArray(changes) || changes.length === 0) {
     return res.status(400).json({ error: 'changes array is required' });
@@ -672,7 +689,7 @@ app.post('/api/supply/update', async (req, res) => {
 });
 
 // GET /api/recommendations — AI-matched consultants for each open need
-app.get('/api/recommendations', async (req, res) => {
+app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;

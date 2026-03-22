@@ -2,6 +2,9 @@
 
 'use strict';
 
+// ── Current user role (set after auth check, used for role-based gating) ──
+let currentUserRole = null;
+
 // ── Fix Chart.js resolution on high-DPI / Retina displays ─────────
 Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
 
@@ -274,15 +277,23 @@ async function loadDashboard() {
       fetch('/api/heatmap'),
     ]);
 
+    const [dashText, supplyText, empText, heatmapText] = await Promise.all([
+      dashRes.text(), supplyRes.text(), empRes.text(), heatmapRes.text(),
+    ]);
+    console.log('[Dashboard] status:', dashRes.status, 'body:', dashText);
+    console.log('[Supply]    status:', supplyRes.status, 'body:', supplyText);
+    console.log('[Employees] status:', empRes.status, 'body:', empText);
+    console.log('[Heatmap]   status:', heatmapRes.status, 'body:', heatmapText);
+
     if (!dashRes.ok) throw new Error(`HTTP ${dashRes.status}`);
-    const data = await dashRes.json();
+    const data = JSON.parse(dashText);
     if (data.error) throw new Error(data.error);
 
-    rawData.supply        = supplyRes.ok    ? await supplyRes.json()    : [];
-    rawData.employees     = empRes.ok       ? await empRes.json()       : [];
+    rawData.supply        = supplyRes.ok    ? JSON.parse(supplyText)    : [];
+    rawData.employees     = empRes.ok       ? JSON.parse(empText)       : [];
     rawData.cliffs        = data.cliffs     || [];
     rawData.coverageRoles = (data.needsCoverage || {}).roles || [];
-    rawData.heatmap       = heatmapRes.ok   ? await heatmapRes.json()   : null;
+    rawData.heatmap       = heatmapRes.ok   ? JSON.parse(heatmapText)   : null;
 
     // Week ending date (Saturday) + update time
     (function() {
@@ -2510,6 +2521,34 @@ async function logout() {
   try {
     const res = await fetch('/api/auth/me');
     if (res.status === 401) { window.location.replace('login.html'); return; }
+    const me = await res.json();
+    currentUserRole = me.role || null;
   } catch (e) { window.location.replace('login.html'); return; }
+
+  // Apply role-based tab visibility
+  if (currentUserRole === 'executive') {
+    const staffingTab = document.querySelector('.nav-item[data-tab="staffing"]');
+    const needsTab = document.querySelector('.nav-item[data-tab="needs"]');
+    if (staffingTab) staffingTab.style.display = 'none';
+    if (needsTab) needsTab.style.display = 'none';
+  }
+  if (currentUserRole !== 'admin') {
+    const settingsTab = document.querySelector('.nav-item[data-tab="settings"]');
+    if (settingsTab) settingsTab.style.display = 'none';
+  }
+  if (currentUserRole !== 'admin' && currentUserRole !== 'resource_manager') {
+    const editToggle = document.getElementById('hmEditToggle');
+    if (editToggle) editToggle.style.display = 'none';
+  }
+
   loadDashboard();
+
+  // Redirect executive away from hidden tabs
+  if (currentUserRole === 'executive') {
+    const activeTab = document.querySelector('.nav-item.active');
+    const activeTabName = activeTab && activeTab.dataset.tab;
+    if (activeTabName === 'staffing' || activeTabName === 'needs') {
+      navigateTo('overview');
+    }
+  }
 })();
