@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #38 Railway deploy complete — #62 RBAC next
+Last updated: #38 Railway deploy complete — RLS tightening next
 
 ---
 
