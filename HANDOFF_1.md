@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #63 User Management UI + Ask Claude fix complete — #77 Edit Mode UX or #96 Tenant Onboarding next
+Last updated: #77 Edit Mode UX + heatmap redesign complete — #96 Tenant Onboarding or #105 Role Gating UAT next
 
 ---
 
@@ -226,7 +226,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Logout button at bottom of left sidebar
 * 5 tabs: Overview, Staffing, Needs, Ask Claude, Settings (admin only)
 * Overview: KPI cards, utilization by level, overallocation warning with tooltip + drilldown, top projects, rolling off soon, needs attention
-* Staffing: full heatmap, 25 employees x 12 weeks, expandable rows, virtual scrolling, hybrid edit mode
+* Staffing: Always-on inline cell editing (Airtable/Float model) — row tints by utilization tier, horizon-aware bench red, current week column highlight, floating save bar
 * Edit Mode: solid blue button top-right (admin + resource_manager only), Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner
 * Needs: donut chart + expandable rows with AI match panel. Shows pipeline status + coverage status
 * Ask Claude: dynamic suggested questions, text input, markdown responses
@@ -252,6 +252,9 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | RLS | RLS tightening — WITH CHECK + tenants lockdown | ✅ Closed |
 | #62 | RBAC role enforcement | ✅ Closed |
 | #63 | User Management UI | ✅ Closed |
+| #79 | Duplicate available hours | ✅ Closed — not reproduced, clean |
+| #80 | Legend swatch size | ✅ Closed — replaced with bar swatches |
+| #81 | Favicon 404 | ✅ Closed — favicon.svg added |
 
 ---
 

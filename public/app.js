@@ -150,7 +150,6 @@ window.selectedDateRange = { type: 'current', weekOffset: 0 };
   });
 
   input.addEventListener('input', () => {
-    console.log('[Search]', input.value);
   });
 })();
 
@@ -361,7 +360,6 @@ function showToast(msg, durationMs = 8000) {
 // ── SSE auto-refresh ──────────────────────────────────────────────
 (function initSSE() {
   if (!window.EventSource) return;
-  console.log('SSE connecting...');
   const es = new EventSource('/api/events');
   es.addEventListener('data-updated', () => {
     if (_pendingStaffing.size === 0) {
@@ -754,16 +752,46 @@ function renderNeedsAttention(data) {
 // ══════════════════════════════════════════════════════════════════
 
 function heatmapCellBg(hours) {
-  if (hours === 0)  return '#8B0000';
-  if (hours < 40)   return '#FFB3B3';
-  if (hours < 45)   return '#FFF3A3';
-  if (hours === 45) return '#A8E6CF';
-  if (hours <= 50)  return '#FF9999';
-  return '#FF8A80';
+  return '#161820'; // uniform dark — color signal is on border-left only
 }
 
-function heatmapCellFg(hours) {
-  return hours === 0 ? '#FFFFFF' : '#0F1117';
+// Row-level utilization tint — applied to emp-row cells only
+// weekDate: the Saturday end-date of the column (Date object). Beyond 8-week planning horizon,
+// 0h cells are neutral (unplanned is expected) rather than alarming red.
+function heatmapRowTint(hours, weekDate) {
+  if (hours === 0) {
+    if (weekDate) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + 56); // 8-week planning horizon
+      if (weekDate > cutoff) return '#161820'; // beyond horizon — neutral, not alarming
+    }
+    return 'rgba(239,68,68,0.08)';   // bench (within horizon)
+  }
+  if (hours < 20)    return 'rgba(245,158,11,0.07)';  // at risk
+  if (hours < 40)    return 'rgba(99,102,241,0.08)';  // under — indigo, distinct from current-week blue
+  if (hours <= 45)   return 'rgba(16,185,129,0.07)';  // optimal
+  return 'rgba(239,68,68,0.05)';                       // over
+}
+
+function heatmapCellFg(hours, weekDate) {
+  if (hours === 0) {
+    if (weekDate) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() + 56); // 8-week planning horizon
+      if (weekDate > cutoff) return '#3A3D4A'; // beyond horizon — neutral muted, not alarming red
+    }
+    return 'rgba(239,68,68,0.6)'; // bench within horizon
+  }
+  return '#E2E8F0';
+}
+
+function heatmapCellBorder(hours) {
+  if (hours === 0)   return '#3A3D4A'; // bench
+  if (hours < 40)    return '#3B82F6'; // under
+  if (hours < 45)    return '#10B981'; // nominal
+  if (hours === 45)  return '#F59E0B'; // full
+  if (hours <= 50)   return '#EF4444'; // over
+  return '#DC2626';                    // over+
 }
 
 function encodeAttr(s) {
@@ -774,7 +802,7 @@ function encodeAttr(s) {
 }
 
 // ── Virtual scroll constants & state ─────────────────────────────
-const VS_H_EMP   = 28;   // employee row height px
+const VS_H_EMP   = 48;   // employee row height px
 const VS_H_LEVEL = 20;   // level group header height px
 const VS_H_SUB   = 26;   // project sub-row height px
 const VS_BUFFER  = 8;    // extra rows rendered beyond viewport
@@ -783,6 +811,21 @@ let _vsData    = null;   // {weeks, employees} reference
 let _vsAllRows = [];     // flat array of row descriptors
 let _vsColCount = 13;    // 1 name col + N week cols
 let _vsScrollRaf = null; // rAF handle for scroll debounce
+let _hmCurWeek = -1;     // index of the current week column (-1 = none visible)
+
+// Find which week index contains today's date (weeks[] are "M/D" Saturday end-dates)
+function _computeCurWeekIdx(weeks) {
+  const now = new Date();
+  const year = now.getFullYear();
+  for (let i = 0; i < weeks.length; i++) {
+    const m = weeks[i].match(/(\d+)\/(\d+)/);
+    if (!m) continue;
+    const sat = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+    const sun = new Date(sat); sun.setDate(sat.getDate() - 6);
+    if (now >= sun && now <= sat) return i;
+  }
+  return -1;
+}
 
 // Build (or rebuild) flat row list from _vsData + _hmExpanded state
 function _buildVsAllRows() {
@@ -868,38 +911,29 @@ function _vsRenderRow(row) {
     const tip = encodeAttr(`${emp.name}\n${emp.level}  ·  ${emp.skillSet || '—'}\nThis week: ${h0}h — ${st}`);
     const chv = _hmExpanded.has(emp.name) ? '▼' : '▶';
     const cells = emp.weeklyHours.map((h, i) => {
-      const isActive = _editActiveCell &&
-        _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i && !_editActiveCell.project;
-      if (isActive) {
-        return `<td class="hm-cell hm-cell-editing">
-          <input class="hm-cell-input" type="number" min="0" max="100"
-            value="${h}" data-emp="${sn}" data-idx="${i}"
-            onblur="hmCellBlur(this)"
-            onkeydown="hmCellKeydown(event,this)"
-            onfocus="this.select()"></td>`;
-      }
+      // Emp row always drills — never renders as an editing input
       const pendingH = _pendingDisplayTotal(emp.name, i);
       const displayH = pendingH !== null ? pendingH : h;
       const isPending = pendingH !== null;
       const projs    = emp.weeklyProjects[i];
       const projText = projs.length ? projs.map(p => `${p.project}: ${p.hours}h`).join('\n') : 'No bookings';
       const ct = encodeAttr(`${displayH}h total\n${projText}`);
-      if (_hmCanEdit()) {
-        return `<td class="hm-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
-          style="background:${isPending ? '#3A3512' : heatmapCellBg(h)};color:${isPending ? '#FFF3A3' : heatmapCellFg(h)}"
-          data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
-          onclick="hmCellClick('${sn}',${i})"
-          onmouseenter="showHmTooltip(event,this)"
-          onmousemove="positionHmTooltip(event)"
-          onmouseleave="hideHmTooltip()">${displayH}</td>`;
-      }
-      return `<td class="hm-cell dd-clickable"
-        style="background:${heatmapCellBg(h)};color:${heatmapCellFg(h)}"
-        data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
-        onclick="drillHeatmapCell(this.dataset.emp,parseInt(this.dataset.idx))"
+      // Emp row total — click shows tooltip + expands; never editable
+      // Compute week's Saturday end-date for planning-horizon tint logic
+      const _wkStr  = _vsData && _vsData.weeks ? _vsData.weeks[i] : null;
+      const _wkM    = _wkStr ? _wkStr.match(/(\d+)\/(\d+)/) : null;
+      const _wkDate = _wkM ? new Date(new Date().getFullYear(), parseInt(_wkM[1]) - 1, parseInt(_wkM[2])) : null;
+      const _empBl  = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
+      const _empBg  = heatmapRowTint(displayH, _wkDate);
+      const _empFg  = isPending ? '#F59E0B' : heatmapCellFg(displayH, _wkDate);
+      const _curCls = i === _hmCurWeek ? ' hm-col-current' : '';
+      return `<td class="hm-cell${isPending ? ' hm-cell-pending' : ''}${_curCls}"
+        style="background:${_empBg};color:${_empFg};border-left:${_empBl}"
+        data-emp="${sn}" data-idx="${i}" data-tip="${ct}" data-cell-type="emp-total"
+        onclick="empTotalCellClick(event,this)"
         onmouseenter="showHmTooltip(event,this)"
         onmousemove="positionHmTooltip(event)"
-        onmouseleave="hideHmTooltip()">${h}</td>`;
+        onmouseleave="hideHmTooltip()">${displayH}</td>`;
     }).join('');
     return `<tr class="hm-emp-row">
       <td class="hm-name-cell" data-emp="${sn}" data-tip="${tip}"
@@ -941,15 +975,17 @@ function _vsRenderRow(row) {
       const h         = pending !== null ? pending : origH;
       const isPending = pending !== null;
 
-      const bg = isPending ? '#3A3512' : (h > 0 ? heatmapCellBg(h) : '#16192A');
-      const fg = isPending ? '#FFF3A3' : (h > 0 ? heatmapCellFg(h) : '#4A5568');
+      const _subBl = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
+      const bg = '#161820'; // pending handled by CSS outline; no amber flood fill
+      const fg = isPending ? '#F59E0B' : heatmapCellFg(h);
 
       if (_hmCanEdit()) {
-        return `<td class="hm-sub-cell${isPending ? ' hm-cell-pending' : ''}"
-          style="background:${bg};color:${fg}"
+        return `<td class="hm-sub-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
+          style="background:${bg};color:${fg};border-left:${_subBl}"
           onclick="hmSubCellClick('${sn}',${i},'${encodeAttr(projName)}')">${h > 0 ? h : '—'}</td>`;
       }
-      return `<td class="hm-sub-cell" style="background:${h > 0 ? heatmapCellBg(h) : '#16192A'};color:${h > 0 ? heatmapCellFg(h) : '#4A5568'}">${h > 0 ? h : '—'}</td>`;
+      const _bl = `3px solid ${heatmapCellBorder(h)}`;
+      return `<td class="hm-sub-cell" style="background:#161820;color:${heatmapCellFg(h)};border-left:${_bl}">${h > 0 ? h : '—'}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-visible">
       <td class="hm-sub-name-cell"><span class="hm-sub-indent">${encodeAttr(projName)}</span></td>${cells}</tr>`;
@@ -960,9 +996,10 @@ function _vsRenderRow(row) {
       const pendingH = _pendingDisplayTotal(row.emp.name, i);
       const displayH = pendingH !== null ? pendingH : h;
       const isPending = pendingH !== null;
-      const bg = isPending ? '#3A3512' : heatmapCellBg(h);
-      const fg = isPending ? '#FFF3A3' : heatmapCellFg(h);
-      return `<td class="hm-sub-cell hm-sub-total-cell${isPending ? ' hm-cell-pending' : ''}" style="background:${bg};color:${fg}">${displayH}</td>`;
+      const _totBl = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
+      const bg = '#161820'; // pending handled by CSS outline; no amber flood fill
+      const fg = isPending ? '#F59E0B' : heatmapCellFg(h);
+      return `<td class="hm-sub-cell hm-sub-total-cell${isPending ? ' hm-cell-pending' : ''}" style="background:${bg};color:${fg};border-left:${_totBl}">${displayH}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-total-row hm-sub-visible">
       <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>${cells}</tr>`;
@@ -1085,18 +1122,19 @@ function buildHeatmapTable(data) {
   const badge = document.getElementById('heatmapBadge');
   if (badge) { badge.textContent = `${totalAvail}h available this week`; badge.className = 'chart-badge'; }
 
+  _hmCurWeek = _computeCurWeekIdx(weeks);
   const wkThs = weeks.map((w, i) =>
-    `<th class="hm-week-th dd-clickable" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
+    `<th class="hm-week-th dd-clickable${i === _hmCurWeek ? ' hm-col-current' : ''}" onclick="drillHeatmapWeek(${i})" title="Click for week availability">${w}</th>`
   ).join('');
 
   const swatches = [
-    { bg: '#8B0000', label: '0h — Bench' },
-    { bg: '#FFB3B3', label: '1–39h — Under' },
-    { bg: '#FFF3A3', label: '40–44h — Nominal' },
-    { bg: '#A8E6CF', label: '45h — Full' },
-    { bg: '#FF9999', label: '46–50h — Over' },
-    { bg: '#FF8A80', label: '51h+ — Over+' },
-  ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch" style="background:${s.bg}"></span>${s.label}</div>`).join('');
+    { color: '#3A3D4A', label: '0h — Bench' },
+    { color: '#6366F1', label: '1–39h — Under' },
+    { color: '#10B981', label: '40–44h — Nominal' },
+    { color: '#F59E0B', label: '45h — Full' },
+    { color: '#EF4444', label: '46–50h — Over' },
+    { color: '#DC2626', label: '51h+ — Over+' },
+  ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch-bar" style="background:${s.color}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
     <div class="hm-controls-row">
@@ -1113,8 +1151,8 @@ function buildHeatmapTable(data) {
     <div class="hm-legend">
       <div class="hm-legend-swatches">${swatches}</div>
       <div class="hm-legend-stats">
-        <span style="color:#A8E6CF;font-weight:600">${totalAvail}h available this week</span>
-        <span style="color:#8892B0;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
+        <span style="color:#10B981;font-weight:600">${totalAvail}h available this week</span>
+        <span style="color:#6B6F76;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
       </div>
       <div class="hm-legend-hint">Hover employee name for details · Click ▶ to expand project breakdown</div>
     </div>`;
@@ -1229,12 +1267,11 @@ function drillHeatmapEmployee(empName) {
     const projText = ps.length
       ? ps.map(p => `${p.project} (${p.hours}h)`).join(', ')
       : '<span style="color:#8892B0">No bookings</span>';
-    const bg = heatmapCellBg(h);
-    const fg = heatmapCellFg(h);
+    const bc = heatmapCellBorder(h);
     return `<tr>
       <td>${week}</td>
       <td style="font-size:12px">${projText}</td>
-      <td><span style="background:${bg};color:${fg};border-radius:4px;padding:2px 8px;font-weight:700;font-size:12px">${h}h</span></td>
+      <td><span style="border-left:3px solid ${bc};padding-left:6px;color:#E2E8F0;font-weight:600;font-size:12px">${h}h</span></td>
       <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
     </tr>`;
   }).join('');
@@ -2284,8 +2321,76 @@ function clearResponse() {
   document.getElementById('askInput').focus();
 }
 
+// ── Total-row cell click: tooltip + auto-expand ───────────────────
+let _empTotalTipEl = null;
+let _empTotalTipTimer = null;
+let _empTotalDismissHandler = null;
+
+function empTotalCellClick(evt, cell) {
+  if (!_hmCanEdit()) return; // only editable roles see tooltip/expand
+  evt.stopPropagation();
+
+  // Auto-expand if not already expanded
+  const empName = cell.dataset.emp;
+  if (empName && !_hmExpanded.has(empName)) {
+    toggleHmExpand(empName);
+  }
+
+  // Create or reuse popover element
+  if (!_empTotalTipEl) {
+    _empTotalTipEl = document.createElement('div');
+    _empTotalTipEl.id = 'empTotalTip';
+    _empTotalTipEl.style.cssText =
+      'position:fixed;z-index:9999;background:#1A1D27;color:#fff;' +
+      'border:1px solid #3A3D4A;border-radius:6px;font-size:12px;' +
+      'padding:6px 10px;pointer-events:none;white-space:nowrap;display:none;';
+    _empTotalTipEl.textContent = 'Total is calculated \u2014 edit the rows below';
+    document.body.appendChild(_empTotalTipEl);
+  }
+
+  // Position above the clicked cell
+  const rect = cell.getBoundingClientRect();
+  _empTotalTipEl.style.display = 'block';
+  // Measure after display to get width
+  const tipW = _empTotalTipEl.offsetWidth;
+  const left = Math.min(rect.left + rect.width / 2 - tipW / 2, window.innerWidth - tipW - 8);
+  const top  = rect.top - _empTotalTipEl.offsetHeight - 6;
+  _empTotalTipEl.style.left = Math.max(8, left) + 'px';
+  _empTotalTipEl.style.top  = Math.max(8, top) + 'px';
+
+  // Clear any running dismiss timer / handler
+  clearTimeout(_empTotalTipTimer);
+  if (_empTotalDismissHandler) {
+    document.removeEventListener('click', _empTotalDismissHandler, true);
+    _empTotalDismissHandler = null;
+  }
+
+  // Dismiss on outside click
+  _empTotalDismissHandler = function() {
+    _empTotalTipEl.style.display = 'none';
+    clearTimeout(_empTotalTipTimer);
+    document.removeEventListener('click', _empTotalDismissHandler, true);
+    _empTotalDismissHandler = null;
+  };
+  // Use setTimeout so this click doesn't immediately trigger the handler
+  setTimeout(() => {
+    document.addEventListener('click', _empTotalDismissHandler, true);
+  }, 0);
+
+  // Auto-dismiss after 2000ms
+  _empTotalTipTimer = setTimeout(() => {
+    if (_empTotalTipEl) _empTotalTipEl.style.display = 'none';
+    if (_empTotalDismissHandler) {
+      document.removeEventListener('click', _empTotalDismissHandler, true);
+      _empTotalDismissHandler = null;
+    }
+  }, 2000);
+}
+
 // ── Cell click handlers ───────────────────────────────────────────
 function hmCellClick(empName, weekIdx) {
+  if (event && event.target && event.target.closest('[data-cell-type="emp-total"]')) return;
+  if (!_hmCanEdit()) return;  // guard: total/rollup rows must never reach here
   _editActiveCell = { empName, weekIdx, project: null };
   _buildVsAllRows();
   _vsRenderVisible();
@@ -2296,6 +2401,8 @@ function hmCellClick(empName, weekIdx) {
 }
 
 function hmSubCellClick(empName, weekIdx, project) {
+  if (event && event.target && event.target.closest('[data-cell-type="emp-total"]')) return;
+  if (!_hmCanEdit()) return;  // guard: only project-level sub-cells should call this
   _editActiveCell = { empName, weekIdx, project };
   _buildVsAllRows();
   _vsRenderVisible();
