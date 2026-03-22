@@ -144,7 +144,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // GET /api/supply
-app.get('/api/supply', (req, res) => {
+app.get('/api/supply', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
   if (!requireData(res)) return;
   res.json(staffingData.supply);
 });
@@ -156,7 +156,7 @@ app.get('/api/demand', requireRole('admin', 'resource_manager', 'project_manager
 });
 
 // GET /api/employees
-app.get('/api/employees', (req, res) => {
+app.get('/api/employees', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
   if (!requireData(res)) return;
   res.json(staffingData.employees);
 });
@@ -389,8 +389,12 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
     return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
   }
 
-  // Filter: from current week (first week-ending >= today) through June 27
-  const endDate = new Date(today.getFullYear(), 5, 27);
+  // Filter: from current week (first week-ending >= today) through a rolling 13-week window (~90 days)
+  // Round up to the next Saturday (week_ending is always Saturday in this app)
+  const rawEnd = new Date(today); rawEnd.setDate(rawEnd.getDate() + 90);
+  const dayOfWeek = rawEnd.getDay(); // 0=Sun … 6=Sat
+  const daysToSat = dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
+  const endDate = new Date(rawEnd); endDate.setDate(endDate.getDate() + daysToSat);
   const displayWeeks = weekKeys.filter(wk => {
     const d = parseWkLabel(wk);
     return d && d >= today && d <= endDate;
