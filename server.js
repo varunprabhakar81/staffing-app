@@ -455,7 +455,7 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
 // POST /api/suggested-questions
 app.post('/api/suggested-questions', async (req, res) => {
   try {
-    const freshData = await readStaffingData(req.session.token);
+    const freshData = await readStaffingData(null, serviceClient);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
     staffingData = freshData;
     const questions = await getSuggestedQuestions(freshData);
@@ -483,7 +483,7 @@ app.get('/api/ask', async (req, res) => {
 
 // GET /api/manage — supply data grouped by employee for the Manage tab
 app.get('/api/manage', requireRole('admin', 'resource_manager'), async (req, res) => {
-  const freshData = await readStaffingData(req.session.token);
+  const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
 
@@ -701,7 +701,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance', 'recruiter'), async (req, res) => {
-  const freshData = await readStaffingData(req.session.token);
+  const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
 

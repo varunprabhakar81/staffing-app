@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #38 Railway deploy complete — RLS tightening next
+Last updated: #63 User Management UI complete — #77 Edit Mode UX or #96 Tenant Onboarding next
 
 ---
 
@@ -13,6 +13,7 @@ Staffing Intelligence — a real-time staffing management platform for Varun's N
 * Supabase (Postgres) as data backbone — Excel fully retired
 * 25 real employees, real project data
 * GitHub: https://github.com/varunprabhakar81/staffing-app (private)
+* Railway (prod): https://staffing-app-production.up.railway.app
 
 ---
 
@@ -55,21 +56,101 @@ Railway dashboard needs these 7 variables (PORT is injected automatically by Rai
 
 * Supabase Auth with email/password
 * Server-side sessions via express-session (httpOnly cookie, 8-hour maxAge)
-* JWT contains tenant_id in app_metadata — set via custom_access_token_hook Postgres function
+* JWT contains tenant_id + role in app_metadata — set via custom_access_token_hook Postgres function
 * RLS policies use auth.jwt() -> 'app_metadata' ->> 'tenant_id' (not current_setting)
 * supabaseReader.js: serviceClient (service role, bypasses RLS) + anonClient (per-request JWT, RLS enforced)
 * requireAuth middleware: protects all /api/* routes except /api/auth/*
+* requireRole() middleware: enforces role-based access on sensitive routes
 * Login page: public/login.html — POST /api/auth/login → session → redirect to index.html
 * Logout: POST /api/auth/logout → session destroyed → redirect to login.html
 * Auth guard: app.js checks /api/auth/me on load — 401 → redirect to login.html
 * Startup cache warms using serviceClient (bypasses RLS) — logs "40 supply rows, 8 demand rows" on boot
 * app.set('trust proxy', 1) — required for Railway reverse proxy + secure cookies in prod
+* /api/dashboard and /api/heatmap use serviceClient (not user JWT) — required after RLS tightening
+
+---
+
+## RBAC (#62 — complete)
+
+4 roles defined. Role stored in app_metadata.role in Supabase, stamped into JWT via custom_access_token_hook, stored in session at login, exposed on /api/auth/me.
+
+| Role | Access |
+|---|---|
+| admin | Full access + User Management |
+| resource_manager | All tabs except Settings. Edit Mode available |
+| project_manager | Overview, Needs (own projects), Ask Claude. No Edit Mode |
+| executive | Overview + Ask Claude only. Read-only |
+
+Tab visibility matrix:
+| Tab | admin | resource_manager | project_manager | executive |
+|---|---|---|---|---|
+| Overview | ✅ | ✅ | ✅ | ✅ |
+| Staffing | ✅ | ✅ | ❌ | ❌ |
+| Needs | ✅ | ✅ | ✅ | ❌ |
+| Ask Claude | ✅ | ✅ | ✅ | ✅ |
+| Settings | ✅ | ❌ | ❌ | ❌ |
+| Edit Mode button | ✅ | ✅ | ❌ | ❌ |
+
+API route protection:
+| Route | Roles allowed |
+|---|---|
+| GET /api/demand | admin, resource_manager, project_manager |
+| GET /api/dashboard | admin, resource_manager, project_manager |
+| GET /api/heatmap | admin, resource_manager, project_manager |
+| GET /api/recommendations | admin, resource_manager, project_manager |
+| GET /api/manage | admin, resource_manager |
+| POST /api/save-staffing | admin, resource_manager |
+| POST /api/supply/update | admin, resource_manager |
+| GET /api/admin/users | admin |
+| POST /api/admin/users/invite | admin |
+| PATCH /api/admin/users/:id/role | admin |
+| PATCH /api/admin/users/:id/deactivate | admin |
+| PATCH /api/admin/users/:id/reactivate | admin |
+
+---
+
+## User Management (#63 — complete)
+
+Admin-only panel under Settings tab.
+
+Features:
+* List all users in tenant — Name, Email, Role, Status, Last Login, Date Added
+* Invite user — email invite (Supabase magic link) or temp password with complexity enforcement
+* Change role — dropdown per row, PATCH /api/admin/users/:id/role
+* Deactivate — sets ban_duration: '87600h'. Row dims to opacity 0.6
+* Reactivate — sets ban_duration: 'none'
+
+Password complexity rules (client + server enforced):
+* Min 12 characters
+* At least 1 uppercase, 1 lowercase, 1 number, 1 special character
+
+Role pill colors: admin=purple(#C9B8FF), resource_manager=blue(#A8C7FA), project_manager=mint(#A8E6CF), executive=yellow(#FFF3A3)
+
+---
+
+## RLS Architecture (tightened this session)
+
+All 9 tenant tables have explicit WITH CHECK clause:
+(auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid = tenant_id
+
+tenants table: RLS enabled + deny-all policy (serviceClient only)
+
+| Table | RLS | Policy |
+|---|---|---|
+| clients | ✅ | tenant_isolation (USING + WITH CHECK) |
+| consultant_skill_sets | ✅ | tenant_isolation (USING + WITH CHECK) |
+| consultants | ✅ | tenant_isolation (USING + WITH CHECK) |
+| levels | ✅ | tenant_isolation (USING + WITH CHECK) |
+| need_skill_sets | ✅ | tenant_isolation (USING + WITH CHECK) |
+| needs | ✅ | tenant_isolation (USING + WITH CHECK) |
+| projects | ✅ | tenant_isolation (USING + WITH CHECK) |
+| resource_assignments | ✅ | tenant_isolation (USING + WITH CHECK) |
+| skill_sets | ✅ | tenant_isolation (USING + WITH CHECK) |
+| tenants | ✅ | deny-all (server/serviceClient only) |
 
 ---
 
 ## Supabase Schema (10 tables)
-
-All tables except tenants have tenant_id + RLS policy: (auth.jwt() -> 'app_metadata' ->> 'tenant_id')::uuid = tenant_id
 
 | Table | Purpose |
 |---|---|
@@ -95,7 +176,7 @@ Key schema decisions:
 * target_billable_pct on levels: Analyst/Consultant 80%, SC 75%, Manager 70%, SM 60%, PPMD 50%
 * consultant_effective_rates view: resolves COALESCE(consultant override, level default)
 * Tenant ID: 9762ee19-e1d1-48db-bc57-e96bee9ce2f8
-* upsertAssignment uses native Supabase upsert with onConflict: 'consultant_id,project_id,week_ending' — atomic, no race condition
+* upsertAssignment uses native Supabase upsert with onConflict: 'consultant_id,project_id,week_ending'
 * weekKeyToDate map in _meta: derives ISO dates from actual DB dates — no hardcoded year logic
 
 ---
@@ -143,14 +224,15 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Login page at /login.html — dark theme, email/password, inline error handling
 * Auth guard on app load — redirects to login.html if no session
 * Logout button at bottom of left sidebar
-* 4 tabs: Overview, Staffing, Needs, Ask Claude
+* 5 tabs: Overview, Staffing, Needs, Ask Claude, Settings (admin only)
 * Overview: KPI cards, utilization by level, overallocation warning with tooltip + drilldown, top projects, rolling off soon, needs attention
 * Staffing: full heatmap, 25 employees x 12 weeks, expandable rows, virtual scrolling, hybrid edit mode
-* Edit Mode: solid blue button top-right, Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner
+* Edit Mode: solid blue button top-right (admin + resource_manager only), Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner
 * Needs: donut chart + expandable rows with AI match panel. Shows pipeline status + coverage status
 * Ask Claude: dynamic suggested questions, text input, markdown responses
+* Settings: User Management UI — invite users, change roles, deactivate/reactivate (admin only)
 * SSE auto-refresh: fires after successful DB writes (broadcastSSE), pushes data-updated event to all clients
-* All saves write to Supabase — ExcelJS fully removed from app (92 packages removed)
+* All saves write to Supabase — ExcelJS fully removed from app
 
 ---
 
@@ -165,46 +247,43 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #67 | Refresh button relocate/remove | ✅ Closed |
 | #77 | Merge Manage into Staffing: Hybrid Edit Mode | ✅ Closed |
 | #84 | Terminology rename Supply/Demand → Resources/Projects | ✅ Closed |
-| #87 (#32a) | Supabase Auth hook + RLS policy update | ✅ Closed |
-| #88 (#32b) | .env + import script hygiene | ✅ Closed |
-| #89 (#32c) | supabaseReader.js dual-client refactor | ✅ Closed |
-| #90 (#32d) | server.js auth middleware + endpoints | ✅ Closed |
-| #91 (#32e) | public/login.html | ✅ Closed |
-| #92 (#32f) | app.js + index.html auth guard + logout | ✅ Closed |
-| #93 (#32g) | End-to-end auth test | ✅ Closed |
-| #32 | Supabase Auth setup (parent) | ✅ Closed |
+| #87-#93 | Supabase Auth setup (parent #32) | ✅ Closed |
 | #38 | Railway deploy | ✅ Closed |
+| RLS | RLS tightening — WITH CHECK + tenants lockdown | ✅ Closed |
+| #62 | RBAC role enforcement | ✅ Closed |
+| #63 | User Management UI | ✅ Closed |
 
 ---
 
 ## Build Order — Next Session
 
-1. **New issue — Tighten RLS policies** ← NEXT
-2. **#62 — RBAC role enforcement**
-3. #63 — User Management UI
-4. #96 — Tenant signup/onboarding flow
+1. **#77 follow-up** — Edit Mode UX: evaluate auto-entering edit mode on cell click vs requiring explicit Edit button. Current button feels unintuitive.
+2. **#96** — Tenant signup/onboarding flow (new firm self-service)
+3. **#105** — Role gating UAT (needs test users for each role)
 
 ---
 
-## Backlog (post-Railway, in priority order)
+## Backlog (in priority order)
 
-* #62 — RBAC / role enforcement (admin, resource_manager, executive)
-* #63 — User Management UI (admin panel — depends on #62)
-* #96 — Tenant signup/onboarding flow (new firm self-service — depends on #62/#63)
-* #66 — Weekly snapshots
-* #64 — Excel export/import (tenant onboarding)
-* #77 follow-up — Edit Mode UX: evaluate auto-entering edit mode on cell click vs requiring explicit Edit button top-right. Current button feels unintuitive. Decide and implement.
-* #79 — Remove duplicate available hours (footer vs header badge)
-* #80 — Increase legend swatch size
-* #81 — Fix favicon 404
-* #82 — UAT skipped test cases from #17/#77 checklist
-* #83 — Remove test toast button if still present
-* #95 — Light mode toggle (low priority)
-* #18-#28 — Full UAT after core features stable
-* #53 — Header improvements (notifications, search, date range)
-* #60 — Sidebar, Overview and keyboard navigation polish
-* #65 — Refresh button visibility in sidebar footer
-* #94 — UAT web UI in Supabase (distant roadmap — idea label)
+| Issue | Title | Notes |
+|---|---|---|
+| #77 follow-up | Edit Mode UX — auto-enter on cell click | Standalone |
+| #96 | Tenant signup/onboarding flow | Depends on #62/#63 |
+| #105 | Role gating validation — all non-admin roles | Needs test users |
+| #101 | User Management — Pending status + deactivated section | Pending = invited not yet logged in |
+| #102 | Email verification flow for invited users | Enforce magic link confirm |
+| #103 | Password strength — Supabase policy | Enable in Auth dashboard |
+| #104 | Settings tab styling inconsistent | Minor visual fix |
+| #99 | Multi-role support + role toggle UI | Depends on #63 stable |
+| #97 | Extended Roles — consultant, finance, recruiter | Depends on #62/#63 |
+| #98 | Finance and Ops Dashboard | Depends on #97 |
+| #100 | User Management — access enhancements | Invited by, 2FA columns |
+| #66 | Weekly snapshots | Standalone |
+| #64 | Excel export/import | Tenant onboarding |
+| #79 | Remove duplicate available hours | Minor |
+| #80 | Increase legend swatch size | Minor |
+| #81 | Fix favicon 404 | Minor |
+| #95 | Light mode toggle | Low priority |
 
 ---
 
@@ -212,33 +291,34 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 
 * Capacity threshold = 45h/week
 * Hours/Week input max = 100
-* Supabase write-back: upsertAssignment() uses native upsert with onConflict: 'consultant_id,project_id,week_ending' — requires a unique constraint on (consultant_id, project_id, week_ending) in Supabase; if upsert returns 409/conflict errors, check this constraint exists in the DB
-* SSE: named events (event: data-updated) — NOT default 'message' event. Fires on broadcastSSE() after DB writes
+* /api/dashboard and /api/heatmap use serviceClient — NOT user JWT. Required after RLS tightening. Do not revert.
+* Supabase write-back: upsertAssignment() uses native upsert with onConflict: 'consultant_id,project_id,week_ending'
+* SSE: named events (event: data-updated) — NOT default 'message' event
 * Utilization = full date range calculation, not single week
 * Toast duration = 8000ms, click to dismiss
-* Conflict banner: amber (#F59E0B), appears above save bar when pending edits + data updated externally
+* Conflict banner: amber (#F59E0B)
 * claudeService.js system prompt: always restart server after editing — prompt is loaded at startup
-* Multi-skill matching: any-match (consultant needs ANY of the need's skill sets, not all)
+* Multi-skill matching: any-match
 * Primary skill set for display: first Practice Area in consultant's skill set list
-* Bug logging: batch create gh issues at end of testing
 * trust proxy: app.set('trust proxy', 1) — required for Railway + secure cookies
 * Session: express-session, httpOnly, secure in prod, 8-hour maxAge, MemoryStore (wiped on restart by design)
-* ExcelJS: fully removed — app has zero Excel dependencies
-* Dead code removed: claudeService.js test block that referenced deleted excelReader.js
+* ExcelJS: fully removed
+* Ban duration for deactivated users: '87600h' (~10 years). Reactivate sets ban_duration: 'none'
+* Password complexity regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
+* VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive']
 
 ---
 
 ## Railway Deploy Checklist
 
-- [ ] Create Railway project → connect GitHub repo (varunprabhakar81/staffing-app)
-- [ ] Set all 7 env vars in Railway dashboard (see Environment Variables section above)
-- [ ] Generate a NEW SESSION_SECRET for prod (node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-- [ ] Deploy — Railway auto-detects Node.js, runs npm start
+- [ ] Verify latest commit is deployed (check Railway dashboard)
+- [ ] Log out and back in on Railway after any JWT hook changes — sessions with stale tokens won't have role
+- [ ] Set all 7 env vars in Railway dashboard
+- [ ] Generate a NEW SESSION_SECRET for prod
 - [ ] Verify: Railway URL → redirects to login.html
-- [ ] Verify: login with real credentials → all 4 tabs load with data
+- [ ] Verify: login → all tabs load with data
 - [ ] Verify: make a heatmap edit → save → hard refresh → change persists
 - [ ] Verify: logout → redirects to login.html
-- [ ] Close #38
 
 ---
 
@@ -253,7 +333,9 @@ node server.js              # Terminal 2 — restart server after changes
 
 Commit and push:
 ```
-git add <files>
-git commit -m "your message"
+git add -A
+git commit -m "feat: <issue title> (#XX)"
 git push origin main
 ```
+
+Railway auto-deploys from GitHub on every push to main. Allow 1-3 min for build.

@@ -4,20 +4,32 @@ const Anthropic = require('@anthropic-ai/sdk');
 const MODEL  = 'claude-sonnet-4-6';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM_PROMPT = `You are a staffing analyst assistant for a NetSuite consulting firm.
-You have access to the firm's current resourcing data and answer questions about staff utilization, bench, project coverage, and open project roles.
+const SYSTEM_PROMPT = `You are a staffing analyst assistant for a ~25-person NetSuite consulting practice.
 
-Utilization rules:
-- 45 hours/week = fully utilized (target)
-- > 45 hours/week = overbooked (a problem — risk of burnout and quality issues)
-- 40–44 hours/week = nominal (acceptable but slightly under target)
-- < 40 hours/week = underutilized (available for additional work)
-- 0 hours/week = on bench (fully available, no project assignment)
+Practice context:
+- Consultant levels: Analyst, Consultant, Senior Consultant, Manager, Senior Manager, Partner / Principal / Managing Director
+- Practice areas: Procure to Pay (P2P), Order to Cash (O2C), Record to Report (R2R), Supply Chain
+- Core technologies: NetSuite, Ivalua, Emburse, Program Management
+- Project pipeline statuses: Proposed, Verbal Commit, Sold
+- Capacity: 45 hours/week per consultant = fully utilized target
 
-Always be concise and specific. Name actual employees and projects from the data when relevant.
-Format lists clearly. Do not make up employees or projects not present in the data.
+Utilization thresholds:
+- > 45 h/week  = overbooked (burnout risk, quality risk — flag immediately)
+- 45 h/week    = fully utilized (target)
+- 40–44 h/week = nominal (slightly under target, acceptable)
+- < 40 h/week  = underutilized (available for additional work)
+- 0 h/week     = on bench (fully available, no active project assignment)
 
-Important: Always use the term 'Projects' instead of 'Demand' and 'Resources' instead of 'Supply' in all responses. Never use the words 'Supply' or 'Demand' in your output.`;
+Key concerns you help with:
+- Utilization vs target by level, practice area, and individual consultant
+- Bench talent — who is available and what skills/practice area do they bring
+- Staffing needs coverage — which open project roles are unmet, partially met, or at risk
+- Project cliffs — consultants rolling off engagements soon who need redeployment
+- Overallocation — consultants booked beyond 45 h/week across simultaneous engagements
+
+Always be concise and specific. Name actual consultants and projects from the data when relevant.
+Format lists clearly. Do not fabricate consultants, projects, or hours not present in the context.
+Use "Projects" instead of "Demand" and "Consultants" or "Resources" instead of "Supply" in all responses.`;
 
 // Format staffing data into a readable context block for the model
 function formatContext(data) {
@@ -183,7 +195,7 @@ async function getSuggestedQuestions(staffingData) {
     const response = await client.messages.create({
       model:      MODEL,
       max_tokens: 512,
-      system:     'You are a staffing intelligence assistant. Generate exactly 5 short, specific, actionable questions a manager would want to ask right now based on this staffing data. Each question must be 12 words or fewer. Return ONLY a JSON array of 5 strings. No preamble, no markdown, no explanation.',
+      system:     'You are a staffing intelligence assistant for a NetSuite consulting practice with consultants across Analyst, Consultant, Senior Consultant, Manager, Senior Manager, and Partner/MD levels working in Procure to Pay, Order to Cash, Record to Report, and Supply Chain practice areas using NetSuite, Ivalua, and Emburse. Generate exactly 5 short, specific, actionable questions a practice manager would ask right now based on this staffing data. Focus on: utilization by level, bench talent by skill set or practice area, upcoming project cliffs, unmet staffing needs, and overallocated consultants. Each question must be 12 words or fewer. Return ONLY a JSON array of 5 strings. No preamble, no markdown, no explanation.',
       messages:   [{ role: 'user', content: summary + '\n\nRemember: each question must be 12 words or fewer.' }],
     });
 
