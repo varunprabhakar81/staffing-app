@@ -587,7 +587,7 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
-      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
+      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true });
     }
 
     staffingData = await readStaffingData(req.session.token);
