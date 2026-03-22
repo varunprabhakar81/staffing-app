@@ -16,6 +16,8 @@ const supabaseAuth = createClient(process.env.SUPABASE_URL, process.env.SUPABASE
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+app.set('trust proxy', 1); // Required for Railway reverse proxy + secure cookies in prod
+
 // ── Load staffing data at startup ───────────────────────────────────────────
 // Use serviceClient (bypasses RLS) so data is available immediately on cold start.
 let staffingData = null;
