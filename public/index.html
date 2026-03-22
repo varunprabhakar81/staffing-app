@@ -40,7 +40,7 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 7c0 3.314-2.686 6-6 6a5.97 5.97 0 01-3-.8L2 14l1.8-3A5.97 5.97 0 012 7c0-3.314 2.686-6 6-6s6 2.686 6 6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="7" r=".7" fill="currentColor"/><circle cx="8" cy="7" r=".7" fill="currentColor"/><circle cx="10" cy="7" r=".7" fill="currentColor"/></svg>
         <span class="nav-label">Ask Claude</span>
       </button>
-      <button class="nav-item nav-item--disabled" data-tab="settings" title="Settings (coming soon)" disabled>
+      <button class="nav-item" data-tab="settings" title="Settings (Ctrl+5)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.1 3.1l.7.7M12.2 12.2l.7.7M12.2 3.1l-.7.7M3.1 12.2l.7.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <span class="nav-label">Settings</span>
       </button>
@@ -409,6 +409,49 @@
       </div>
     </div>
 
+    <!-- ── Settings Tab ───────────────────────────────────────────── -->
+    <div class="tab-panel" id="tab-settings">
+      <div style="padding:0 0 32px">
+
+        <!-- Page header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <h2 style="font-size:20px;font-weight:600;color:#E2E8F0;margin:0">User Management</h2>
+          <button id="inviteBtn" onclick="openInviteModal()"
+            style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Invite User
+          </button>
+        </div>
+
+        <!-- User table card -->
+        <div class="chart-card" style="padding:0;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+                <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Name</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Email</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Role</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Status</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Last Login</th>
+                <th style="padding:12px 16px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Date Added</th>
+                <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;color:#8892B0;text-transform:uppercase;white-space:nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <!-- populated by loadUsers() in app.js -->
+            </tbody>
+          </table>
+          <!-- empty state -->
+          <div id="userTableEmpty" class="hidden"
+            style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
+            No users found.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   <!-- ── Conflict Warning Banner ──────────────────────────────── -->
   <div id="conflictBanner" style="display:none;position:fixed;bottom:56px;left:0;right:0;background:#F59E0B;color:#0F1117;padding:12px 24px;font-size:14px;font-weight:500;z-index:51;align-items:center;gap:8px;">
     ⚠️ Excel file was updated externally. Your unsaved changes may conflict. Save or Cancel before continuing.
@@ -463,6 +506,102 @@
           <div class="shortcut-row"><span class="shortcut-key">Esc</span><span class="shortcut-desc">Close / clear</span></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Invite User Modal ─────────────────────────────────────── -->
+  <div id="inviteModal" class="hidden"
+    onclick="handleInviteOverlayClick(event)"
+    style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+    <div onclick="event.stopPropagation()"
+      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:480px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
+
+      <!-- Modal header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <h3 style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">Invite User</h3>
+        <button onclick="closeInviteModal()"
+          style="background:none;border:none;color:#8892B0;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px"
+          onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">✕</button>
+      </div>
+
+      <form id="inviteForm" onsubmit="submitInvite(event)">
+
+        <!-- Full Name -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">FULL NAME</label>
+          <input name="name" type="text" placeholder="Jane Smith" required
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        </div>
+
+        <!-- Email -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">EMAIL ADDRESS</label>
+          <input name="email" type="email" placeholder="jane@example.com" required
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        </div>
+
+        <!-- Role -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">ROLE</label>
+          <select name="role" required
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            <option value="">Select a role…</option>
+            <option value="admin">Admin</option>
+            <option value="resource_manager">Resource Manager</option>
+            <option value="project_manager">Project Manager</option>
+            <option value="executive">Executive</option>
+          </select>
+        </div>
+
+        <!-- Delivery Method -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:10px;letter-spacing:.04em">DELIVERY METHOD</label>
+          <div id="deliveryMethod" style="display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#CBD5E0">
+              <input type="radio" name="deliveryMethod" value="invite" checked
+                onchange="updateDeliveryMethod(this.value)"
+                style="accent-color:#A8C7FA;width:15px;height:15px;cursor:pointer">
+              Send invite email
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#CBD5E0">
+              <input type="radio" name="deliveryMethod" value="password"
+                onchange="updateDeliveryMethod(this.value)"
+                style="accent-color:#A8C7FA;width:15px;height:15px;cursor:pointer">
+              Set temporary password
+            </label>
+          </div>
+        </div>
+
+        <!-- Temporary Password (conditional) -->
+        <div id="tempPasswordGroup" class="hidden" style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">TEMPORARY PASSWORD</label>
+          <input name="tempPassword" type="text" placeholder="Temporary password…"
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        </div>
+
+        <!-- Error -->
+        <div id="inviteError" class="hidden"
+          style="margin-bottom:14px;padding:9px 12px;background:rgba(255,99,99,.12);border:1px solid rgba(255,99,99,.3);border-radius:8px;font-size:12px;color:#FCA5A5"></div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px">
+          <button type="button" onclick="closeInviteModal()"
+            style="padding:8px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#CBD5E0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"
+            onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+            Cancel
+          </button>
+          <button type="submit" id="inviteSubmitBtn"
+            style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:108px"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            Send Invite
+          </button>
+        </div>
+
+      </form>
     </div>
   </div>
 

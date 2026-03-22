@@ -814,6 +814,123 @@ function broadcastSSE(payload) {
   }
 }
 
+// ── Admin: User Management ────────────────────────────────────────────────────
+
+const VALID_ROLES = ['admin', 'resource_manager', 'project_manager', 'executive'];
+
+// GET /api/admin/users — list all users in the caller's tenant
+app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { data, error } = await serviceClient.auth.admin.listUsers();
+    if (error) return res.status(500).json({ error: error.message });
+
+    const tenantId = req.session.tenant_id;
+    const users = data.users
+      .filter(u => u.app_metadata?.tenant_id === tenantId)
+      .map(u => ({
+        id:             u.id,
+        email:          u.email,
+        name:           u.user_metadata?.name || u.email.split('@')[0],
+        role:           u.app_metadata?.role   || null,
+        status:         u.banned_until ? 'deactivated' : 'active',
+        last_sign_in_at: u.last_sign_in_at,
+        created_at:     u.created_at,
+      }));
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/invite — create or invite a new user
+app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (req, res) => {
+  const { email, role, name, deliveryMethod, tempPassword } = req.body || {};
+  if (!email || !role || !deliveryMethod) {
+    return res.status(400).json({ error: 'email, role, and deliveryMethod are required' });
+  }
+  if (!VALID_ROLES.includes(role)) {
+    return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+
+  try {
+    let createData, createError;
+
+    if (deliveryMethod === 'invite') {
+      ({ data: createData, error: createError } =
+        await serviceClient.auth.admin.inviteUserByEmail(email, { data: { name } }));
+    } else if (deliveryMethod === 'password') {
+      if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required for password delivery' });
+      ({ data: createData, error: createError } =
+        await serviceClient.auth.admin.createUser({
+          email,
+          password:      tempPassword,
+          email_confirm: true,
+          user_metadata: { name },
+        }));
+    } else {
+      return res.status(400).json({ error: "deliveryMethod must be 'invite' or 'password'" });
+    }
+
+    if (createError) return res.status(400).json({ error: createError.message });
+
+    const userId = createData.user.id;
+    const { data: updatedData, error: updateError } =
+      await serviceClient.auth.admin.updateUserById(userId, {
+        app_metadata: { role, tenant_id: req.session.tenant_id },
+      });
+    if (updateError) return res.status(500).json({ error: updateError.message });
+
+    res.status(201).json(updatedData.user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/users/:id/role — update a user's role
+app.patch('/api/admin/users/:id/role', requireAuth, requireRole('admin'), async (req, res) => {
+  const { role } = req.body || {};
+  if (!role || !VALID_ROLES.includes(role)) {
+    return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
+  }
+
+  try {
+    const { data, error } = await serviceClient.auth.admin.updateUserById(req.params.id, {
+      app_metadata: { role },
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data.user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/users/:id/deactivate — ban a user (effectively permanent)
+app.patch('/api/admin/users/:id/deactivate', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { error } = await serviceClient.auth.admin.updateUserById(req.params.id, {
+      ban_duration: '87600h',
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/admin/users/:id/reactivate — lift ban on a user
+app.patch('/api/admin/users/:id/reactivate', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { error } = await serviceClient.auth.admin.updateUserById(req.params.id, {
+      ban_duration: 'none',
+    });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/events — Server-Sent Events endpoint
 app.get('/api/events', (req, res) => {
   console.log('SSE client connected');

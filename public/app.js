@@ -35,6 +35,11 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     if (tab === 'ask') {
       loadSuggestedQuestions();
     }
+    // Reload user list each time Settings tab is opened
+    if (tab === 'settings') {
+      console.log('[Settings] tab clicked');
+      loadUsers();
+    }
   });
 });
 
@@ -2508,6 +2513,213 @@ function cancelStaffingChanges() {
 
 function _esc(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── User Management ───────────────────────────────────────────────
+
+const UM_ROLE_LABELS = {
+  admin:            'Admin',
+  resource_manager: 'Resource Manager',
+  project_manager:  'Project Manager',
+  executive:        'Executive',
+};
+
+const UM_ROLE_COLORS = {
+  admin:            '#C9B8FF',
+  resource_manager: '#A8C7FA',
+  project_manager:  '#A8E6CF',
+  executive:        '#FFF3A3',
+};
+
+function umFmtDate(iso) {
+  if (!iso) return 'Never';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+async function loadUsers() {
+  console.log('[Settings] loadUsers called');
+  const tbody = document.getElementById('userTableBody');
+  const emptyEl = document.getElementById('userTableEmpty');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">Loading…</td></tr>`;
+  emptyEl.classList.add('hidden');
+
+  let users;
+  try {
+    const res = await fetch('/api/admin/users');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    users = await res.json();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#FCA5A5;font-size:13px">Failed to load users: ${_esc(err.message)}</td></tr>`;
+    return;
+  }
+
+  if (!users.length) {
+    tbody.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const roleColor = UM_ROLE_COLORS[u.role] || '#8892B0';
+    const roleLabel = UM_ROLE_LABELS[u.role] || (u.role || '—');
+    const isActive  = u.status === 'active';
+    const dimStyle  = isActive ? '' : 'opacity:0.6;';
+
+    const roleOptions = Object.entries(UM_ROLE_LABELS)
+      .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
+      .join('');
+
+    const pill = (color, text) =>
+      `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;color:#0F1117;background:${color}">${text}</span>`;
+
+    const actionBtn = isActive
+      ? `<button onclick="deactivateUser('${_esc(u.id)}')"
+           style="padding:5px 10px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+           onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`
+      : `<button onclick="reactivateUser('${_esc(u.id)}')"
+           style="padding:5px 10px;background:rgba(168,230,207,.12);border:1px solid rgba(168,230,207,.25);border-radius:6px;color:#A8E6CF;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+           onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>`;
+
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${dimStyle}">
+      <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(u.name)}</td>
+      <td style="padding:13px 16px;color:#8892B0;font-size:12px">${_esc(u.email)}</td>
+      <td style="padding:13px 16px">${pill(roleColor, _esc(roleLabel))}</td>
+      <td style="padding:13px 16px">${isActive ? pill('#A8E6CF', 'Active') : pill('#8892B0', 'Deactivated')}</td>
+      <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.last_sign_in_at)}</td>
+      <td style="padding:13px 16px;color:#8892B0;font-size:12px;white-space:nowrap">${umFmtDate(u.created_at)}</td>
+      <td style="padding:13px 20px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <select onchange="changeUserRole('${_esc(u.id)}', this.value, this)"
+            style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#CBD5E0;font-size:12px;font-family:inherit;cursor:pointer;outline:none">
+            ${roleOptions}
+          </select>
+          ${actionBtn}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function changeUserRole(userId, newRole, selectEl) {
+  const prevRole = Array.from(selectEl.options).find(o => o.defaultSelected)?.value
+                || selectEl.dataset.prev
+                || newRole;
+
+  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    method:  'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ role: newRole }),
+  });
+
+  if (!res.ok) {
+    showToast('Failed to update role.');
+    selectEl.value = prevRole;
+    return;
+  }
+
+  showToast(`Role updated to ${UM_ROLE_LABELS[newRole] || newRole}.`);
+  loadUsers();
+}
+
+async function deactivateUser(userId) {
+  if (!confirm('Deactivate this user? They will lose access immediately.')) return;
+
+  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/deactivate`, { method: 'PATCH' });
+  if (!res.ok) { showToast('Failed to deactivate user.'); return; }
+  loadUsers();
+}
+
+async function reactivateUser(userId) {
+  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
+  if (!res.ok) { showToast('Failed to reactivate user.'); return; }
+  loadUsers();
+}
+
+function openInviteModal() {
+  document.getElementById('inviteModal').classList.remove('hidden');
+}
+
+function closeInviteModal() {
+  const modal = document.getElementById('inviteModal');
+  modal.classList.add('hidden');
+  document.getElementById('inviteForm').reset();
+  document.getElementById('tempPasswordGroup').classList.add('hidden');
+  document.getElementById('inviteError').classList.add('hidden');
+  const btn = document.getElementById('inviteSubmitBtn');
+  btn.textContent = 'Send Invite';
+  btn.disabled = false;
+}
+
+function handleInviteOverlayClick(e) {
+  if (e.target === document.getElementById('inviteModal')) closeInviteModal();
+}
+
+function updateDeliveryMethod(value) {
+  const group = document.getElementById('tempPasswordGroup');
+  const btn   = document.getElementById('inviteSubmitBtn');
+  if (value === 'password') {
+    group.classList.remove('hidden');
+    btn.textContent = 'Create User';
+  } else {
+    group.classList.add('hidden');
+    btn.textContent = 'Send Invite';
+  }
+}
+
+async function submitInvite(e) {
+  e.preventDefault();
+  const form   = document.getElementById('inviteForm');
+  const errEl  = document.getElementById('inviteError');
+  errEl.classList.add('hidden');
+
+  const name           = form.elements.name.value.trim();
+  const email          = form.elements.email.value.trim();
+  const role           = form.elements.role.value;
+  const deliveryMethod = form.elements.deliveryMethod.value;
+  const tempPassword   = form.elements.tempPassword?.value.trim() || '';
+
+  if (!name || !email || !role) {
+    errEl.textContent = 'Name, email, and role are required.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (deliveryMethod === 'password' && !tempPassword) {
+    errEl.textContent = 'A temporary password is required.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('inviteSubmitBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const res = await fetch('/api/admin/users/invite', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, email, role, deliveryMethod, tempPassword }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      errEl.textContent = data.error || 'Failed to create user.';
+      errEl.classList.remove('hidden');
+      btn.disabled    = false;
+      btn.textContent = deliveryMethod === 'password' ? 'Create User' : 'Send Invite';
+      return;
+    }
+
+    closeInviteModal();
+    showToast(`${email} ${deliveryMethod === 'invite' ? 'invited' : 'created'} successfully.`);
+    loadUsers();
+  } catch (err) {
+    errEl.textContent = err.message || 'Network error.';
+    errEl.classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = deliveryMethod === 'password' ? 'Create User' : 'Send Invite';
+  }
 }
 
 // ── Auth ──────────────────────────────────────────────────────────
