@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #77 Edit Mode UX + heatmap redesign complete — #96 Tenant Onboarding or #105 Role Gating UAT next
+Last updated: #101 User Management Pending/Invited status + Deactivated section complete — #96 Tenant Onboarding or #105 Role Gating UAT next
 
 ---
 
@@ -230,7 +230,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Edit Mode: solid blue button top-right (admin + resource_manager only), Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner
 * Needs: donut chart + expandable rows with AI match panel. Shows pipeline status + coverage status
 * Ask Claude: dynamic suggested questions, text input, markdown responses
-* Settings: User Management UI — invite users, change roles, deactivate/reactivate (admin only)
+* Settings: User Management — active/invited/deactivated status pills, resend/cancel invite actions, collapsible deactivated section (admin only)
 * SSE auto-refresh: fires after successful DB writes (broadcastSSE), pushes data-updated event to all clients
 * All saves write to Supabase — ExcelJS fully removed from app
 
@@ -255,6 +255,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #79 | Duplicate available hours | ✅ Closed — not reproduced, clean |
 | #80 | Legend swatch size | ✅ Closed — replaced with bar swatches |
 | #81 | Favicon 404 | ✅ Closed — favicon.svg added |
+| #101 | User Management — Pending status + deactivated section | ✅ Closed |
 
 ---
 
@@ -310,6 +311,9 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Ban duration for deactivated users: '87600h' (~10 years). Reactivate sets ban_duration: 'none'
 * Password complexity regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
 * VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive']
+* Invited user detection: last_sign_in_at === null and not banned → status: 'invited'
+* Cancel invite: calls deleteUser on unconfirmed accounts only
+* Resend invite: calls inviteUserByEmail — requires custom SMTP in Supabase for prod (Resend/SendGrid)
 
 ---
 
