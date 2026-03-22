@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #32 Auth complete + #38 Railway deploy blockers fixed — Railway deploy next
+Last updated: #38 Railway deploy complete — #62 RBAC next
 
 ---
 
@@ -173,20 +173,16 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #92 (#32f) | app.js + index.html auth guard + logout | ✅ Closed |
 | #93 (#32g) | End-to-end auth test | ✅ Closed |
 | #32 | Supabase Auth setup (parent) | ✅ Closed |
+| #38 | Railway deploy | ✅ Closed |
 
 ---
 
 ## Build Order — Next Session
 
-1. **#38 — Railway deploy** ← NEXT
-   * Create Railway project, connect GitHub repo
-   * Set 7 environment variables in Railway dashboard
-   * Deploy and verify all 4 tabs load
-   * Verify login, logout, save all work in production
-2. New issue — Tighten RLS policies post-deploy
-3. #62 — RBAC role enforcement
-4. #63 — User Management UI
-5. #96 — Tenant signup/onboarding flow
+1. **New issue — Tighten RLS policies** ← NEXT
+2. **#62 — RBAC role enforcement**
+3. #63 — User Management UI
+4. #96 — Tenant signup/onboarding flow
 
 ---
 
@@ -197,6 +193,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * #96 — Tenant signup/onboarding flow (new firm self-service — depends on #62/#63)
 * #66 — Weekly snapshots
 * #64 — Excel export/import (tenant onboarding)
+* #77 follow-up — Edit Mode UX: evaluate auto-entering edit mode on cell click vs requiring explicit Edit button top-right. Current button feels unintuitive. Decide and implement.
 * #79 — Remove duplicate available hours (footer vs header badge)
 * #80 — Increase legend swatch size
 * #81 — Fix favicon 404
