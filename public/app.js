@@ -364,14 +364,10 @@ function showToast(msg, durationMs = 8000) {
   console.log('SSE connecting...');
   const es = new EventSource('/api/events');
   es.addEventListener('data-updated', () => {
-    console.log('data-updated event received');
-    console.log('pending changes:', _pendingStaffing.size);
     if (_pendingStaffing.size === 0) {
-      console.log('silent refresh');
       loadDashboard();
     } else {
-      const banner = document.getElementById('conflictBanner');
-      if (banner) banner.style.display = 'flex';
+      showToast('Data updated in background — save or discard your changes first', 6000);
     }
   });
   // on error EventSource auto-reconnects; no special handling needed
@@ -821,11 +817,15 @@ function _buildVsAllRows() {
   }
 }
 
-// ── Edit mode state ───────────────────────────────────────────────
-let _editMode       = false;
+// ── Inline edit state ────────────────────────────────────────────
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 // pending changes: key = `${empName}||${weekLabel}||${project}` → hours
 const _pendingStaffing = new Map();
+
+// Returns true if the current user's role can edit heatmap cells
+function _hmCanEdit() {
+  return currentUserRole === 'admin' || currentUserRole === 'resource_manager';
+}
 
 // Compute pending display total for a cell (null = no pending)
 function _pendingDisplayTotal(empName, weekIdx) {
@@ -868,7 +868,7 @@ function _vsRenderRow(row) {
     const tip = encodeAttr(`${emp.name}\n${emp.level}  ·  ${emp.skillSet || '—'}\nThis week: ${h0}h — ${st}`);
     const chv = _hmExpanded.has(emp.name) ? '▼' : '▶';
     const cells = emp.weeklyHours.map((h, i) => {
-      const isActive = _editMode && _editActiveCell &&
+      const isActive = _editActiveCell &&
         _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i && !_editActiveCell.project;
       if (isActive) {
         return `<td class="hm-cell hm-cell-editing">
@@ -884,7 +884,7 @@ function _vsRenderRow(row) {
       const projs    = emp.weeklyProjects[i];
       const projText = projs.length ? projs.map(p => `${p.project}: ${p.hours}h`).join('\n') : 'No bookings';
       const ct = encodeAttr(`${displayH}h total\n${projText}`);
-      if (_editMode) {
+      if (_hmCanEdit()) {
         return `<td class="hm-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
           style="background:${isPending ? '#3A3512' : heatmapCellBg(h)};color:${isPending ? '#FFF3A3' : heatmapCellFg(h)}"
           data-emp="${sn}" data-idx="${i}" data-tip="${ct}"
@@ -923,7 +923,7 @@ function _vsRenderRow(row) {
       const match = wkProjs.find(p => p.project === projName);
       const origH = match ? match.hours : 0;
 
-      const isActive = _editMode && _editActiveCell &&
+      const isActive = _editActiveCell &&
         _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i &&
         _editActiveCell.project === projName;
       if (isActive) {
@@ -944,7 +944,7 @@ function _vsRenderRow(row) {
       const bg = isPending ? '#3A3512' : (h > 0 ? heatmapCellBg(h) : '#16192A');
       const fg = isPending ? '#FFF3A3' : (h > 0 ? heatmapCellFg(h) : '#4A5568');
 
-      if (_editMode) {
+      if (_hmCanEdit()) {
         return `<td class="hm-sub-cell${isPending ? ' hm-cell-pending' : ''}"
           style="background:${bg};color:${fg}"
           onclick="hmSubCellClick('${sn}',${i},'${encodeAttr(projName)}')">${h > 0 ? h : '—'}</td>`;
@@ -1122,6 +1122,7 @@ function buildHeatmapTable(data) {
   _buildVsAllRows();
   _vsRenderVisible();
   _updateHmPillBtns();
+  _updateQuickFillVisibility();
 }
 
 // ── Expand / Collapse (virtual-scroll aware) ──────────────────────
@@ -1131,6 +1132,17 @@ function toggleHmExpand(empName) {
   _buildVsAllRows();
   _vsRenderVisible();
   _updateHmPillBtns();
+  _updateQuickFillVisibility();
+}
+
+function _updateQuickFillVisibility() {
+  const bar = document.getElementById('hmQuickFillBar');
+  if (!bar) return;
+  if (_hmExpanded.size > 0) {
+    bar.classList.remove('hidden');
+  } else {
+    bar.classList.add('hidden');
+  }
 }
 
 function _updateHmPillBtns() {
@@ -1161,6 +1173,7 @@ function hmToggleAll() {
   _buildVsAllRows();
   _vsRenderVisible();
   _updateHmPillBtns();
+  _updateQuickFillVisibility();
 }
 
 // ── Heatmap Drilldown A: Cell click ──────────────────────────────
@@ -2271,37 +2284,8 @@ function clearResponse() {
   document.getElementById('askInput').focus();
 }
 
-// ── Staffing Edit Mode ────────────────────────────────────────────
-
-function toggleEditMode() {
-  _editMode = !_editMode;
-  _editActiveCell = null;
-
-  const btn   = document.getElementById('hmEditToggle');
-  const bar   = document.getElementById('hmQuickFillBar');
-  const label = document.getElementById('hmEditToggleLabel');
-  const icon  = document.getElementById('hmEditToggleIcon');
-  if (btn) btn.classList.toggle('active', _editMode);
-  if (bar) bar.classList.toggle('hidden', !_editMode);
-  if (label) label.textContent = _editMode ? 'Editing…' : 'Edit Mode';
-  if (icon) {
-    if (_editMode) {
-      // Swap to a "editing in progress" indicator — filled circle pulse stand-in using a lock-open look
-      icon.innerHTML = '<circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
-    } else {
-      icon.innerHTML = '<path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.5 3.5l3 3" stroke="currentColor" stroke-width="1.4"/>';
-    }
-  }
-
-  // Re-render heatmap cells with or without edit interactivity
-  _buildVsAllRows();
-  _vsRenderVisible();
-  updateHmSaveBar();
-}
-
 // ── Cell click handlers ───────────────────────────────────────────
 function hmCellClick(empName, weekIdx) {
-  if (!_editMode) return;
   _editActiveCell = { empName, weekIdx, project: null };
   _buildVsAllRows();
   _vsRenderVisible();
@@ -2312,7 +2296,6 @@ function hmCellClick(empName, weekIdx) {
 }
 
 function hmSubCellClick(empName, weekIdx, project) {
-  if (!_editMode) return;
   _editActiveCell = { empName, weekIdx, project };
   _buildVsAllRows();
   _vsRenderVisible();
@@ -2481,8 +2464,6 @@ async function saveStaffingChanges() {
 
     _pendingStaffing.clear();
     _editActiveCell = null;
-    const conflictBannerSave = document.getElementById('conflictBanner');
-    if (conflictBannerSave) conflictBannerSave.style.display = 'none';
     updateHmSaveBar();
     await loadDashboard();
   } catch (err) {
@@ -2495,8 +2476,6 @@ async function saveStaffingChanges() {
 function cancelStaffingChanges() {
   _pendingStaffing.clear();
   _editActiveCell = null;
-  const conflictBannerCancel = document.getElementById('conflictBanner');
-  if (conflictBannerCancel) conflictBannerCancel.style.display = 'none';
   _buildVsAllRows();
   _vsRenderVisible();
   updateHmSaveBar();
@@ -2754,12 +2733,6 @@ async function logout() {
   if (role === 'finance')    { hideTab('ask'); }
   if (role === 'recruiter')  { hideTab('overview'); hideTab('staffing'); hideTab('ask'); }
   if (role !== 'admin')      { hideTab('settings'); }
-
-  // Edit toggle: admin + resource_manager only
-  if (role !== 'admin' && role !== 'resource_manager') {
-    const editToggle = document.getElementById('hmEditToggle');
-    if (editToggle) editToggle.style.display = 'none';
-  }
 
   loadDashboard();
 

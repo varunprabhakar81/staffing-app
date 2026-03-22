@@ -1984,38 +1984,14 @@ body {
   color: #CCD6F6;
 }
 
-/* ── Staffing Edit Mode ─────────────────────────────────────────── */
+/* ── Staffing Inline Edit ────────────────────────────────────────── */
 
-/* Edit Mode toggle button */
 .hm-header-right {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
 }
-
-.hm-edit-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 20px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font);
-  color: #0F1117;
-  background: #A8C7FA;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.hm-edit-toggle:hover { background: #bdd4fb; color: #0F1117; }
-.hm-edit-toggle.active {
-  background: #F59E0B;
-  color: #0F1117;
-}
-.hm-edit-toggle.active:hover { background: #f7ab27; }
 
 /* Quick Fill bar */
 .hm-quickfill-bar {
@@ -2073,13 +2049,26 @@ body {
 }
 .hm-qf-apply:hover { background: #bdd4fc; }
 
-/* Pending cell highlight */
+/* Pending cell highlight + amber dot indicator */
 .hm-cell-pending {
+  position: relative;
   outline: 1px solid rgba(255,243,163,0.6);
 }
+.hm-cell-pending::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #F59E0B;
+  pointer-events: none;
+}
 
-/* Editable cell cursor */
-.hm-cell-editable { cursor: text; }
+/* Editable cell — pointer cursor + subtle hover highlight */
+.hm-cell-editable { cursor: pointer; }
+.hm-cell-editable:hover { background: #ffffff12 !important; }
 
 /* Active editing cell */
 .hm-cell-editing {
@@ -2101,9 +2090,13 @@ body {
   padding: 2px 4px;
   outline: none;
   box-sizing: border-box;
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
 }
+.hm-cell-input::-webkit-inner-spin-button,
+.hm-cell-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* Save/Cancel bar — fixed at bottom */
+/* Inline edit save bar — floats at bottom when changes pending */
 .hm-save-bar {
   position: fixed;
   bottom: 0;
@@ -2115,8 +2108,9 @@ body {
   padding: 12px 28px;
   background: #1A1D27;
   border-top: 1px solid #2E3250;
-  z-index: 50;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  border-left: 4px solid #F59E0B;
+  z-index: 60;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
 }
 .hm-save-bar.hidden { display: none; }
 
