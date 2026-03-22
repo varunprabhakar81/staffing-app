@@ -13,10 +13,11 @@
   "type": "commonjs",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
-    "chokidar": "^5.0.0",
+    "@supabase/supabase-js": "^2.99.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
-    "exceljs": "^4.4.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.19.0"
   }
 }

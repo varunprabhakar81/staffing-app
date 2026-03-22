@@ -46,6 +46,12 @@
       </button>
     </nav>
 
+    <!-- Logout -->
+    <button class="nav-item nav-item--logout" onclick="logout()" title="Log out">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M11 11l3-3-3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 8H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span class="nav-label">Log out</span>
+    </button>
+
     <!-- Footer: week indicator -->
     <div class="sidebar-footer">
       <div class="sidebar-meta">
@@ -173,7 +179,7 @@
 
         <!-- Card 3: Pipeline Coverage -->
         <div class="ov-card" id="overviewNeedsCard" style="--ov-accent:#FFB3B3"
-             onclick="drillDemandKPI()" title="Click for demand detail">
+             onclick="drillDemandKPI()" title="Click for project detail">
           <div class="ov-card-label">Pipeline Coverage</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
@@ -277,12 +283,12 @@
           </div>
           <div class="hm-header-right">
             <span class="chart-badge" id="heatmapBadge">—</span>
-            <button class="hm-edit-toggle" id="hmEditToggle" onclick="toggleEditMode()">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+<button class="hm-edit-toggle" id="hmEditToggle" onclick="toggleEditMode()" title="Click to edit staffing hours">
+              <svg id="hmEditToggleIcon" width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
                 <path d="M7.5 3.5l3 3" stroke="currentColor" stroke-width="1.4"/>
               </svg>
-              Edit Mode
+              <span id="hmEditToggleLabel">Edit Mode</span>
             </button>
           </div>
         </div>
@@ -403,6 +409,11 @@
       </div>
     </div>
 
+  <!-- ── Conflict Warning Banner ──────────────────────────────── -->
+  <div id="conflictBanner" style="display:none;position:fixed;bottom:56px;left:0;right:0;background:#F59E0B;color:#0F1117;padding:12px 24px;font-size:14px;font-weight:500;z-index:51;align-items:center;gap:8px;">
+    ⚠️ Excel file was updated externally. Your unsaved changes may conflict. Save or Cancel before continuing.
+  </div>
+
   <!-- ── Staffing Edit Mode Save/Cancel Bar ────────────────────── -->
   <div class="hm-save-bar hidden" id="hmSaveBar">
     <span class="hm-save-count" id="hmSaveCount">0 unsaved changes</span>
@@ -455,6 +466,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

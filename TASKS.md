@@ -60,9 +60,9 @@
 - [ ] #65 Refresh button visibility in sidebar footer
 
 ### Phase 6 - Core Features
-- [ ] #40 Resourcing Management UI - Edit Supply Tab from Browser
-- [ ] #41 AI Recommendations Tab - Auto Match Supply and Demand
-- [ ] #17 Auto-refresh when Excel file changes
+- [x] #40 Resourcing Management UI - Edit Supply Tab from Browser *(superseded by heatmap edit mode)*
+- [x] #41 AI Recommendations Tab - Auto Match Supply and Demand *(superseded by heatmap edit mode)*
+- [x] #17 Auto-refresh when Excel file changes
 
 ### Phase 7 - Polish & Real Data
 - [ ] #18 Test with real data, fix edge cases
@@ -82,11 +82,11 @@
 - [ ] #27 UAT - staffing team tests Q&A with real resourcing questions
 - [ ] #28 UAT - sign off and move to next phase
 
-### Phase 10 - Database Enhancement
-- [ ] #29 Set up SQLite schema mirroring all Excel tabs
-- [ ] #30 Build Excel to SQLite import script
-- [ ] #31 Swap backend data layer from Excel to SQLite
-- [ ] #32 Test and validate parity
+### Phase 10 - Supabase Enhancement
+- [x] #29 Set up Supabase schema (10 tables, RLS, indexes)
+- [x] #30 Build Excel to Supabase import script
+- [x] #31 Swap backend data layer from Excel to Supabase
+- [ ] #32 Supabase Auth setup (JWT, tenant_id, auth flow)
 
 ### Phase 11 - Deployment
 - [ ] #38 Deploy app to Railway for internal team access
@@ -95,10 +95,10 @@
 - [ ] #43 Toggl Track integration for automatic time tracking
 
 ### Phase 13 - Auth & User Management
-(Depends on Phase 10 SQLite being complete)
+(Depends on Phase 10 Supabase being complete)
 - [ ] #62 Role-Based Access Control (RBAC)
 - [ ] #63 User Management UI for Admin role
 - [ ] #64 Export and Import Excel for Supply and Needs data
 
 ---
-**36 complete [x] · 27 open [ ] · 63 tracked**
+**42 complete [x] · 21 open [ ] · 63 tracked**

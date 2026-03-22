@@ -2,20 +2,26 @@ require('dotenv').config();
 
 const express              = require('express');
 const cors                 = require('cors');
+const cookieParser         = require('cookie-parser');
+const session              = require('express-session');
 const path                 = require('path');
-const ExcelJS              = require('exceljs');
-const chokidar             = require('chokidar');
-const { readStaffingData } = require('./excelReader');
+const { createClient }     = require('@supabase/supabase-js');
+const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient } = require('./supabaseReader');
 const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
+
+// Anon client used only for auth operations (login). Data queries go through
+// supabaseReader.js functions which receive the per-request userToken.
+const supabaseAuth = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ── Load staffing data at startup ───────────────────────────────────────────
+// Use serviceClient (bypasses RLS) so data is available immediately on cold start.
 let staffingData = null;
-readStaffingData().then(data => {
+readStaffingData(null, serviceClient).then(data => {
   if (data.error) {
-    console.warn('Warning: could not load Excel data —', data.error);
+    console.warn('Warning: could not load staffing data —', data.error);
   } else {
     staffingData = data;
     console.log(`Data loaded: ${data.supply.length} supply rows, ${data.demand.length} demand rows`);
@@ -23,13 +29,24 @@ readStaffingData().then(data => {
 });
 
 // ── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret:            process.env.SESSION_SECRET,
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    maxAge:   8 * 60 * 60 * 1000, // 8 hours
+  },
+}));
 
 // ── Helper: ensure data is loaded ──────────────────────────────────────────
 function requireData(res) {
   if (!staffingData) {
-    res.status(503).json({ error: 'Staffing data not available. Check that data/resourcing.xlsx exists.' });
+    res.status(503).json({ error: 'Staffing data not available. Check database connection.' });
     return false;
   }
   return true;
@@ -54,6 +71,51 @@ function employeeWeeklyAverages(supply) {
   }
   return result;
 }
+
+// ── Auth middleware ──────────────────────────────────────────────────────────
+
+function requireAuth(req, res, next) {
+  if (!req.session || !req.session.token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// ── Auth endpoints (exempt from requireAuth) ─────────────────────────────────
+
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password are required' });
+  }
+  try {
+    const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
+    if (error) return res.status(401).json({ error: error.message });
+    req.session.token = data.session.access_token;
+    req.session.user  = data.user;
+    res.json({ user: data.user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+// GET /api/auth/me
+app.get('/api/auth/me', (req, res) => {
+  if (!req.session || !req.session.token) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  res.json({ user: req.session.user });
+});
+
+// Apply requireAuth to all /api/* routes defined after this point
+app.use('/api', requireAuth);
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
@@ -81,9 +143,7 @@ app.get('/api/employees', (req, res) => {
 
 // GET /api/dashboard
 app.get('/api/dashboard', async (req, res) => {
-  // Always reload from Excel so edits to resourcing.xlsx are reflected immediately
-  // without requiring a server restart.
-  const freshData = await readStaffingData();
+  const freshData = await readStaffingData(req.session.token);
   if (freshData.error) {
     return res.status(503).json({ error: freshData.error });
   }
@@ -282,7 +342,7 @@ app.get('/api/dashboard', async (req, res) => {
 
 // GET /api/heatmap
 app.get('/api/heatmap', async (req, res) => {
-  const freshData = await readStaffingData();
+  const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
   const { supply, employees } = freshData;
@@ -365,7 +425,7 @@ app.get('/api/heatmap', async (req, res) => {
 // POST /api/suggested-questions
 app.post('/api/suggested-questions', async (req, res) => {
   try {
-    const freshData = await readStaffingData();
+    const freshData = await readStaffingData(req.session.token);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
     staffingData = freshData;
     const questions = await getSuggestedQuestions(freshData);
@@ -393,23 +453,25 @@ app.get('/api/ask', async (req, res) => {
 
 // GET /api/manage — supply data grouped by employee for the Manage tab
 app.get('/api/manage', async (req, res) => {
-  const freshData = await readStaffingData();
+  const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
 
   const { supply, projects, employees } = freshData;
+  const { weekKeyToDate } = freshData._meta;
   const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
-  const year = new Date().getFullYear();
 
   function parseWkToDate(wk) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+    const iso = weekKeyToDate[wk];
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
   }
   function wkToDisplayDate(wk) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    if (!m) return null;
-    const d = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
-    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+    const iso = weekKeyToDate[wk];
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-');
+    return `${String(parseInt(m)).padStart(2,'0')}/${String(parseInt(d)).padStart(2,'0')}/${y}`;
   }
 
   const levelOrder = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
@@ -463,108 +525,63 @@ app.post('/api/save-staffing', async (req, res) => {
     return res.status(400).json({ error: 'changes array is required' });
   }
 
-  const EXCEL_PATH = path.join(__dirname, 'data', 'resourcing.xlsx');
-
   try {
-    const freshData = await readStaffingData();
+    const freshData = await readStaffingData(req.session.token);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
-    const { supply, employees: empMaster } = freshData;
-    const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+    const { supply } = freshData;
+    const { weekKeyToDate } = freshData._meta;
 
-    // Map "M/D" display label back to full "Week ending M/D" key
-    function weekLabelToKey(label) {
-      return weekKeys.find(wk => {
-        const m = wk.match(/(\d+)\/(\d+)/);
+    // Map "M/D" display label → "YYYY-MM-DD" week ending date (year from actual DB dates)
+    function weekLabelToDate(label) {
+      const wk = Object.keys(weekKeyToDate).find(k => {
+        const m = k.match(/(\d+)\/(\d+)/);
         return m && `${parseInt(m[1])}/${parseInt(m[2])}` === label;
       });
+      return wk ? weekKeyToDate[wk] : null;
     }
-
-    // Clone supply
-    let updatedSupply = supply.map(r => ({ ...r, weeklyHours: { ...r.weeklyHours } }));
 
     for (const ch of changes) {
-      const wk  = weekLabelToKey(ch.weekLabel);
-      if (!wk) continue;
+      const weekEnding = weekLabelToDate(ch.weekLabel);
+      if (!weekEnding) continue;
       const hrs = Math.max(0, Math.min(100, Number(ch.hours) || 0));
 
-      const rowIdx = updatedSupply.findIndex(r =>
+      // Find supply row → get Supabase IDs
+      const row = supply.find(r =>
         r.employeeName === ch.employeeName && r.projectAssigned === ch.project
       );
-      if (rowIdx >= 0) {
-        updatedSupply[rowIdx].weeklyHours[wk] = hrs;
-      } else {
-        // Create a new supply row
-        const empEntry = empMaster.find(e => e.employeeName === ch.employeeName);
-        const weekly   = Object.fromEntries(weekKeys.map(k => [k, 0]));
-        weekly[wk]     = hrs;
-        updatedSupply.push({
-          employeeName:    ch.employeeName,
-          level:           empEntry ? empEntry.level : '',
-          skillSet:        ch.skillSet || '',
-          projectAssigned: ch.project  || 'Unassigned',
-          weeklyHours:     weekly,
-        });
-      }
+      let consultantId = row?._consultantId ?? null;
+      let projectId    = row?._projectId    ?? null;
+
+      if (!consultantId) consultantId = await resolveConsultantId(req.session.token, ch.employeeName);
+      if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
+      if (!consultantId || !projectId) continue;
+
+      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
     }
 
-    // Write back to Excel
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(EXCEL_PATH);
-    const existingWs = workbook.getWorksheet('Supply');
-    if (!existingWs) return res.status(500).json({ error: 'Supply worksheet not found' });
-
-    const headerRow = existingWs.getRow(1);
-    const headers   = [];
-    headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
-      headers[col] = cell.value ? String(cell.value).trim() : null;
-    });
-
-    workbook.removeWorksheet(existingWs.id);
-    const ws = workbook.addWorksheet('Supply');
-    const headerCols = headers.slice(1);
-    ws.addRow(headerCols);
-
-    for (const row of updatedSupply) {
-      const rowData = {
-        'Employee Name':    row.employeeName,
-        'Level':            row.level,
-        'Skill Set':        row.skillSet,
-        'Project Assigned': row.projectAssigned,
-        ...Object.fromEntries(weekKeys.map(wk => [wk, row.weeklyHours[wk] || 0])),
-      };
-      ws.addRow(headerCols.map(h => h ? (rowData[h] ?? null) : null));
-    }
-
-    await workbook.xlsx.writeFile(EXCEL_PATH);
-    staffingData = await readStaffingData();
+    staffingData = await readStaffingData(req.session.token);
     res.json({ success: true, updatedRows: changes.length });
 
   } catch (err) {
     console.error('[save-staffing]', err);
-    if (err.code === 'EBUSY') {
-      return res.status(423).json({ error: 'resourcing.xlsx is currently open in Excel. Please close it and try again.' });
-    }
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/supply/update — apply changes to Supply tab in resourcing.xlsx
+// POST /api/supply/update — apply add/update/delete changes to supply via Supabase
 app.post('/api/supply/update', async (req, res) => {
   const { changes } = req.body || {};
   if (!Array.isArray(changes) || changes.length === 0) {
     return res.status(400).json({ error: 'changes array is required' });
   }
 
-  const EXCEL_PATH = path.join(__dirname, 'data', 'resourcing.xlsx');
-
   try {
     // 1. Read current supply data fresh
-    const freshData = await readStaffingData();
+    const freshData = await readStaffingData(req.session.token);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
-    const { supply, demand, employees: empMaster } = freshData;
-    console.log(`[supply/update] Phase 1 – readStaffingData() returned ${supply.length} supply rows`);
+    const { supply } = freshData;
     const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
     const year = new Date().getFullYear();
 
@@ -572,7 +589,6 @@ app.post('/api/supply/update', async (req, res) => {
       if (!str) return null;
       const parts = String(str).split('/');
       if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
-      // Also handle YYYY-MM-DD (from date input)
       if (str.includes('-')) {
         const [y, mo, d] = str.split('-');
         return new Date(parseInt(y), parseInt(mo) - 1, parseInt(d));
@@ -585,158 +601,90 @@ app.post('/api/supply/update', async (req, res) => {
       return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
     }
 
-    // 2. Apply changes to in-memory supply array (clone it)
-    let updatedSupply = supply.map(r => ({ ...r, weeklyHours: { ...r.weeklyHours } }));
-
-    // Index changes by employeeName+project for reliable matching
-    const deleteSet  = new Set();
-    const updateMap  = {};
-    const addRows    = [];
-
-    const rowKey = (employeeName, project) => `${employeeName}|${project}`;
-
-    for (const ch of changes) {
-      if (ch.type === 'delete') {
-        deleteSet.add(rowKey(ch.employeeName, ch.project));
-      } else if (ch.type === 'update') {
-        updateMap[rowKey(ch.employeeName, ch.project)] = ch;
-      } else if (ch.type === 'add') {
-        addRows.push(ch);
-      }
+    function weekKeyToDate(wk) {
+      const m = wk.match(/(\d+)\/(\d+)/);
+      if (!m) return null;
+      return `${year}-${String(parseInt(m[1])).padStart(2, '0')}-${String(parseInt(m[2])).padStart(2, '0')}`;
     }
 
-    // Rebuild matching by employeeName + project
-    updatedSupply = supply
-      .map((row) => {
-        const key = rowKey(row.employeeName, row.projectAssigned);
-        if (deleteSet.has(key)) return null;
-        const r = { ...row, weeklyHours: { ...row.weeklyHours } };
-        if (updateMap[key]) {
-          const ch = updateMap[key];
-          if (ch.project  !== undefined) r.projectAssigned = ch.project;
-          if (ch.skillSet !== undefined) r.skillSet        = ch.skillSet;
-          // Only recompute weekly hours if all 3 scheduling fields are explicitly present
-          if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
-            const start = parseDateStr(ch.startDate);
-            const end   = parseDateStr(ch.endDate);
-            const hrs   = Number(ch.hoursPerWeek);
-            if (start && end) {
-              for (const wk of weekKeys) {
-                const wkDate = parseWkDate(wk);
-                if (wkDate && wkDate >= start && wkDate <= end) {
-                  r.weeklyHours[wk] = hrs;
-                  // weeks outside range: untouched — original value kept
-                }
+    // 2. Apply changes via Supabase write operations
+    for (const ch of changes) {
+      const row = supply.find(r =>
+        r.employeeName === ch.employeeName && r.projectAssigned === ch.project
+      );
+      const consultantId = row?._consultantId ?? await resolveConsultantId(req.session.token, ch.employeeName);
+      if (!consultantId) {
+        console.warn(`[supply/update] consultant not found: ${ch.employeeName}`);
+        continue;
+      }
+
+      if (ch.type === 'delete') {
+        const projectId = row?._projectId ?? await resolveProjectId(req.session.token, ch.project);
+        if (projectId) await deleteAssignments(req.session.token, { consultantId, projectId });
+
+      } else if (ch.type === 'update') {
+        const projectId = row?._projectId ?? await resolveProjectId(req.session.token, ch.project);
+        if (!projectId) continue;
+
+        if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
+          const start = parseDateStr(ch.startDate);
+          const end   = parseDateStr(ch.endDate);
+          const hrs   = Number(ch.hoursPerWeek);
+          if (start && end) {
+            for (const wk of weekKeys) {
+              const wkDate = parseWkDate(wk);
+              if (wkDate && wkDate >= start && wkDate <= end) {
+                const weekEnding = weekKeyToDate(wk);
+                if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
               }
             }
           }
         }
-        return r;
-      })
-      .filter(Boolean);
 
-    // Apply adds
-    for (const ch of addRows) {
-      const start = parseDateStr(ch.startDate);
-      const end   = parseDateStr(ch.endDate);
-      const hrs   = Number(ch.hoursPerWeek) || 0;
-      const weekly = {};
-      for (const wk of weekKeys) {
-        const wkDate = parseWkDate(wk);
-        weekly[wk] = (start && end && wkDate && wkDate >= start && wkDate <= end) ? hrs : 0;
+      } else if (ch.type === 'add') {
+        const projectId = await resolveProjectId(req.session.token, ch.project, true);
+        if (!projectId) continue;
+
+        const start = parseDateStr(ch.startDate);
+        const end   = parseDateStr(ch.endDate);
+        const hrs   = Number(ch.hoursPerWeek) || 0;
+        for (const wk of weekKeys) {
+          const wkDate = parseWkDate(wk);
+          if (start && end && wkDate && wkDate >= start && wkDate <= end) {
+            const weekEnding = weekKeyToDate(wk);
+            if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
+          }
+        }
       }
-      // Get level from employee master
-      const empEntry = empMaster.find(e => e.employeeName === ch.employeeName);
-      updatedSupply.push({
-        employeeName:    ch.employeeName,
-        level:           empEntry ? empEntry.level : (ch.level || ''),
-        skillSet:        ch.skillSet || '',
-        projectAssigned: ch.project || '',
-        weeklyHours:     weekly,
-      });
     }
 
-    // 3. Write back to Excel — rebuild Supply worksheet from scratch
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(EXCEL_PATH);
-    const existingWs = workbook.getWorksheet('Supply');
-    if (!existingWs) return res.status(500).json({ error: 'Supply worksheet not found' });
-    console.log(`[supply/update] Phase 3 – Supply worksheet after readFile: ${existingWs.rowCount - 1} data rows (rowCount=${existingWs.rowCount})`);
-    console.log(`[supply/update] Phase 2 – updatedSupply has ${updatedSupply.length} rows before write`);
+    // 3. Reload cached data
+    staffingData = await readStaffingData(req.session.token);
 
-    // Capture header row values
-    const headerRow = existingWs.getRow(1);
-    const headers = [];
-    headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
-      headers[col] = cell.value ? String(cell.value).trim() : null;
-    });
-
-    // Remove and re-add the Supply worksheet to avoid spliceRows issues
-    workbook.removeWorksheet(existingWs.id);
-    const ws = workbook.addWorksheet('Supply');
-
-    // Write header row first
-    const headerCols = headers.slice(1);
-    ws.addRow(headerCols);
-
-    // Build and write data rows in original order (updatedSupply preserves supply order, adds appended)
-    const rowArrays = updatedSupply.map(row => {
-      const rowData = {
-        'Employee Name':    row.employeeName,
-        'Level':            row.level,
-        'Skill Set':        row.skillSet,
-        'Project Assigned': row.projectAssigned,
-        ...Object.fromEntries(weekKeys.map(wk => [wk, row.weeklyHours[wk] || 0])),
-      };
-      return headerCols.map(h => h ? (rowData[h] ?? null) : null);
-    });
-
-    console.log(`[supply/update] Writing ${rowArrays.length} data rows to Supply worksheet`);
-
-    for (const rowArr of rowArrays) {
-      ws.addRow(rowArr);
-    }
-
-    try {
-      await workbook.xlsx.writeFile(EXCEL_PATH);
-      console.log(`[supply/update] writeFile succeeded (${rowArrays.length} rows written)`);
-    } catch (writeErr) {
-      console.error('[supply/update] writeFile failed:', writeErr);
-      throw writeErr;
-    }
-
-    // 4. Reload cached data
-    staffingData = await readStaffingData();
-
-    // 5. Recalculate demand status for affected projects and return summary
-    const affectedProjects = new Set(changes.map(c => c.project || c.originalProject).filter(Boolean));
-    const updatedRows = changes.length;
-
-    res.json({ success: true, updatedRows });
+    res.json({ success: true, updatedRows: changes.length });
 
   } catch (err) {
     console.error('[supply/update]', err);
-    if (err.code === 'EBUSY') {
-      return res.status(423).json({ error: 'resourcing.xlsx is currently open in Excel. Please close it and try again.' });
-    }
     res.status(500).json({ error: err.message });
   }
 });
 
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', async (req, res) => {
-  const freshData = await readStaffingData();
+  const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
 
   const { supply, demand, employees } = freshData;
+  const { weekKeyToDate } = freshData._meta;
   const today    = new Date(); today.setHours(0, 0, 0, 0);
-  const year     = today.getFullYear();
   const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
 
   function parseWeekKey(wk) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
+    const iso = weekKeyToDate[wk];
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
   }
   function parseDemandDate(str) {
     if (!str) return null;
@@ -841,7 +789,7 @@ app.get('/api/recommendations', async (req, res) => {
 const sseClients = new Set();
 
 function broadcastSSE(payload) {
-  const msg = `data: ${JSON.stringify(payload)}\n\n`;
+  const msg = `event: data-updated\ndata: ${JSON.stringify(payload)}\n\n`;
   for (const res of sseClients) {
     try { res.write(msg); } catch (_) { sseClients.delete(res); }
   }
@@ -849,6 +797,7 @@ function broadcastSSE(payload) {
 
 // GET /api/events — Server-Sent Events endpoint
 app.get('/api/events', (req, res) => {
+  console.log('SSE client connected');
   res.setHeader('Content-Type',  'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection',    'keep-alive');
@@ -865,26 +814,6 @@ app.get('/api/events', (req, res) => {
     sseClients.delete(res);
   });
 });
-
-// ── File watcher ─────────────────────────────────────────────────────────────
-const EXCEL_FILE = path.join(__dirname, 'data', 'resourcing.xlsx');
-let _watchDebounce = null;
-
-chokidar.watch(EXCEL_FILE, { persistent: true, ignoreInitial: true })
-  .on('change', () => {
-    clearTimeout(_watchDebounce);
-    _watchDebounce = setTimeout(async () => {
-      console.log('[chokidar] resourcing.xlsx changed — reloading cache…');
-      const fresh = await readStaffingData();
-      if (!fresh.error) {
-        staffingData = fresh;
-        console.log(`[chokidar] cache reloaded (${fresh.supply.length} supply rows) — notifying ${sseClients.size} client(s)`);
-        broadcastSSE({ type: 'data-updated', timestamp: Date.now() });
-      } else {
-        console.warn('[chokidar] reload failed:', fresh.error);
-      }
-    }, 500);
-  });
 
 // Serve static files after API routes so they don't shadow API paths
 app.use(express.static(path.join(__dirname, 'public')));

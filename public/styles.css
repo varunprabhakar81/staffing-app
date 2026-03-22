@@ -578,27 +578,43 @@ body {
 /* ── Toast notification ─────────────────────────────────────────── */
 .app-toast {
   position: fixed;
-  top: 68px;
-  right: 24px;
-  background: #1E2235;
+  top: 20px;
+  right: 20px;
+  background: #1A1D27;
   border: 1px solid #2E3250;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid #F59E0B;
   border-radius: 8px;
   color: #CCD6F6;
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--font);
-  padding: 10px 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-  z-index: 500;
+  padding: 12px 16px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3), 0 10px 30px rgba(0,0,0,0.5);
+  z-index: 9999;
   opacity: 0;
   transform: translateY(-6px);
   transition: opacity 0.2s ease, transform 0.2s ease;
   pointer-events: none;
-  max-width: 320px;
+  max-width: 340px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.app-toast-icon {
+  font-size: 15px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.app-toast-body {
+  line-height: 1.45;
+}
+.app-toast-label {
+  font-weight: 600;
+  color: #F59E0B;
 }
 .app-toast.visible {
   opacity: 1;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
@@ -710,11 +726,12 @@ body {
 }
 
 .chart-badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  background: rgba(168,199,250,0.12);
-  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 9px;
+  background: #1A1D27;
+  border: 1px solid #2E3250;
+  color: #8892B0;
   border-radius: 20px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -1973,32 +1990,32 @@ body {
 .hm-header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   flex-shrink: 0;
 }
 
 .hm-edit-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 500;
+  gap: 7px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
   font-family: var(--font);
-  color: #8892B0;
-  background: transparent;
-  border: 1px solid #2E3250;
+  color: #0F1117;
+  background: #A8C7FA;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
 }
-.hm-edit-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.hm-edit-toggle:hover { background: #bdd4fb; color: #0F1117; }
 .hm-edit-toggle.active {
-  background: rgba(168,199,250,0.12);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: #F59E0B;
+  color: #0F1117;
 }
+.hm-edit-toggle.active:hover { background: #f7ab27; }
 
 /* Quick Fill bar */
 .hm-quickfill-bar {
@@ -2449,7 +2466,7 @@ body {
 .hm-controls-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  width: 190px;
   padding-bottom: 4px;
   flex-shrink: 0;
 }
@@ -2468,21 +2485,23 @@ body {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-/* Expand All state — pastel blue, prominent */
+/* Expand All state — ghost/text only */
 .hm-pill-btn.hm-toggle-expand {
-  background: #A8C7FA;
-  color: #0F1117;
-  border-color: #A8C7FA;
-}
-.hm-pill-btn.hm-toggle-expand:hover { background: #BDD5FC; border-color: #BDD5FC; }
-
-/* Collapse All state — muted */
-.hm-pill-btn.hm-toggle-collapse {
-  background: #2E3250;
+  background: transparent;
   color: #8892B0;
-  border-color: #3A3F6B;
+  border-color: transparent;
+  font-size: 11px;
 }
-.hm-pill-btn.hm-toggle-collapse:hover { color: #A8C7FA; border-color: #A8C7FA; }
+.hm-pill-btn.hm-toggle-expand:hover { color: #CCD6F6; background: rgba(255,255,255,0.05); border-color: transparent; }
+
+/* Collapse All state — ghost/text only */
+.hm-pill-btn.hm-toggle-collapse {
+  background: transparent;
+  color: #8892B0;
+  border-color: transparent;
+  font-size: 11px;
+}
+.hm-pill-btn.hm-toggle-collapse:hover { color: #CCD6F6; background: rgba(255,255,255,0.05); border-color: transparent; }
 
 .hm-week-th {
   text-align: center;

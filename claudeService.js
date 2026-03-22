@@ -5,7 +5,7 @@ const MODEL  = 'claude-sonnet-4-6';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a staffing analyst assistant for a NetSuite consulting firm.
-You have access to the firm's current resourcing data and answer questions about staff utilization, bench, project coverage, and open demand.
+You have access to the firm's current resourcing data and answer questions about staff utilization, bench, project coverage, and open project roles.
 
 Utilization rules:
 - 45 hours/week = fully utilized (target)
@@ -15,7 +15,9 @@ Utilization rules:
 - 0 hours/week = on bench (fully available, no project assignment)
 
 Always be concise and specific. Name actual employees and projects from the data when relevant.
-Format lists clearly. Do not make up employees or projects not present in the data.`;
+Format lists clearly. Do not make up employees or projects not present in the data.
+
+Important: Always use the term 'Projects' instead of 'Demand' and 'Resources' instead of 'Supply' in all responses. Never use the words 'Supply' or 'Demand' in your output.`;
 
 // Format staffing data into a readable context block for the model
 function formatContext(data) {
@@ -34,7 +36,7 @@ function formatContext(data) {
     }
   }
 
-  lines.push('=== SUPPLY (Employee Bookings) ===');
+  lines.push('=== RESOURCES (Employee Bookings) ===');
   for (const [name, info] of Object.entries(empTotals)) {
     const totals   = Object.values(info.weeklyTotals);
     const avgHours = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
@@ -46,7 +48,7 @@ function formatContext(data) {
     lines.push(`  ${name}: ${avgHours}h/week avg — ${status} — Projects: ${info.project.join(', ') || 'none'}`);
   }
 
-  lines.push('\n=== DEMAND (Open Roles) ===');
+  lines.push('\n=== PROJECTS (Open Roles) ===');
   for (const row of data.demand) {
     lines.push(`  ${row.projectName} | ${row.resourceLevel} | ${row.skillSet} | ${row.startDate} – ${row.endDate}`);
   }
@@ -166,7 +168,7 @@ function buildDataSummary(data) {
     `Average utilization: ${avgUtil}%`,
     `On bench this week (< 10h): ${benchCount}${benchNames.length ? ' — ' + benchNames.slice(0, 5).join(', ') : ''}`,
     `Roll-offs in next 30 days: ${rolloffs.length ? rolloffs.join('; ') : 'none detected'}`,
-    `Open demand roles (${unmetNeeds.length}): ${unmetNeeds.slice(0, 8).join(' | ') || 'none'}`,
+    `Open project roles (${unmetNeeds.length}): ${unmetNeeds.slice(0, 8).join(' | ') || 'none'}`,
   ];
 
   return lines.join('\n');
@@ -227,30 +229,3 @@ async function getMatchReasonings(need, matches) {
 }
 
 module.exports = { askClaude, getSuggestedQuestions, getMatchReasonings };
-
-// ── Quick test when run directly ─────────────────────────────────────────────
-if (require.main === module) {
-  const { readStaffingData } = require('./excelReader');
-
-  const TEST_QUESTIONS = [
-    'Who is on the bench?',
-    'Who is overbooked?',
-    'Who is fully utilized?',
-  ];
-
-  (async () => {
-    console.log('Loading staffing data...');
-    const data = await readStaffingData();
-    if (data.error) {
-      console.error('Could not load Excel data:', data.error);
-      process.exit(1);
-    }
-    console.log(`Loaded: ${data.supply.length} supply rows, ${data.employees.length} employees\n`);
-
-    for (const q of TEST_QUESTIONS) {
-      console.log(`Q: ${q}`);
-      console.log('A:', await askClaude(q, data));
-      console.log('─'.repeat(60));
-    }
-  })();
-}

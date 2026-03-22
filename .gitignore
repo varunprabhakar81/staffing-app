@@ -3,6 +3,7 @@ node_modules/
 data/resourcing.xlsx
 data/Staffing_Data.xlsx
 data/~$*.xlsx
+*.xlsx
 
 # Diagnostic scripts and one-time utility scripts
 *_diagnostic*.js
@@ -30,3 +31,6 @@ manage-project-board.js
 *_temp.json
 temp_*.json
 tmp_*.json
+
+.claude/
+CONVERSATION-SUMMARY.md

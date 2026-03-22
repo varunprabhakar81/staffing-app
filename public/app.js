@@ -314,34 +314,54 @@ async function loadDashboard() {
 }
 
 // ── Toast notification ────────────────────────────────────────────
-function showToast(msg, durationMs = 4000) {
+function showToast(msg, durationMs = 8000) {
   let toast = document.getElementById('appToast');
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'appToast';
     toast.className = 'app-toast';
+    toast.style.cursor = 'pointer';
+    toast.addEventListener('click', () => {
+      clearTimeout(toast._timer);
+      toast.classList.remove('visible');
+    });
     document.body.appendChild(toast);
   }
-  toast.textContent = msg;
-  toast.classList.add('visible');
+  // Split "Word: rest of message" → bold amber label + body, with warning icon
+  const colonIdx = msg.indexOf(':');
+  if (colonIdx !== -1) {
+    const label = msg.slice(0, colonIdx + 1);
+    const body  = msg.slice(colonIdx + 1).trimStart();
+    toast.innerHTML =
+      `<span class="app-toast-icon">⚠️</span>` +
+      `<span class="app-toast-body"><span class="app-toast-label">${label}</span> ${body}</span>`;
+  } else {
+    toast.innerHTML =
+      `<span class="app-toast-icon">⚠️</span>` +
+      `<span class="app-toast-body">${msg}</span>`;
+  }
   clearTimeout(toast._timer);
+  toast.classList.remove('visible');
+  void toast.offsetHeight; // force reflow so the CSS transition fires from opacity:0
+  toast.classList.add('visible');
   toast._timer = setTimeout(() => toast.classList.remove('visible'), durationMs);
 }
 
 // ── SSE auto-refresh ──────────────────────────────────────────────
 (function initSSE() {
   if (!window.EventSource) return;
+  console.log('SSE connecting...');
   const es = new EventSource('/api/events');
-  es.addEventListener('message', e => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type !== 'data-updated') return;
-      if (_pendingStaffing.size === 0) {
-        loadDashboard();
-      } else {
-        showToast('Excel file updated — refresh to see latest data');
-      }
-    } catch (_) {}
+  es.addEventListener('data-updated', () => {
+    console.log('data-updated event received');
+    console.log('pending changes:', _pendingStaffing.size);
+    if (_pendingStaffing.size === 0) {
+      console.log('silent refresh');
+      loadDashboard();
+    } else {
+      const banner = document.getElementById('conflictBanner');
+      if (banner) banner.style.display = 'flex';
+    }
   });
   // on error EventSource auto-reconnects; no special handling needed
 })();
@@ -1073,7 +1093,6 @@ function buildHeatmapTable(data) {
 
   container.innerHTML = `
     <div class="hm-controls-row">
-      <span></span>
       <div class="hm-pill-btns">
         <button id="hmToggleAll" class="hm-pill-btn hm-toggle-expand" onclick="hmToggleAll()">⊞ Expand All</button>
       </div>
@@ -2084,8 +2103,8 @@ function drillBenchKPI() {
 function drillDemandKPI() {
   const roles = rawData.coverageRoles;
   if (!roles.length) {
-    openDrilldown('Open Demand — All Roles',
-      '<p class="dd-empty">No demand data loaded yet.</p>');
+    openDrilldown('Open Projects — All Roles',
+      '<p class="dd-empty">No project data loaded yet.</p>');
     return;
   }
 
@@ -2131,7 +2150,7 @@ function drillDemandKPI() {
       <span class="dd-badge status-bench">Unmet: ${unmet}</span>
     </div>`;
 
-  openDrilldown(`Open Demand — All Roles (${roles.length})`,
+  openDrilldown(`Open Projects — All Roles (${roles.length})`,
     summary + `
     <table class="dd-table">
       <thead><tr>
@@ -2251,10 +2270,21 @@ function toggleEditMode() {
   _editMode = !_editMode;
   _editActiveCell = null;
 
-  const btn = document.getElementById('hmEditToggle');
-  const bar = document.getElementById('hmQuickFillBar');
+  const btn   = document.getElementById('hmEditToggle');
+  const bar   = document.getElementById('hmQuickFillBar');
+  const label = document.getElementById('hmEditToggleLabel');
+  const icon  = document.getElementById('hmEditToggleIcon');
   if (btn) btn.classList.toggle('active', _editMode);
   if (bar) bar.classList.toggle('hidden', !_editMode);
+  if (label) label.textContent = _editMode ? 'Editing…' : 'Edit Mode';
+  if (icon) {
+    if (_editMode) {
+      // Swap to a "editing in progress" indicator — filled circle pulse stand-in using a lock-open look
+      icon.innerHTML = '<circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
+    } else {
+      icon.innerHTML = '<path d="M9.5 1.5l3 3L4 13H1v-3L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M7.5 3.5l3 3" stroke="currentColor" stroke-width="1.4"/>';
+    }
+  }
 
   // Re-render heatmap cells with or without edit interactivity
   _buildVsAllRows();
@@ -2444,6 +2474,8 @@ async function saveStaffingChanges() {
 
     _pendingStaffing.clear();
     _editActiveCell = null;
+    const conflictBannerSave = document.getElementById('conflictBanner');
+    if (conflictBannerSave) conflictBannerSave.style.display = 'none';
     updateHmSaveBar();
     await loadDashboard();
   } catch (err) {
@@ -2456,6 +2488,8 @@ async function saveStaffingChanges() {
 function cancelStaffingChanges() {
   _pendingStaffing.clear();
   _editActiveCell = null;
+  const conflictBannerCancel = document.getElementById('conflictBanner');
+  if (conflictBannerCancel) conflictBannerCancel.style.display = 'none';
   _buildVsAllRows();
   _vsRenderVisible();
   updateHmSaveBar();
@@ -2465,5 +2499,17 @@ function _esc(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ── Auth ──────────────────────────────────────────────────────────
+async function logout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.replace('login.html');
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
-loadDashboard();
+(async () => {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.status === 401) { window.location.replace('login.html'); return; }
+  } catch (e) { window.location.replace('login.html'); return; }
+  loadDashboard();
+})();
