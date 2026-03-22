@@ -212,7 +212,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 
 * Capacity threshold = 45h/week
 * Hours/Week input max = 100
-* Supabase write-back: upsertAssignment() uses native upsert with onConflict: 'consultant_id,project_id,week_ending'
+* Supabase write-back: upsertAssignment() uses native upsert with onConflict: 'consultant_id,project_id,week_ending' — requires a unique constraint on (consultant_id, project_id, week_ending) in Supabase; if upsert returns 409/conflict errors, check this constraint exists in the DB
 * SSE: named events (event: data-updated) — NOT default 'message' event. Fires on broadcastSSE() after DB writes
 * Utilization = full date range calculation, not single week
 * Toast duration = 8000ms, click to dismiss
@@ -249,4 +249,11 @@ cd staffing-app
 taskkill /F /IM node.exe   # Terminal 2 only, never in CC terminal
 claude                      # Terminal 1 — start Claude Code
 node server.js              # Terminal 2 — restart server after changes
+```
+
+Commit and push:
+```
+git add <files>
+git commit -m "your message"
+git push origin main
 ```
