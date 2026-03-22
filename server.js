@@ -127,9 +127,10 @@ app.get('/api/auth/me', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   res.json({
-    user:      req.session.user,
-    role:      req.session.role,
-    tenant_id: req.session.tenant_id,
+    user:         req.session.user,
+    role:         req.session.role,
+    tenant_id:    req.session.tenant_id,
+    canViewRates: ['admin', 'finance'].includes(req.session.role),
   });
 });
 
@@ -149,7 +150,7 @@ app.get('/api/supply', (req, res) => {
 });
 
 // GET /api/demand
-app.get('/api/demand', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
+app.get('/api/demand', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance', 'recruiter'), (req, res) => {
   if (!requireData(res)) return;
   res.json(staffingData.demand);
 });
@@ -161,7 +162,7 @@ app.get('/api/employees', (req, res) => {
 });
 
 // GET /api/dashboard
-app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager', 'finance', 'consultant', 'recruiter'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) {
     return res.status(503).json({ error: freshData.error });
@@ -360,11 +361,21 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 });
 
 // GET /api/heatmap
-app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
-  const { supply, employees } = freshData;
+  // Consultant: scope supply to own row only
+  let supply = freshData.supply;
+  if (req.session.role === 'consultant') {
+    const userName    = (req.session.user?.user_metadata?.name || '').toLowerCase();
+    const emailPrefix = (req.session.user?.email || '').split('@')[0].toLowerCase();
+    supply = supply.filter(row => {
+      const n = (row.employeeName || '').toLowerCase();
+      return (userName && n === userName) || n === emailPrefix;
+    });
+  }
+  const { employees } = freshData;
 
   // Build level map from Employee Master
   const levelMap = {};
@@ -689,7 +700,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 });
 
 // GET /api/recommendations — AI-matched consultants for each open need
-app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance', 'recruiter'), async (req, res) => {
   const freshData = await readStaffingData(req.session.token);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
@@ -816,7 +827,7 @@ function broadcastSSE(payload) {
 
 // ── Admin: User Management ────────────────────────────────────────────────────
 
-const VALID_ROLES = ['admin', 'resource_manager', 'project_manager', 'executive'];
+const VALID_ROLES = ['admin', 'resource_manager', 'project_manager', 'executive', 'consultant', 'finance', 'recruiter'];
 
 // GET /api/admin/users — list all users in the caller's tenant
 app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) => {
@@ -861,6 +872,10 @@ app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (re
         await serviceClient.auth.admin.inviteUserByEmail(email, { data: { name } }));
     } else if (deliveryMethod === 'password') {
       if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required for password delivery' });
+      const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
+      if (!pwRe.test(tempPassword)) {
+        return res.status(400).json({ error: 'Password does not meet complexity requirements' });
+      }
       ({ data: createData, error: createError } =
         await serviceClient.auth.admin.createUser({
           email,

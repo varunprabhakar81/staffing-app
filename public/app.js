@@ -3,7 +3,8 @@
 'use strict';
 
 // ── Current user role (set after auth check, used for role-based gating) ──
-let currentUserRole = null;
+let currentUserRole         = null;
+let currentUserCanViewRates = false;
 
 // ── Fix Chart.js resolution on high-DPI / Retina displays ─────────
 Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
@@ -37,7 +38,6 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     }
     // Reload user list each time Settings tab is opened
     if (tab === 'settings') {
-      console.log('[Settings] tab clicked');
       loadUsers();
     }
   });
@@ -285,11 +285,6 @@ async function loadDashboard() {
     const [dashText, supplyText, empText, heatmapText] = await Promise.all([
       dashRes.text(), supplyRes.text(), empRes.text(), heatmapRes.text(),
     ]);
-    console.log('[Dashboard] status:', dashRes.status, 'body:', dashText);
-    console.log('[Supply]    status:', supplyRes.status, 'body:', supplyText);
-    console.log('[Employees] status:', empRes.status, 'body:', empText);
-    console.log('[Heatmap]   status:', heatmapRes.status, 'body:', heatmapText);
-
     if (!dashRes.ok) throw new Error(`HTTP ${dashRes.status}`);
     const data = JSON.parse(dashText);
     if (data.error) throw new Error(data.error);
@@ -422,10 +417,6 @@ function renderOverviewStats(data, heatmapData) {
     ? new Set((rawData.supply || []).filter(r => (r.weeklyHours || {})[currentWeekKey] > 0).map(r => r.employeeName)).size
     : 0;
   const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
-  console.log('[Overview] supply employees total:', (rawData.employees || []).length,
-    '| with any hours this week:', allWithHours,
-    '| with client project hours (booked):', bookedCount,
-    '| week:', currentWeekKey);
 
   // ── Card 1: Utilization ──────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
@@ -2522,6 +2513,9 @@ const UM_ROLE_LABELS = {
   resource_manager: 'Resource Manager',
   project_manager:  'Project Manager',
   executive:        'Executive',
+  consultant:       'Consultant',
+  finance:          'Finance',
+  recruiter:        'Recruiter',
 };
 
 const UM_ROLE_COLORS = {
@@ -2529,6 +2523,9 @@ const UM_ROLE_COLORS = {
   resource_manager: '#A8C7FA',
   project_manager:  '#A8E6CF',
   executive:        '#FFF3A3',
+  consultant:       '#FFD6B3',
+  finance:          '#B3E5FC',
+  recruiter:        '#F8BBD9',
 };
 
 function umFmtDate(iso) {
@@ -2537,7 +2534,6 @@ function umFmtDate(iso) {
 }
 
 async function loadUsers() {
-  console.log('[Settings] loadUsers called');
   const tbody = document.getElementById('userTableBody');
   const emptyEl = document.getElementById('userTableEmpty');
   if (!tbody) return;
@@ -2690,6 +2686,14 @@ async function submitInvite(e) {
     errEl.classList.remove('hidden');
     return;
   }
+  if (deliveryMethod === 'password') {
+    const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
+    if (!pwRe.test(tempPassword)) {
+      errEl.textContent = 'Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+  }
 
   const btn = document.getElementById('inviteSubmitBtn');
   btn.disabled    = true;
@@ -2734,33 +2738,40 @@ async function logout() {
     const res = await fetch('/api/auth/me');
     if (res.status === 401) { window.location.replace('login.html'); return; }
     const me = await res.json();
-    currentUserRole = me.role || null;
+    currentUserRole         = me.role || null;
+    currentUserCanViewRates = !!me.canViewRates;
   } catch (e) { window.location.replace('login.html'); return; }
 
-  // Apply role-based tab visibility
-  if (currentUserRole === 'executive') {
-    const staffingTab = document.querySelector('.nav-item[data-tab="staffing"]');
-    const needsTab = document.querySelector('.nav-item[data-tab="needs"]');
-    if (staffingTab) staffingTab.style.display = 'none';
-    if (needsTab) needsTab.style.display = 'none';
-  }
-  if (currentUserRole !== 'admin') {
-    const settingsTab = document.querySelector('.nav-item[data-tab="settings"]');
-    if (settingsTab) settingsTab.style.display = 'none';
-  }
-  if (currentUserRole !== 'admin' && currentUserRole !== 'resource_manager') {
+  // ── Role-based tab gating ──────────────────────────────────────
+  const role    = currentUserRole;
+  const hideTab = name => {
+    const el = document.querySelector(`.nav-item[data-tab="${name}"]`);
+    if (el) el.style.display = 'none';
+  };
+
+  if (role === 'executive')  { hideTab('staffing'); hideTab('needs'); }
+  if (role === 'consultant') { hideTab('overview');  hideTab('ask'); }
+  if (role === 'finance')    { hideTab('ask'); }
+  if (role === 'recruiter')  { hideTab('overview'); hideTab('staffing'); hideTab('ask'); }
+  if (role !== 'admin')      { hideTab('settings'); }
+
+  // Edit toggle: admin + resource_manager only
+  if (role !== 'admin' && role !== 'resource_manager') {
     const editToggle = document.getElementById('hmEditToggle');
     if (editToggle) editToggle.style.display = 'none';
   }
 
   loadDashboard();
 
-  // Redirect executive away from hidden tabs
-  if (currentUserRole === 'executive') {
-    const activeTab = document.querySelector('.nav-item.active');
-    const activeTabName = activeTab && activeTab.dataset.tab;
-    if (activeTabName === 'staffing' || activeTabName === 'needs') {
-      navigateTo('overview');
-    }
+  // Redirect to first accessible tab if the default (overview) is hidden
+  const activeTabName = document.querySelector('.nav-item.active')?.dataset.tab;
+  if (role === 'executive' && (activeTabName === 'staffing' || activeTabName === 'needs')) {
+    navigateTo('overview');
+  }
+  if (role === 'consultant' && (activeTabName === 'overview' || activeTabName === 'ask' || activeTabName === 'settings')) {
+    navigateTo('staffing');
+  }
+  if (role === 'recruiter') {
+    navigateTo('needs');
   }
 })();
