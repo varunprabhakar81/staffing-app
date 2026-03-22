@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #101 User Management Pending/Invited status + Deactivated section complete — #96 Tenant Onboarding or #105 Role Gating UAT next
+Last updated: Session complete — #77 inline editing + heatmap redesign, #79 #80 #81 closed, #101 User Management invited/deactivated, B1/B2/B7 bugs fixed, #106-#116 GitHub issues created
 
 ---
 
@@ -255,39 +255,41 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #79 | Duplicate available hours | ✅ Closed — not reproduced, clean |
 | #80 | Legend swatch size | ✅ Closed — replaced with bar swatches |
 | #81 | Favicon 404 | ✅ Closed — favicon.svg added |
-| #101 | User Management — Pending status + deactivated section | ✅ Closed |
+| #101 | User Management — Pending/Invited status + Deactivated section | ✅ Closed |
+| B1 | RBAC guards added to /api/supply and /api/employees | ✅ Fixed |
+| B2 | Heatmap end date dynamic (today + 90 days rolling) | ✅ Fixed |
+| B7 | Temp password field masked (type=password + eye toggle) | ✅ Fixed |
 
 ---
 
 ## Build Order — Next Session
 
-1. **#77 follow-up** — Edit Mode UX: evaluate auto-entering edit mode on cell click vs requiring explicit Edit button. Current button feels unintuitive.
-2. **#96** — Tenant signup/onboarding flow (new firm self-service)
-3. **#105** — Role gating UAT (needs test users for each role)
+### Immediate (next session, in order):
+1. #112 — Replace alert() with showToast() — 15 min, zero risk
+2. #107 — Add try/catch to changeUserRole/deactivateUser/reactivateUser — 20 min
+3. #109 — Fix isBillable defaulting to true for new assignments
+4. #105 — Role gating UAT — test all 4 roles end to end
+5. #96  — Tenant onboarding flow (new firm self-service signup)
 
----
+### Soon (next 2-3 sessions):
+- #102 — Email verification flow for invited users
+- #103 — Password strength policy in Supabase
+- #104 — Settings tab styling inconsistencies
+- #110 — Wire header search bar
+- #111 — Wire date range selector on heatmap
+- #114 — Deactivated section expand default logic
+- #115 — Tooltip on disabled role select
 
-## Backlog (in priority order)
-
-| Issue | Title | Notes |
-|---|---|---|
-| #77 follow-up | Edit Mode UX — auto-enter on cell click | Standalone |
-| #96 | Tenant signup/onboarding flow | Depends on #62/#63 |
-| #105 | Role gating validation — all non-admin roles | Needs test users |
-| #101 | User Management — Pending status + deactivated section | Pending = invited not yet logged in |
-| #102 | Email verification flow for invited users | Enforce magic link confirm |
-| #103 | Password strength — Supabase policy | Enable in Auth dashboard |
-| #104 | Settings tab styling inconsistent | Minor visual fix |
-| #99 | Multi-role support + role toggle UI | Depends on #63 stable |
-| #97 | Extended Roles — consultant, finance, recruiter | Depends on #62/#63 |
-| #98 | Finance and Ops Dashboard | Depends on #97 |
-| #100 | User Management — access enhancements | Invited by, 2FA columns |
-| #66 | Weekly snapshots | Standalone |
-| #64 | Excel export/import | Tenant onboarding |
-| #79 | Remove duplicate available hours | Minor |
-| #80 | Increase legend swatch size | Minor |
-| #81 | Fix favicon 404 | Minor |
-| #95 | Light mode toggle | Low priority |
+### Later (backlog):
+- #99  — Multi-role support + role toggle UI
+- #97  — Extended roles: consultant, finance, recruiter
+- #98  — Finance and Ops Dashboard
+- #100 — User Management access enhancements
+- #66  — Weekly snapshots
+- #64  — Excel export/import
+- #106 — Year-boundary week upsert bug
+- #108 — Bell badge hardcoded to 4
+- #116 — Document RBAC matrix for extended roles
 
 ---
 
@@ -313,7 +315,9 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive']
 * Invited user detection: last_sign_in_at === null and not banned → status: 'invited'
 * Cancel invite: calls deleteUser on unconfirmed accounts only
-* Resend invite: calls inviteUserByEmail — requires custom SMTP in Supabase for prod (Resend/SendGrid)
+* Resend invite: calls inviteUserByEmail — requires custom SMTP in Supabase for prod (Resend/SendGrid recommended)
+* Heatmap end date: today + 90 days, rounded to next Saturday (dynamic, not hardcoded)
+* RBAC: /api/supply and /api/employees now guarded with requireRole(['admin','resource_manager','project_manager'])
 
 ---
 
