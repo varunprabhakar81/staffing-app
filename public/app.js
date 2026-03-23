@@ -2772,34 +2772,46 @@ async function changeUserRole(userId, newRole, selectEl) {
                 || selectEl.dataset.prev
                 || newRole;
 
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
-    method:  'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ role: newRole }),
-  });
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ role: newRole }),
+    });
 
-  if (!res.ok) {
-    showToast('Failed to update role.');
-    selectEl.value = prevRole;
-    return;
+    if (!res.ok) {
+      showToast('Failed to update role.', 'error');
+      selectEl.value = prevRole;
+      return;
+    }
+
+    showToast(`Role updated to ${UM_ROLE_LABELS[newRole] || newRole}.`);
+    loadUsers();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
   }
-
-  showToast(`Role updated to ${UM_ROLE_LABELS[newRole] || newRole}.`);
-  loadUsers();
 }
 
 async function deactivateUser(userId) {
   if (!confirm('Deactivate this user? They will lose access immediately.')) return;
 
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/deactivate`, { method: 'PATCH' });
-  if (!res.ok) { showToast('Failed to deactivate user.'); return; }
-  loadUsers();
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/deactivate`, { method: 'PATCH' });
+    if (!res.ok) { showToast('Failed to deactivate user.'); return; }
+    loadUsers();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
 }
 
 async function reactivateUser(userId) {
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
-  if (!res.ok) { showToast('Failed to reactivate user.'); return; }
-  loadUsers();
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
+    if (!res.ok) { showToast('Failed to reactivate user.'); return; }
+    loadUsers();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
 }
 
 async function resendInvite(userId) {
