@@ -10,8 +10,8 @@ Last updated: March 2026
 |---|-------|-------|--------|
 | 1 | #112 | Replace alert() with showToast() | ✅ Done |
 | 2 | #107 | try/catch on changeUserRole/deactivateUser/reactivateUser | ✅ Done |
-| 3 | #113 | Success toast after reactivateUser | 🔄 In Progress |
-| 4 | #105 | Role gating UAT — all 4 roles end to end | ⬜ Todo |
+| 3 | #113 | Success toast after reactivateUser | ✅ Done |
+| 4 | #105 | Role gating UAT — all 4 roles end to end | 🔄 In Progress |
 | 5 | #109 | isBillable defaulting true for new assignments | ⬜ Todo |
 | 6 | #104 | Settings tab styling inconsistencies | ⬜ Todo |
 | 7 | #110 | Wire header search bar | ⬜ Todo |
