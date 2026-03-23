@@ -324,7 +324,7 @@ async function loadDashboard() {
 }
 
 // ── Toast notification ────────────────────────────────────────────
-function showToast(msg, durationMs = 8000) {
+function showToast(msg, type = 'default', durationMs = 8000) {
   let toast = document.getElementById('appToast');
   if (!toast) {
     toast = document.createElement('div');
@@ -337,17 +337,25 @@ function showToast(msg, durationMs = 8000) {
     });
     document.body.appendChild(toast);
   }
-  // Split "Word: rest of message" → bold amber label + body, with warning icon
+  const styles = {
+    error:   { icon: '✕' },
+    success: { icon: '✓' },
+    default: { icon: '⚠️' },
+  };
+  const { icon } = styles[type] || styles.default;
+  toast.classList.remove('toast-default', 'toast-success', 'toast-error');
+  toast.classList.add(`toast-${type}`);
+
   const colonIdx = msg.indexOf(':');
-  if (colonIdx !== -1) {
+  if (type === 'default' && colonIdx !== -1) {
     const label = msg.slice(0, colonIdx + 1);
     const body  = msg.slice(colonIdx + 1).trimStart();
     toast.innerHTML =
-      `<span class="app-toast-icon">⚠️</span>` +
+      `<span class="app-toast-icon">${icon}</span>` +
       `<span class="app-toast-body"><span class="app-toast-label">${label}</span> ${body}</span>`;
   } else {
     toast.innerHTML =
-      `<span class="app-toast-icon">⚠️</span>` +
+      `<span class="app-toast-icon">${icon}</span>` +
       `<span class="app-toast-body">${msg}</span>`;
   }
   clearTimeout(toast._timer);
@@ -365,7 +373,7 @@ function showToast(msg, durationMs = 8000) {
     if (_pendingStaffing.size === 0) {
       loadDashboard();
     } else {
-      showToast('Data updated in background — save or discard your changes first', 6000);
+      showToast('Data updated in background — save or discard your changes first', 'default', 6000);
     }
   });
   // on error EventSource auto-reconnects; no special handling needed
@@ -2736,6 +2744,7 @@ function _renderDeactivatedSection(container, users) {
         ${rowsHtml}
       </div>
     </div>`;
+
 }
 
 function toggleDeactivatedSection() {
@@ -2806,8 +2815,11 @@ async function deactivateUser(userId) {
 
 async function reactivateUser(userId) {
   try {
+    console.log('[reactivateUser] fetching...');
     const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
+    console.log('[reactivateUser] res.ok:', res.ok, 'status:', res.status);
     if (!res.ok) { showToast('Failed to reactivate user.'); return; }
+    showToast('User reactivated successfully.', 'success');
     loadUsers();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');

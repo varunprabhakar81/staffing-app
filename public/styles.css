@@ -580,9 +580,7 @@ body {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #1A1D27;
   border: 1px solid #2E3250;
-  border-left: 3px solid #F59E0B;
   border-radius: 8px;
   color: #CCD6F6;
   font-size: 14px;
@@ -615,6 +613,18 @@ body {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+}
+.app-toast.toast-default {
+  background: #1A1D27;
+  border-left: 3px solid #F59E0B;
+}
+.app-toast.toast-success {
+  background: #166534;
+  border-left: 3px solid #22C55E;
+}
+.app-toast.toast-error {
+  background: #7F1D1D;
+  border-left: 3px solid #EF4444;
 }
 
 /* ── KPI Strip ──────────────────────────────────────────────────── */
