@@ -2974,11 +2974,10 @@ async function logout() {
     if (el) el.style.display = 'none';
   };
 
-  if (role === 'executive')  { hideTab('staffing'); hideTab('needs'); }
-  if (role === 'consultant') { hideTab('overview');  hideTab('ask'); }
-  if (role === 'finance')    { hideTab('ask'); }
-  if (role === 'recruiter')  { hideTab('overview'); hideTab('staffing'); hideTab('ask'); }
-  if (role !== 'admin')      { hideTab('settings'); }
+  if (role === 'executive')       { hideTab('staffing'); hideTab('needs'); hideTab('settings'); }
+  if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
+  if (role === 'resource_manager'){ hideTab('settings'); }
+  // admin: no tabs hidden
 
   loadDashboard();
 
@@ -2987,10 +2986,7 @@ async function logout() {
   if (role === 'executive' && (activeTabName === 'staffing' || activeTabName === 'needs')) {
     navigateTo('overview');
   }
-  if (role === 'consultant' && (activeTabName === 'overview' || activeTabName === 'ask' || activeTabName === 'settings')) {
-    navigateTo('staffing');
-  }
-  if (role === 'recruiter') {
-    navigateTo('needs');
+  if (role === 'project_manager' && activeTabName === 'staffing') {
+    navigateTo('overview');
   }
 })();

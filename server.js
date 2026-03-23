@@ -157,7 +157,7 @@ app.get('/api/employees', requireRole('admin', 'resource_manager', 'project_mana
 });
 
 // GET /api/dashboard
-app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager', 'finance', 'consultant', 'recruiter'), async (req, res) => {
+app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) {
     return res.status(503).json({ error: freshData.error });
@@ -356,7 +356,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 });
 
 // GET /api/heatmap
-app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance'), async (req, res) => {
+app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
@@ -633,7 +633,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 });
 
 // GET /api/recommendations — AI-matched consultants for each open need
-app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance', 'recruiter'), async (req, res) => {
+app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
