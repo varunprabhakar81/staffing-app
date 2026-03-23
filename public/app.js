@@ -2815,9 +2815,7 @@ async function deactivateUser(userId) {
 
 async function reactivateUser(userId) {
   try {
-    console.log('[reactivateUser] fetching...');
     const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
-    console.log('[reactivateUser] res.ok:', res.ok, 'status:', res.status);
     if (!res.ok) { showToast('Failed to reactivate user.'); return; }
     showToast('User reactivated successfully.', 'success');
     loadUsers();
