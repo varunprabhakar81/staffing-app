@@ -1660,7 +1660,7 @@ async function saveAllAssignments() {
       setTimeout(() => { bar.classList.add('hidden'); countEl.style.color = ''; }, 3000);
     }
   } catch (err) {
-    alert(`Save failed: ${err.message}`);
+    showToast(`Save failed: ${err.message}`, 'error');
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save All'; }
   }
@@ -2498,15 +2498,15 @@ function applyQuickFill() {
   const hours   = Math.max(0, Math.min(100, Number(document.getElementById('qfHours')?.value) || 0));
 
   if (!empName || !project || !fromVal || !toVal) {
-    alert('Please fill in Employee, Project, From, and To fields.');
+    showToast('Please fill in Employee, Project, From, and To fields.', 'error');
     return;
   }
 
   const fromDate = new Date(fromVal + 'T00:00:00');
   const toDate   = new Date(toVal   + 'T00:00:00');
-  if (fromDate > toDate) { alert('From date must be before To date.'); return; }
+  if (fromDate > toDate) { showToast('From date must be before To date.', 'error'); return; }
 
-  if (!_vsData) { alert('Heatmap data not loaded yet.'); return; }
+  if (!_vsData) { showToast('Heatmap data not loaded yet.', 'error'); return; }
 
   const year = new Date().getFullYear();
   let count = 0;
@@ -2522,7 +2522,7 @@ function applyQuickFill() {
   }
 
   if (count === 0) {
-    alert('No heatmap weeks fall within the selected date range.');
+    showToast('No heatmap weeks fall within the selected date range.', 'error');
     return;
   }
 
@@ -2574,7 +2574,7 @@ async function saveStaffingChanges() {
     updateHmSaveBar();
     await loadDashboard();
   } catch (err) {
-    alert(`Save failed: ${err.message}`);
+    showToast(`Save failed: ${err.message}`, 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; }
   }
