@@ -318,8 +318,8 @@ async function readStaffingData(userToken, _client = null) {
  * Finds or creates the assignment row for consultant+project, then sets hours
  * for the given week.
  */
-async function upsertAssignment(userToken, { consultantId, projectId, weekEnding, hours, isBillable }) {
-  const supabase = getClient(userToken);
+async function upsertAssignment(userToken, { consultantId, projectId, weekEnding, hours, isBillable }, _client = null) {
+  const supabase = _client || getClient(userToken);
 
   const { error } = await supabase
     .from('resource_assignments')
