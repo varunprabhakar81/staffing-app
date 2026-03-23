@@ -20,6 +20,7 @@ Last updated: March 2026
 | 10 | #115 | Tooltip on disabled role select | ⬜ Todo |
 | 11 | #108 | Bell badge hardcoded to 4 | ⬜ Todo |
 | 12 | #106 | Year-boundary week upsert bug | ⬜ Todo |
+| 13 | #119 | Consultant profile editor — edit skill sets, level, and details from app UI | ⬜ Todo |
 
 ---
 
@@ -39,6 +40,8 @@ Last updated: March 2026
 | 10 | D1 | Session role staleness | ⬜ Todo |
 | 11 | #100 | User Management enhancements | ⬜ Todo |
 | 12 | #116 | Document RBAC matrix for extended roles | ⬜ Todo |
+| 13 | #117 | Role switching — users with multiple roles can switch active role per session | ⬜ Todo |
+| 14 | #118 | Audit log — track all write actions by user and active role | ⬜ Todo |
 
 ---
 
