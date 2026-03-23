@@ -2825,25 +2825,33 @@ async function reactivateUser(userId) {
 }
 
 async function resendInvite(userId) {
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    showToast(data.error || 'Failed to resend invite.');
-    return;
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to resend invite.');
+      return;
+    }
+    showToast('Invite resent successfully.');
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
   }
-  showToast('Invite resent successfully.');
 }
 
 async function cancelInvite(userId) {
   if (!confirm('Cancel this invite? The pending account will be permanently deleted.')) return;
-  const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/invite`, { method: 'DELETE' });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    showToast(data.error || 'Failed to cancel invite.');
-    return;
+  try {
+    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/invite`, { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.error || 'Failed to cancel invite.');
+      return;
+    }
+    showToast('Invite cancelled.');
+    loadUsers();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
   }
-  showToast('Invite cancelled.');
-  loadUsers();
 }
 
 function openInviteModal() {
@@ -2941,7 +2949,11 @@ async function submitInvite(e) {
 
 // ── Auth ──────────────────────────────────────────────────────────
 async function logout() {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
   window.location.replace('login.html');
 }
 

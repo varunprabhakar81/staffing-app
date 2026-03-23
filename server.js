@@ -149,11 +149,6 @@ app.get('/api/supply', requireRole('admin', 'resource_manager', 'project_manager
   res.json(staffingData.supply);
 });
 
-// GET /api/demand
-app.get('/api/demand', requireRole('admin', 'resource_manager', 'project_manager', 'consultant', 'finance', 'recruiter'), (req, res) => {
-  if (!requireData(res)) return;
-  res.json(staffingData.demand);
-});
 
 // GET /api/employees
 app.get('/api/employees', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
@@ -485,72 +480,6 @@ app.get('/api/ask', async (req, res) => {
   }
 });
 
-// GET /api/manage — supply data grouped by employee for the Manage tab
-app.get('/api/manage', requireRole('admin', 'resource_manager'), async (req, res) => {
-  const freshData = await readStaffingData(null, serviceClient);
-  if (freshData.error) return res.status(503).json({ error: freshData.error });
-  staffingData = freshData;
-
-  const { supply, projects, employees } = freshData;
-  const { weekKeyToDate } = freshData._meta;
-  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
-
-  function parseWkToDate(wk) {
-    const iso = weekKeyToDate[wk];
-    if (!iso) return null;
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  function wkToDisplayDate(wk) {
-    const iso = weekKeyToDate[wk];
-    if (!iso) return null;
-    const [y, m, d] = iso.split('-');
-    return `${String(parseInt(m)).padStart(2,'0')}/${String(parseInt(d)).padStart(2,'0')}/${y}`;
-  }
-
-  const levelOrder = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
-  const empMap = {};
-
-  supply.forEach((row, idx) => {
-    const name = row.employeeName;
-    if (!name) return;
-    if (!empMap[name]) {
-      empMap[name] = { name, level: row.level || 'Unknown', assignments: [] };
-    }
-
-    const nonZeroWeeks = weekKeys.filter(wk => (row.weeklyHours[wk] || 0) > 0);
-    let startDate = null, endDate = null, hoursPerWeek = 0;
-    if (nonZeroWeeks.length > 0) {
-      startDate = wkToDisplayDate(nonZeroWeeks[0]);
-      endDate   = wkToDisplayDate(nonZeroWeeks[nonZeroWeeks.length - 1]);
-      const total = nonZeroWeeks.reduce((s, wk) => s + (row.weeklyHours[wk] || 0), 0);
-      hoursPerWeek = Math.round(total / nonZeroWeeks.length);
-    }
-
-    empMap[name].assignments.push({
-      rowIndex:    idx,   // 0-based index into supply array
-      project:     row.projectAssigned || '',
-      skillSet:    row.skillSet || '',
-      startDate,
-      endDate,
-      hoursPerWeek,
-    });
-  });
-
-  const empList = Object.values(empMap).sort((a, b) => {
-    const ai = levelOrder.indexOf(a.level), bi = levelOrder.indexOf(b.level);
-    const an = ai === -1 ? 99 : ai, bn = bi === -1 ? 99 : bi;
-    if (an !== bn) return an - bn;
-    return a.name.localeCompare(b.name);
-  });
-
-  const projectNames = [...new Set([
-    ...projects.map(p => p.projectName).filter(Boolean),
-    ...supply.map(s => s.projectAssigned).filter(Boolean),
-  ])].sort();
-
-  res.json({ employees: empList, projects: projectNames, weekKeys });
-});
 
 // POST /api/save-staffing — inline edit / quick-fill save for Staffing heatmap
 app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (req, res) => {
