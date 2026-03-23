@@ -2553,6 +2553,7 @@ function updateHmSaveBar() {
 }
 
 async function saveStaffingChanges() {
+  console.log('[SAVE] function called, pending size:', _pendingStaffing.size);
   const btn = document.getElementById('hmSaveBtnEl');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
@@ -2563,6 +2564,7 @@ async function saveStaffingChanges() {
   }
 
   try {
+    console.log('[SAVE] about to fetch, changes:', JSON.stringify(changes));
     const res = await fetch('/api/save-staffing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -487,6 +487,7 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
   if (!Array.isArray(changes) || changes.length === 0) {
     return res.status(400).json({ error: 'changes array is required' });
   }
+  console.log('[SAVE] received changes:', JSON.stringify(changes));
 
   try {
     const freshData = await readStaffingData(req.session.token);
@@ -520,7 +521,14 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
-      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true });
+      console.log('[SAVE] upserting:', { employeeId: consultantId, projectId, weekStart: weekEnding, hours: hrs });
+      try {
+        const result = await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true });
+        console.log('[SAVE] upsert result:', JSON.stringify(result));
+      } catch (upsertErr) {
+        console.log('[SAVE] upsert error:', JSON.stringify(upsertErr));
+        throw upsertErr;
+      }
     }
 
     staffingData = await readStaffingData(req.session.token);
