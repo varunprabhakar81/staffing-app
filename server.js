@@ -487,10 +487,13 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
   if (!Array.isArray(changes) || changes.length === 0) {
     return res.status(400).json({ error: 'changes array is required' });
   }
-  console.log('[SAVE] received changes:', JSON.stringify(changes));
-
   try {
-    const freshData = await readStaffingData(req.session.token);
+    let freshData;
+    try {
+      freshData = await readStaffingData(null, serviceClient);
+    } catch (err) {
+      return res.status(500).json({ error: 'readStaffingData failed: ' + err.message });
+    }
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply } = freshData;
@@ -521,17 +524,10 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
-      console.log('[SAVE] upserting:', { employeeId: consultantId, projectId, weekStart: weekEnding, hours: hrs });
-      try {
-        const result = await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true });
-        console.log('[SAVE] upsert result:', JSON.stringify(result));
-      } catch (upsertErr) {
-        console.log('[SAVE] upsert error:', JSON.stringify(upsertErr));
-        throw upsertErr;
-      }
+      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true });
     }
 
-    staffingData = await readStaffingData(req.session.token);
+    staffingData = await readStaffingData(null, serviceClient);
     res.json({ success: true, updatedRows: changes.length });
 
   } catch (err) {
@@ -549,7 +545,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 
   try {
     // 1. Read current supply data fresh
-    const freshData = await readStaffingData(req.session.token);
+    const freshData = await readStaffingData(null, serviceClient);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply } = freshData;
@@ -630,7 +626,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
     }
 
     // 3. Reload cached data
-    staffingData = await readStaffingData(req.session.token);
+    staffingData = await readStaffingData(null, serviceClient);
 
     res.json({ success: true, updatedRows: changes.length });
 
