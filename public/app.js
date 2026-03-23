@@ -2553,6 +2553,8 @@ function updateHmSaveBar() {
 }
 
 async function saveStaffingChanges() {
+  console.log('[SAVE DEBUG] _pendingStaffing.size:', _pendingStaffing.size);
+  console.log('[SAVE DEBUG] entries:', JSON.stringify([..._pendingStaffing.entries()]));
   const btn = document.getElementById('hmSaveBtnEl');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
