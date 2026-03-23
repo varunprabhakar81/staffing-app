@@ -6,6 +6,13 @@
 let currentUserRole         = null;
 let currentUserCanViewRates = false;
 
+// ── Inline edit state ─────────────────────────────────────────────
+let _editActiveCell = null;   // { empName, weekIdx, project } or null
+const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
+
+// ── Tracks which employee rows are expanded in the heatmap ────────
+const _hmExpanded = new Set();
+
 // ── Fix Chart.js resolution on high-DPI / Retina displays ─────────
 Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
 
@@ -227,9 +234,6 @@ const charts = {};
 
 // ── Raw data store for drilldowns ─────────────────────────────────
 const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heatmap: null };
-
-// ── Tracks which employee rows are expanded in the heatmap ────────
-const _hmExpanded = new Set();
 
 // ── Utilization status helper ─────────────────────────────────────
 function utilStatus(hours) {
@@ -867,11 +871,6 @@ function _buildVsAllRows() {
     }
   }
 }
-
-// ── Inline edit state ────────────────────────────────────────────
-let _editActiveCell = null;   // { empName, weekIdx, project } or null
-// pending changes: key = `${empName}||${weekLabel}||${project}` → hours
-const _pendingStaffing = new Map();
 
 // Returns true if the current user's role can edit heatmap cells
 function _hmCanEdit() {
