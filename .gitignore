@@ -34,3 +34,7 @@ tmp_*.json
 
 .claude/
 CONVERSATION-SUMMARY.md
+
+HANDOFF_2.md
+business/
+*.docx
