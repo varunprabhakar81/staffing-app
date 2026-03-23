@@ -2553,8 +2553,6 @@ function updateHmSaveBar() {
 }
 
 async function saveStaffingChanges() {
-  console.log('[SAVE DEBUG] _pendingStaffing.size:', _pendingStaffing.size);
-  console.log('[SAVE DEBUG] entries:', JSON.stringify([..._pendingStaffing.entries()]));
   const btn = document.getElementById('hmSaveBtnEl');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
@@ -2571,7 +2569,6 @@ async function saveStaffingChanges() {
       body: JSON.stringify({ changes }),
     });
     const data = await res.json();
-    console.log('[SAVE DEBUG] status:', res.status, 'response:', JSON.stringify(data));
     if (res.status === 423) {
       const countEl = document.getElementById('hmSaveCount');
       if (countEl) { countEl.textContent = data.error; countEl.style.color = '#FFB3B3'; }
@@ -2582,6 +2579,7 @@ async function saveStaffingChanges() {
     _pendingStaffing.clear();
     _editActiveCell = null;
     updateHmSaveBar();
+    await new Promise(resolve => setTimeout(resolve, 1500));
     await loadDashboard();
   } catch (err) {
     showToast(`Save failed: ${err.message}`, 'error');
