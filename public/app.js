@@ -2565,12 +2565,13 @@ async function saveStaffingChanges() {
   }
 
   try {
-    const res  = await fetch('/api/save-staffing', {
-      method:  'POST',
+    const res = await fetch('/api/save-staffing', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ changes }),
+      body: JSON.stringify({ changes }),
     });
     const data = await res.json();
+    console.log('[SAVE DEBUG] status:', res.status, 'response:', JSON.stringify(data));
     if (res.status === 423) {
       const countEl = document.getElementById('hmSaveCount');
       if (countEl) { countEl.textContent = data.error; countEl.style.color = '#FFB3B3'; }
