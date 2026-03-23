@@ -46,3 +46,14 @@ Last updated: March 2026
 - Phase 1 must be stable before Phase 2 begins
 - #96 (tenant onboarding) is the unlock for all of Phase 2
 - #102 and #103 deprioritized — not needed for internal Deloitte use
+
+---
+
+## Hygiene
+
+| File | Purpose |
+|---|---|
+| HYGIENE.md | Codebase audit checklist — run at end of each session |
+| NewChatPrompt.md | Starter prompt for new Claude chat sessions |
+| HANDOFF_3.md | Latest session handoff doc |
+| ROADMAP.md | This file — build order tracking |
