@@ -292,6 +292,8 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #112 | Replace alert() with showToast() | ✅ Closed |
 | #107 | try/catch on changeUserRole/deactivateUser/reactivateUser | ✅ Closed |
 | #113 | Success toast after reactivateUser + full toast variant system | ✅ Closed |
+| Audit | Remove dead routes /api/demand + /api/manage | ✅ Fixed |
+| Audit | try/catch on resendInvite, cancelInvite, logout | ✅ Fixed |
 
 ---
 
