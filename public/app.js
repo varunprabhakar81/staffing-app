@@ -2893,18 +2893,18 @@ function _renderActiveRow(u) {
     : `<span style="color:#8892B0;font-size:12px">${umFmtDate(u.last_sign_in_at)}</span>`;
 
   const roleSelect = isInvited
-    ? `<select disabled style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#4A4D5A;font-size:12px;font-family:inherit;cursor:not-allowed;outline:none;opacity:0.5">${roleOptions}</select>`
-    : `<select onchange="changeUserRole('${_esc(u.id)}', this.value, this)" style="padding:5px 8px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;color:#CBD5E0;font-size:12px;font-family:inherit;cursor:pointer;outline:none">${roleOptions}</select>`;
+    ? `<select disabled title="Role cannot be changed until the user accepts their invite" style="padding:4px 8px;background:#0F1117;border:0.5px solid rgba(255,255,255,0.06);border-radius:6px;color:#4A4D5A;font-size:13px;font-family:inherit;cursor:not-allowed;outline:none;opacity:0.5">${roleOptions}</select>`
+    : `<select onchange="changeUserRole('${_esc(u.id)}', this.value, this)" style="padding:4px 8px;background:#0F1117;border:0.5px solid rgba(255,255,255,0.15);border-radius:6px;color:#FFFFFF;font-size:13px;font-family:inherit;cursor:pointer;outline:none">${roleOptions}</select>`;
 
   const actionBtns = isInvited
     ? `<button onclick="resendInvite('${_esc(u.id)}')"
-         style="padding:5px 10px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Resend Invite</button>
        <button onclick="cancelInvite('${_esc(u.id)}')"
-         style="padding:5px 10px;background:transparent;border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#EF4444;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#EF4444;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(239,68,68,.06)'" onmouseout="this.style.background='transparent'">Cancel Invite</button>`
     : `<button onclick="deactivateUser('${_esc(u.id)}')"
-         style="padding:5px 10px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         style="height:32px;padding:0 12px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`;
 
   return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${isInvited ? 'opacity:0.75;' : ''}">
@@ -2924,7 +2924,7 @@ function _renderActiveRow(u) {
 }
 
 function _renderDeactivatedSection(container, users) {
-  _deactivatedExpanded = users.length === 0;
+  _deactivatedExpanded = users.length > 0;
   const countBadge = users.length > 0 ? ` (${users.length})` : '';
 
   const rowsHtml = users.length === 0
