@@ -1142,6 +1142,7 @@ function _vsRenderRow(row) {
       return `<td class="hm-cell${isPending ? ' hm-cell-pending' : ''}${_curCls}"
         style="background:${_empBg};color:${_empFg};border-left:${_empBl}"
         data-emp="${sn}" data-idx="${i}" data-tip="${ct}" data-cell-type="emp-total"
+        onmousedown="if(_editActiveCell)_editActiveCell=null;"
         onclick="empTotalCellClick(event,this)"
         onmouseenter="showHmTooltip(event,this)"
         onmousemove="positionHmTooltip(event)"
@@ -1152,7 +1153,7 @@ function _vsRenderRow(row) {
         onmouseenter="showEmpTip(event,this)"
         onmousemove="moveEmpTip(event)"
         onmouseleave="hideEmpTip()">
-        <div class="hm-name-inner" onclick="toggleHmExpand(this.closest('td').dataset.emp)">
+        <div class="hm-name-inner" onmousedown="if(_editActiveCell)_editActiveCell=null;" onclick="toggleHmExpand(this.closest('td').dataset.emp)">
           <span class="hm-chevron">${chv}</span>
           <div class="hm-name-text"><div class="hm-emp-name">${emp.name}</div></div>
         </div>
@@ -1376,13 +1377,34 @@ function buildHeatmapTable(data) {
 }
 
 // ── Expand / Collapse (virtual-scroll aware) ──────────────────────
-function toggleHmExpand(empName) {
+function toggleHmExpand(empName, focusWeekIdx = 0) {
+  const expanding = !_hmExpanded.has(empName);
+  // When collapsing: clear active cell before re-render so blur doesn't trigger a second re-render
+  if (!expanding) _editActiveCell = null;
   if (_hmExpanded.has(empName)) _hmExpanded.delete(empName);
   else _hmExpanded.add(empName);
   _buildVsAllRows();
   _vsRenderVisible();
   _updateHmPillBtns();
   _updateQuickFillVisibility();
+
+  // On expand: activate + focus the first editable cell in the target week (#128)
+  if (expanding && _hmCanEdit()) {
+    const emp = _vsData && _vsData.employees.find(e => e.name === empName);
+    if (!emp) return;
+    const allProjects = [];
+    for (const wkProjs of emp.weeklyProjects)
+      for (const p of wkProjs)
+        if (!allProjects.includes(p.project)) allProjects.push(p.project);
+    if (!allProjects.length) return;
+    _editActiveCell = { empName, weekIdx: focusWeekIdx, project: allProjects[0] };
+    _buildVsAllRows();
+    _vsRenderVisible();
+    setTimeout(() => {
+      const ni = document.querySelector('.hm-cell-editing input');
+      if (ni) { ni.focus(); ni.select(); }
+    }, 0);
+  }
 }
 
 function _updateQuickFillVisibility() {
@@ -2542,10 +2564,31 @@ function empTotalCellClick(evt, cell) {
   if (!_hmCanEdit()) return; // only editable roles see tooltip/expand
   evt.stopPropagation();
 
-  // Auto-expand if not already expanded
+  // Auto-expand (or focus correct week if already expanded)
   const empName = cell.dataset.emp;
-  if (empName && !_hmExpanded.has(empName)) {
-    toggleHmExpand(empName);
+  const clickedWeekIdx = parseInt(cell.dataset.idx) || 0;
+  if (empName) {
+    if (!_hmExpanded.has(empName)) {
+      toggleHmExpand(empName, clickedWeekIdx);
+    } else if (_hmCanEdit()) {
+      // Already expanded — just focus the first project cell in the clicked week
+      const emp = _vsData && _vsData.employees.find(e => e.name === empName);
+      if (emp) {
+        const allProjects = [];
+        for (const wkProjs of emp.weeklyProjects)
+          for (const p of wkProjs)
+            if (!allProjects.includes(p.project)) allProjects.push(p.project);
+        if (allProjects.length) {
+          _editActiveCell = { empName, weekIdx: clickedWeekIdx, project: allProjects[0] };
+          _buildVsAllRows();
+          _vsRenderVisible();
+          setTimeout(() => {
+            const ni = document.querySelector('.hm-cell-editing input');
+            if (ni) { ni.focus(); ni.select(); }
+          }, 0);
+        }
+      }
+    }
   }
 
   // Create or reuse popover element
@@ -2637,16 +2680,25 @@ function hmCellBlur(input) {
   if (project) {
     // Sub-row edit: project-level change
     const key = `${empName}||${weekLabel}||${project}`;
-    _pendingStaffing.set(key, newVal);
+    const emp = _vsData && _vsData.employees.find(e => e.name === empName);
+    const origMatch = ((emp && emp.weeklyProjects[weekIdx]) || []).find(p => p.project === project);
+    const origVal = origMatch ? origMatch.hours : 0;
+    if (newVal === origVal) {
+      _pendingStaffing.delete(key); // no change — keep/restore clean state
+    } else {
+      _pendingStaffing.set(key, newVal);
+    }
   } else {
     // Total-row edit: distribute proportionally across existing projects
     const emp = _vsData && _vsData.employees.find(e => e.name === empName);
     const origProjs = (emp && emp.weeklyProjects[weekIdx]) || [];
     const origTotal = (emp && emp.weeklyHours[weekIdx]) || 0;
 
-    if (origProjs.length === 0 || origTotal === 0) {
+    if (newVal === origTotal) {
+      // No change to total — do not dirty any project entries
+    } else if (origProjs.length === 0 || origTotal === 0) {
       // No existing projects — create Unassigned entry
-      _pendingStaffing.set(`${empName}||${weekLabel}||Unassigned`, newVal);
+      if (newVal > 0) _pendingStaffing.set(`${empName}||${weekLabel}||Unassigned`, newVal);
     } else if (newVal === 0) {
       for (const p of origProjs) _pendingStaffing.set(`${empName}||${weekLabel}||${p.project}`, 0);
     } else {
@@ -2698,6 +2750,73 @@ function hmCellKeydown(event, input) {
       }
     }
     // Enter: just commit; for "move down" we'd need employee ordering, skip for simplicity
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault(); // prevent number input increment/decrement
+    const weekIdx = parseInt(input.dataset.idx);
+    const empName = input.dataset.emp;
+    const project = input.dataset.proj || null;
+    if (!project) return; // total row — no project to navigate from
+    const goDown = event.key === 'ArrowDown';
+
+    // Returns ordered project list for any employee (same order as sub-rows)
+    const empProjects = emp => {
+      const ps = [];
+      for (const wkProjs of emp.weeklyProjects)
+        for (const p of wkProjs)
+          if (!ps.includes(p.project)) ps.push(p.project);
+      return ps;
+    };
+
+    // Returns all heatmap employees in display order (mirrors _buildVsAllRows)
+    const orderedEmps = () => {
+      const byLevel = {};
+      for (const e of (_vsData ? _vsData.employees : [])) {
+        if (!byLevel[e.level]) byLevel[e.level] = [];
+        byLevel[e.level].push(e);
+      }
+      const out = [];
+      for (const level of LEVEL_ORDER) for (const e of (byLevel[level] || [])) out.push(e);
+      return out;
+    };
+
+    const emp = _vsData && _vsData.employees.find(e => e.name === empName);
+    if (!emp) return;
+    const allProjects = empProjects(emp);
+    const curIdx = allProjects.indexOf(project);
+    if (curIdx === -1) return;
+    const nextProjIdx = goDown ? curIdx + 1 : curIdx - 1;
+
+    if (nextProjIdx >= 0 && nextProjIdx < allProjects.length) {
+      // Within same consultant
+      hmCellBlur(input);
+      _editActiveCell = { empName, weekIdx, project: allProjects[nextProjIdx] };
+      _buildVsAllRows();
+      _vsRenderVisible();
+      setTimeout(() => { const ni = document.querySelector('.hm-cell-editing input'); if (ni) { ni.focus(); ni.select(); } }, 0);
+      return;
+    }
+
+    // At consultant boundary — cross to adjacent consultant
+    const emps = orderedEmps();
+    const empIdx = emps.findIndex(e => e.name === empName);
+    if (empIdx === -1) return;
+    const targetEmpIdx = goDown ? empIdx + 1 : empIdx - 1;
+    if (targetEmpIdx < 0 || targetEmpIdx >= emps.length) return; // absolute boundary — do nothing
+    const targetEmp = emps[targetEmpIdx];
+    const targetProjects = empProjects(targetEmp);
+    if (!targetProjects.length) return;
+    // Expand target consultant if collapsed
+    if (!_hmExpanded.has(targetEmp.name)) _hmExpanded.add(targetEmp.name);
+    hmCellBlur(input);
+    _editActiveCell = {
+      empName: targetEmp.name,
+      weekIdx,
+      project: goDown ? targetProjects[0] : targetProjects[targetProjects.length - 1]
+    };
+    _buildVsAllRows();
+    _vsRenderVisible();
+    setTimeout(() => { const ni = document.querySelector('.hm-cell-editing input'); if (ni) { ni.focus(); ni.select(); } }, 0);
   }
 }
 

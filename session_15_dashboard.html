@@ -1,0 +1,231 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .root { padding: 1rem 0; }
+  .top-bar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.25rem; }
+  .session-label { font-size: 13px; color: var(--color-text-secondary); }
+  .metric-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-value.green { color: #1D9E75; }
+  .metric-value.amber { color: #BA7517; }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+  .panel-header { padding: 10px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; justify-content: space-between; }
+  .panel-header .count { font-size: 11px; font-weight: 400; color: var(--color-text-secondary); }
+  .issue-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: background 0.1s; }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-row:hover { background: var(--color-background-secondary); }
+  .issue-num { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); min-width: 34px; font-family: var(--font-mono); }
+  .issue-title { font-size: 13px; color: var(--color-text-primary); flex: 1; line-height: 1.4; }
+  .issue-time { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; }
+  .badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+  .badge-open { background: #E6F1FB; color: #185FA5; }
+  .badge-closed { background: #EAF3DE; color: #3B6D11; }
+  .badge-carry { background: #FAEEDA; color: #854F0B; }
+  .badge-backlog { background: #EEEDFE; color: #534AB7; }
+  @media (prefers-color-scheme: dark) {
+    .badge-open { background: #0C447C; color: #B5D4F4; }
+    .badge-closed { background: #27500A; color: #C0DD97; }
+    .badge-carry { background: #633806; color: #FAC775; }
+    .badge-backlog { background: #3C3489; color: #CECBF6; }
+  }
+  .progress-bar-wrap { height: 6px; background: var(--color-background-secondary); border-radius: 4px; margin-top: 6px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; background: #1D9E75; transition: width 0.4s; }
+  .carry-section { margin-top: 12px; }
+  .section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); padding: 4px 14px 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+
+<div class="root">
+
+  <div class="top-bar">
+    <span style="font-size:15px;font-weight:500;color:var(--color-text-primary)">Session 15 dashboard</span>
+    <span class="session-label">Staffing Intelligence App — active sprint</span>
+  </div>
+
+  <div class="metric-row">
+    <div class="metric">
+      <div class="metric-label">Planned this session</div>
+      <div class="metric-value" id="m-planned">5</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Closed this session</div>
+      <div class="metric-value green" id="m-closed">0</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Carry-forwards</div>
+      <div class="metric-value amber" id="m-carry">8</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Progress</div>
+      <div class="metric-value" id="m-pct">0%</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="columns">
+
+    <div class="panel">
+      <div class="panel-header">
+        Planned issues — Soon milestone
+        <span class="count" id="cnt-planned">5 issues</span>
+      </div>
+      <div id="planned-list">
+        <div class="issue-row" onclick="toggleClose(this,'p1')">
+          <span class="issue-num">#128</span>
+          <span class="issue-title">Total row expand + focus first cell</span>
+          <span class="issue-time">1–2h</span>
+          <span class="badge badge-open" id="p1">open</span>
+        </div>
+        <div class="issue-row" onclick="toggleClose(this,'p2')">
+          <span class="issue-num">#61</span>
+          <span class="issue-title">Comprehensive drilldown review</span>
+          <span class="issue-time">3–4h</span>
+          <span class="badge badge-open" id="p2">open</span>
+        </div>
+        <div class="issue-row" onclick="toggleClose(this,'p3')">
+          <span class="issue-num">#124</span>
+          <span class="issue-title">Add new project assignment from heatmap</span>
+          <span class="issue-time">3–4h</span>
+          <span class="badge badge-open" id="p3">open</span>
+        </div>
+        <div class="issue-row" onclick="toggleClose(this,'p4')">
+          <span class="issue-num">#119/#125</span>
+          <span class="issue-title">Compare for duplicate, then consultant profile editor</span>
+          <span class="issue-time">4–6h</span>
+          <span class="badge badge-open" id="p4">open</span>
+        </div>
+        <div class="issue-row" onclick="toggleClose(this,'p5')">
+          <span class="issue-num">#126</span>
+          <span class="issue-title">Consultants management panel</span>
+          <span class="issue-time">6–8h</span>
+          <span class="badge badge-open" id="p5">open</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        Carry-forward housekeeping
+        <span class="count">8 items</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c1')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">#119 vs #125 — compare &amp; close duplicate</span>
+        <span class="badge badge-carry" id="c1">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c2')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Heatmap inline filter — new GitHub issue</span>
+        <span class="badge badge-carry" id="c2">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c3')">
+        <span class="issue-num">#82</span>
+        <span class="issue-title">UAT test script before real users onboard</span>
+        <span class="badge badge-carry" id="c3">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c4')">
+        <span class="issue-num">#61</span>
+        <span class="issue-title">Add row flash note from #120</span>
+        <span class="badge badge-carry" id="c4">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c5')">
+        <span class="issue-num">#66/#129</span>
+        <span class="issue-title">Close #66 as duplicate if #129 covers it</span>
+        <span class="badge badge-carry" id="c5">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c6')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Cache buster audit — app.js v=32, styles.css v=35</span>
+        <span class="badge badge-carry" id="c6">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c7')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
+        <span class="badge badge-carry" id="c7">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleClose(this,'c8')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Holistic UI/UX design pass — new GitHub issue</span>
+        <span class="badge badge-carry" id="c8">pending</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="panel-header">
+      V1 Stable backlog
+      <span class="count">7 issues</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:none;">
+      <div>
+        <div class="issue-row">
+          <span class="issue-num">#123</span><span class="issue-title" style="color:var(--color-text-secondary)">—</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+        <div class="issue-row">
+          <span class="issue-num">#82</span><span class="issue-title" style="color:var(--color-text-secondary)">UAT cases</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+        <div class="issue-row">
+          <span class="issue-num">#83</span><span class="issue-title" style="color:var(--color-text-secondary)">—</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+        <div class="issue-row">
+          <span class="issue-num">#102</span><span class="issue-title" style="color:var(--color-text-secondary)">Email verification flow</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+      </div>
+      <div>
+        <div class="issue-row">
+          <span class="issue-num">#103</span><span class="issue-title" style="color:var(--color-text-secondary)">Password strength policy</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+        <div class="issue-row">
+          <span class="issue-num">#100</span><span class="issue-title" style="color:var(--color-text-secondary)">User mgmt access enhancements</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+        <div class="issue-row">
+          <span class="issue-num">#116</span><span class="issue-title" style="color:var(--color-text-secondary)">—</span><span class="badge badge-backlog">v1 stable</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:var(--color-text-secondary);padding:2px 2px;">Click any planned issue or carry-forward to mark it closed / done.</div>
+</div>
+
+<script>
+  const planned = ['p1','p2','p3','p4','p5'];
+  function toggleClose(row, id) {
+    const badge = document.getElementById(id);
+    const isCarry = badge.classList.contains('badge-carry');
+    if (isCarry) {
+      if (badge.textContent === 'done') {
+        badge.textContent = 'pending';
+        badge.className = 'badge badge-carry';
+      } else {
+        badge.textContent = 'done';
+        badge.className = 'badge badge-closed';
+      }
+    } else {
+      if (badge.textContent === 'closed') {
+        badge.textContent = 'open';
+        badge.className = 'badge badge-open';
+        row.style.opacity = '1';
+      } else {
+        badge.textContent = 'closed';
+        badge.className = 'badge badge-closed';
+        row.style.opacity = '0.5';
+      }
+    }
+    updateMetrics();
+  }
+  function updateMetrics() {
+    let closed = 0;
+    planned.forEach(id => {
+      if (document.getElementById(id).textContent === 'closed') closed++;
+    });
+    document.getElementById('m-closed').textContent = closed;
+    const pct = Math.round((closed / planned.length) * 100);
+    document.getElementById('m-pct').textContent = pct + '%';
+    document.getElementById('prog-bar').style.width = pct + '%';
+  }
+</script>
