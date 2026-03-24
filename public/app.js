@@ -139,26 +139,218 @@ window.selectedDateRange = { type: 'current', weekOffset: 0 };
   document.addEventListener('click', () => { if (dropdown) dropdown.classList.add('hidden'); });
 })();
 
-// ── Header: Search Bar ────────────────────────────────────────────
+// ── Header: Search Bar (Global Typeahead Navigator) (#120) ───────
 (function initHeaderSearch() {
   const input = document.getElementById('headerSearch');
-  if (!input) return;
+  const wrap  = document.querySelector('.header-search-inner');
+  if (!input || !wrap) return;
 
+  // Dropdown container
+  const dd = document.createElement('div');
+  dd.id = 'searchDropdown';
+  dd.className = 'hdr-search-dropdown hidden';
+  wrap.appendChild(dd);
+
+  let _items    = [];
+  let _focusIdx = -1;
+
+  // Keyboard shortcuts: '/' focuses search (common SaaS pattern); Ctrl+K also works
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+    if (e.key === '/' && !inInput) { e.preventDefault(); input.focus(); input.select(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); input.focus(); input.select(); }
+  });
+
+  function getSearchData() {
+    const emps = (_vsData && _vsData.employees) || [];
+    const projSet = new Set();
+    for (const emp of emps) {
+      for (const wkProjs of (emp.weeklyProjects || [])) {
+        for (const p of wkProjs) if (p && p.project) projSet.add(p.project);
+      }
+    }
+    return { emps, projects: [...projSet].sort() };
+  }
+
+  function renderDropdown(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) { closeDropdown(); return; }
+
+    const { emps, projects } = getSearchData();
+    const matchPeople   = emps.filter(e => e.name.toLowerCase().includes(q));
+    const matchProjects = projects.filter(p => p.toLowerCase().includes(q));
+
+    _items    = [];
+    _focusIdx = -1;
+
+    if (!matchPeople.length && !matchProjects.length) {
+      dd.innerHTML = '<div class="hdr-search-empty">No results</div>';
+      dd.classList.remove('hidden');
+      return;
+    }
+
+    let html = '';
+    if (matchPeople.length) {
+      html += `<div class="hdr-search-group">People</div>`;
+      matchPeople.slice(0, 8).forEach(emp => {
+        const idx = _items.length;
+        _items.push({ type: 'person', name: emp.name });
+        html += `<div class="hdr-search-item" data-idx="${idx}">
+          <span class="hdr-search-name">${_esc(emp.name)}</span>
+          <span class="hdr-search-sub">${_esc(emp.level || '')}</span>
+        </div>`;
+      });
+    }
+    if (matchProjects.length) {
+      html += `<div class="hdr-search-group">Projects</div>`;
+      matchProjects.slice(0, 8).forEach(proj => {
+        const idx = _items.length;
+        _items.push({ type: 'project', name: proj });
+        html += `<div class="hdr-search-item" data-idx="${idx}">
+          <span class="hdr-search-name">${_esc(proj)}</span>
+          <span class="hdr-search-sub">Project</span>
+        </div>`;
+      });
+    }
+
+    dd.innerHTML = html;
+    dd.classList.remove('hidden');
+
+    dd.querySelectorAll('.hdr-search-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault(); // prevent blur before selection
+        const item = _items[parseInt(el.dataset.idx, 10)];
+        if (item) selectItem(item);
+      });
+    });
+  }
+
+  function updateFocus(newIdx) {
+    const els = dd.querySelectorAll('.hdr-search-item');
+    els.forEach(el => el.classList.remove('active'));
+    _focusIdx = Math.max(-1, Math.min(newIdx, els.length - 1));
+    if (_focusIdx >= 0) {
+      els[_focusIdx].classList.add('active');
+      els[_focusIdx].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  function selectItem(item) {
+    closeDropdown();
+    input.value = '';
+    input.blur();
+    if (item.type === 'person')  navigateToEmployee(item.name);
+    if (item.type === 'project') navigateToProject(item.name);
+  }
+
+  function closeDropdown() {
+    dd.classList.add('hidden');
+    dd.innerHTML = '';
+    _items    = [];
+    _focusIdx = -1;
+  }
+
+  input.addEventListener('input', () => renderDropdown(input.value));
+  input.addEventListener('focus', () => { if (input.value.trim()) renderDropdown(input.value); });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (!dd.classList.contains('hidden')) { closeDropdown(); e.stopPropagation(); }
+      else { input.value = ''; input.blur(); e.stopPropagation(); }
+      return;
+    }
+    if (dd.classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); updateFocus(_focusIdx + 1); }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); updateFocus(_focusIdx - 1); }
+    if (e.key === 'Enter' && _focusIdx >= 0 && _focusIdx < _items.length) {
       e.preventDefault();
-      input.focus();
-      input.select();
+      selectItem(_items[_focusIdx]);
     }
   });
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { input.value = ''; input.blur(); e.stopPropagation(); }
-  });
-
-  input.addEventListener('input', () => {
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) closeDropdown();
   });
 })();
+
+// ── Search navigator: scroll to employee row in heatmap ──────────
+function navigateToEmployee(name) {
+  navigateTo('staffing');
+  // Wait for tab paint + virtual scroll to be ready
+  setTimeout(() => {
+    if (!_vsData) return;
+    const rowIdx = _vsAllRows.findIndex(r => r.type === 'emp' && r.emp.name === name);
+    if (rowIdx === -1) return;
+    let y = 0;
+    for (let i = 0; i < rowIdx; i++) y += _vsAllRows[i].height;
+    const scrollWrap = document.querySelector('.hm-scroll-wrap');
+    if (!scrollWrap) return;
+    scrollWrap.scrollTop = y;
+    _vsRenderVisible();
+    requestAnimationFrame(() => {
+      const td = Array.from(document.querySelectorAll('td.hm-name-cell'))
+        .find(el => el.dataset.emp === name);
+      if (td) flashHeatmapRow(td.closest('tr'));
+    });
+  }, 120);
+}
+
+// ── Search navigator: expand project sub-rows and scroll to them ──
+function navigateToProject(projName) {
+  if (!_vsData) return;
+  const empsWithProj = _vsData.employees.filter(emp =>
+    (emp.weeklyProjects || []).some(wk => (wk || []).some(p => p.project === projName))
+  );
+  if (!empsWithProj.length) return;
+  // Expand all employees assigned to this project so sub-rows appear
+  for (const emp of empsWithProj) _hmExpanded.add(emp.name);
+  _buildVsAllRows();
+  navigateTo('staffing');
+  setTimeout(() => {
+    _vsRenderVisible();
+    const targetEmp = empsWithProj[0];
+    const rowIdx = _vsAllRows.findIndex(
+      r => r.type === 'sub' && r.emp.name === targetEmp.name && r.projName === projName
+    );
+    if (rowIdx === -1) return;
+    let y = 0;
+    for (let i = 0; i < rowIdx; i++) y += _vsAllRows[i].height;
+    y = Math.max(0, y - VS_H_EMP); // nudge up so parent emp row is visible
+    const scrollWrap = document.querySelector('.hm-scroll-wrap');
+    if (!scrollWrap) return;
+    scrollWrap.scrollTop = y;
+    _vsRenderVisible();
+    requestAnimationFrame(() => {
+      document.querySelectorAll('tr.hm-sub-row').forEach(tr => {
+        const hasProj = Array.from(tr.querySelectorAll('td.hm-sub-cell'))
+          .some(el => el.dataset.proj === projName);
+        if (hasProj) flashHeatmapRow(tr);
+      });
+    });
+  }, 120);
+}
+
+// ── Flash a heatmap row: quick teal pulse, then fade out ──────────
+function flashHeatmapRow(tr) {
+  if (!tr) return;
+  const cells  = Array.from(tr.querySelectorAll('td'));
+  const origBg = cells.map(td => td.style.background);
+  const origTr = tr.style.background;
+  // Instant-on
+  cells.forEach(td => { td.style.transition = 'background 0.1s'; td.style.background = 'rgba(99,102,241,0.38)'; });
+  tr.style.background = 'rgba(99,102,241,0.38)';
+  // Fade out after 350ms hold
+  setTimeout(() => {
+    cells.forEach(td => { td.style.transition = 'background 1.2s ease-out'; td.style.background = 'rgba(99,102,241,0)'; });
+    tr.style.background = 'rgba(99,102,241,0)';
+    // Restore original inline styles after fade completes
+    setTimeout(() => {
+      cells.forEach((td, i) => { td.style.transition = ''; td.style.background = origBg[i]; });
+      tr.style.transition = '';
+      tr.style.background = origTr;
+    }, 1200);
+  }, 350);
+}
 
 // ── Header: Notification Bell ─────────────────────────────────────
 function closeBellDropdown() {

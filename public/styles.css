@@ -410,6 +410,89 @@ body {
 .hdr-search-input:focus { border-color: rgba(168,199,250,0.5); }
 .hdr-search-input::placeholder { color: #8892B0; }
 
+/* Search '/' shortcut badge */
+.hdr-search-kbd {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #8892B0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 3px;
+  padding: 1px 5px;
+  pointer-events: none;
+  line-height: 1.6;
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.header-search-inner:focus-within .hdr-search-kbd { opacity: 0; }
+
+/* Global Search Dropdown */
+.hdr-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: 280px;
+  background: #1A1D27;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  z-index: 200;
+  overflow: hidden;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.hdr-search-dropdown.hidden { display: none; }
+
+.hdr-search-group {
+  padding: 10px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8892B0;
+  user-select: none;
+}
+.hdr-search-group:first-child { padding-top: 8px; }
+
+.hdr-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.hdr-search-item:hover,
+.hdr-search-item.active { background: rgba(168,199,250,0.08); }
+.hdr-search-item:last-child { margin-bottom: 4px; }
+
+.hdr-search-name {
+  font-size: 13px;
+  color: #E8EDF4;
+  font-weight: 500;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr-search-sub {
+  font-size: 11px;
+  color: #8892B0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.hdr-search-empty {
+  padding: 16px 12px;
+  font-size: 13px;
+  color: #8892B0;
+  text-align: center;
+}
+
 /* Notification Bell */
 .header-bell-wrap {
   position: relative;
