@@ -26,8 +26,8 @@
 
 | # | Task | Notes | Done |
 |---|------|-------|------|
-| #110 | Confirm duplicate of #120 — close if confirmed | #110 = "header search bar" · #120 = "search employees/projects input" | [ ] |
-| #111 | Confirm duplicate of #121 — close if confirmed | #111 = "date range selector" · #121 = "week selector dropdown" | [ ] |
+| #110 | Confirm duplicate of #120 — close if confirmed | #110 = "header search bar" · #120 = "search employees/projects input" | [x] |
+| #111 | Confirm duplicate of #121 — close if confirmed | #111 = "date range selector" · #121 = "week selector dropdown" | [x] |
 
 ---
 
