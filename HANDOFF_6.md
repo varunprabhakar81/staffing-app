@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: Session 13 complete — GitHub milestones created, roadmap organized, session_tracker.md added to repo. Next: #109 isBillable fix.
+Last updated: Session 13 complete — Active Sprint cleared (#109, #122, #108, #106, #127), hygiene pass done (18 issues triaged, #110/#111 closed as duplicates), new issues logged (#124–#128). Next: Soon queue starting with #120, #121, #104.
 
 ---
 
@@ -273,12 +273,12 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 
 | Milestone | GitHub ID | Issues |
 |---|---|---|
-| Active Sprint | #17 | #109, #122, #108, #106 |
-| Soon | #18 | #120, #121, #104, #114, #115 |
-| V1 Stable | #19 | #123, #102, #103, #100, #116 |
-| Phase 2 | #20 | #96, #99, #97, #98, #95, #66, #64 |
+| Active Sprint | #17 | ✅ Cleared (Session 13) |
+| Soon | #18 | #120, #121, #104, #114, #115, #61, #124, #125, #126, #128, #119 |
+| V1 Stable | #19 | #123, #82, #83, #102, #103, #100, #116 |
+| Phase 2 | #20 | #96, #99, #97, #98, #95, #66, #64, #43, #117, #118, #94 |
 
-29 unmilesoned issues still need triage — see session_tracker.md.
+Triage complete — all 29 unmilesoned issues processed in Session 13.
 
 ---
 
@@ -311,26 +311,37 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #113 | Success toast after reactivateUser + full toast variant system | ✅ Closed |
 | #105 | Role gating UAT — all 4 roles verified | ✅ Closed |
 | B-save | serviceClient fix for write routes — saves now persist | ✅ Fixed |
+| #109 | Fix isBillable defaulting to true for new assignments | ✅ Closed |
+| #122 | Executive overview — Projects with Most Utilization shows no data | ✅ Closed |
+| #108 | Bell notification badge hardcoded to 4 | ✅ Closed |
+| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | ✅ Closed |
+| #127 | Success toast after heatmap Save All | ✅ Closed |
+| #124 | Add new project assignment to consultant from heatmap | ✅ Logged |
+| #125 | Consultant profile editor — is_billable, capacity, rate overrides | ✅ Logged |
+| #126 | Consultants management panel in Settings tab | ✅ Logged |
+| #128 | Clicking consultant total row expands + focuses first cell | ✅ Logged |
 
 ---
 
 ## Build Order — Next Session
 
-### Start here (Active Sprint):
-1. #109 — Fix isBillable defaulting to true for new assignments (server.js)
-2. #122 — Executive overview projects missing
-3. #108 — Bell badge hardcoded to 4
-4. #106 — Year-boundary week upsert bug
-
-### Soon:
-5. #120 — Wire employee/project search input (confirm #110 is duplicate first)
-6. #121 — Wire week selector dropdown (confirm #111 is duplicate first)
-7. #104 — Settings tab styling inconsistencies
-8. #114 — Deactivated section expand default logic
-9. #115 — Tooltip on disabled role select
+### Start here (Soon):
+1. #120 — Wire employee/project search input
+2. #121 — Wire week selector dropdown
+3. #104 — Settings tab styling inconsistencies
+4. #114 — Deactivated section expand default logic
+5. #115 — Tooltip on disabled role select
+6. #61 — Drilldown review (3–4h)
+7. #128 — Total row expand + focus first cell (1–2h)
+8. #124 — Add new project assignment from heatmap (3–4h)
+9. #125 — Consultant profile editor (4–6h) — review #119 first (possible duplicate)
+10. #126 — Consultants management panel (6–8h)
+11. #119 — Review vs #125; close as duplicate if confirmed
 
 ### V1 Stable:
 * #123 — Session role staleness (was D1)
+* #82 — UAT completion (2h)
+* #83 — Remove test toast button (0.5h)
 * #102 — Email verification
 * #103 — Password strength policy
 * #100 — User Management enhancements
@@ -344,6 +355,10 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * #95 — Light mode toggle
 * #66 — Weekly snapshots
 * #64 — Excel export/import
+* #43 — Toggl integration
+* #117 — Role switching UI
+* #118 — Audit log
+* #94 — UAT testing mode
 
 ---
 
@@ -359,7 +374,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * ALL data operations use serviceClient — never req.session.token. Do not revert.
 * SSE: named events (event: data-updated). If SSE fires while _pendingStaffing.size > 0, show toast only — do NOT re-render heatmap.
 * Toast system: showToast(msg, type='default', durationMs=8000). CSS class-based variants. No inline styles.
-* isBillable on save: pulled from existing supply row → then employee table default → then true as last resort. (#109 fix applied Session 13)
+* isBillable on save: prefer existing assignment row → consultants.is_billable → true as last resort (#109 fixed Session 13)
 * Invited user detection: last_sign_in_at === null AND not banned
 * Cancel invite: deleteUser — only on unconfirmed accounts
 * Resend invite: inviteUserByEmail — requires custom SMTP in Supabase for prod
@@ -369,7 +384,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Ban duration: '87600h'. Reactivate sets ban_duration: 'none'
 * Password complexity: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
 * VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive'] — no others
-* app.js cache buster: currently v=20 — increment on every deploy with frontend changes
+* app.js cache buster: currently v=26 — increment on every deploy with frontend changes
 * Reactivate button uses inline onclick (not event delegation) — consistent with rest of app
 * #120 and #110 are likely duplicates — confirm and close #110 before working on either
 * #121 and #111 are likely duplicates — confirm and close #111 before working on either

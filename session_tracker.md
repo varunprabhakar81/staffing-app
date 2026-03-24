@@ -35,7 +35,7 @@
 
 | Task | Notes | Done |
 |------|-------|------|
-| Batch triage all 29 unmilesoned open issues | Includes #101, #105, #107, #110–#113, #117–#119, #61–#63, #79–#83, #94, #43 + others. Assign milestone or close as duplicate/stale. | [ ] |
+| Batch triage all 29 unmilesoned open issues | Includes #101, #105, #107, #110–#113, #117–#119, #61–#63, #79–#83, #94, #43 + others. Assign milestone or close as duplicate/stale. | [x] |
 
 ---
 
@@ -106,6 +106,7 @@ _Add anything worth capturing for the next session here._
 
 | Session | Date | Issues closed | Notes |
 |---------|------|---------------|-------|
+| 13 | March 24 2026 | #109, #122, #108, #106, #127 closed. #124–#128 logged. 18 issues triaged. #110/#111 closed as duplicates | Active Sprint cleared, hygiene pass complete |
 | 12 | — | #105, #107, #112, #113, B-save | Role gating UAT done, critical save bug fixed (serviceClient), stale roles cleaned |
 | 11 | — | #101, B7, B-isBillable | User management invited/deactivated, temp password masked |
 | 10 | — | #63, B1, B2 | User management UI, RBAC guards, heatmap end date dynamic |

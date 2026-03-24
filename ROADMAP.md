@@ -10,25 +10,28 @@ GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase
 
 | Phase | Issues | Est. effort |
 |---|---|---|
-| Active Sprint | 4 | ~6h |
-| Soon | 8 | ~21–24h |
-| V1 Stable | 5 | ~7.5h |
-| Phase 2 | 7 | ~55–65h |
-| Unmilesoned (needs triage) | 29 | — |
-| **Total** | **50 open** | **~85h** |
+| Active Sprint | — | ✅ Cleared (Session 13) |
+| Soon | 11 | ~35–40h |
+| V1 Stable | 7 | ~10h |
+| Phase 2 | 11 | ~72–85h |
+| Unmilesoned (needs triage) | 0 | Triage complete (Session 13) |
+| **Total** | **~29 open** | **~117–135h** |
+
+30 issues closed · 72% complete
 
 ---
 
-## Active Sprint — Bug fixes & data integrity
+## Active Sprint — ✅ Cleared (Session 13)
 
-Priority order. All must be browser-verified before closing.
+All Active Sprint issues closed and browser-verified.
 
-| # | Title | Type | Est. |
+| # | Title | Type | Session |
 |---|---|---|---|
-| #109 | Fix isBillable defaulting to true for new assignments | data bug | 1h |
-| #122 | Executive overview — Projects with Most Utilization shows no data | stakeholder bug | 1–2h |
-| #108 | Bell notification badge hardcoded to 4 | visible defect | 1h |
-| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | data bug | 2h |
+| #109 | Fix isBillable defaulting to true for new assignments | data bug | 13 |
+| #122 | Executive overview — Projects with Most Utilization shows no data | stakeholder bug | 13 |
+| #108 | Bell notification badge hardcoded to 4 | visible defect | 13 |
+| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | data bug | 13 |
+| #127 | Success toast not appearing after heatmap Save All | ui bug | 13 |
 
 ---
 
@@ -36,16 +39,19 @@ Priority order. All must be browser-verified before closing.
 
 | # | Title | Type | Est. | Note |
 |---|---|---|---|---|
-| #120 | Wire employee/project search input (client-side keyup filter) | wiring | 2h | Confirm #110 is duplicate first |
-| #121 | Wire week selector dropdown on heatmap | wiring | 2h | Confirm #111 is duplicate first |
+| #120 | Wire employee/project search input (client-side keyup filter) | wiring | 2h | #110 confirmed duplicate — closed |
+| #121 | Wire week selector dropdown on heatmap | wiring | 2h | #111 confirmed duplicate — closed |
 | #104 | Settings tab styling inconsistencies | polish | 2h | |
 | #114 | Deactivated section expanded by default | feat | 1h | |
 | #115 | Tooltip on disabled role select for invited rows | feat | 1h | |
+| #61 | Drilldown review | feat | 3–4h | |
+| #128 | Clicking consultant total row expands + focuses first cell | feat | 1–2h | |
 | #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | |
 | #125 | Consultant profile editor — is_billable, capacity, rate overrides | feat | 4–6h | |
 | #126 | Consultants management panel in Settings tab | feat | 6–8h | |
+| #119 | Consultant profile editor overlap | triage | — | Review vs #125 — close as duplicate if confirmed |
 
-Soon subtotal: ~21–24h
+Soon subtotal: ~35–40h
 
 ---
 
@@ -54,6 +60,8 @@ Soon subtotal: ~21–24h
 | # | Title | Type | Est. | Note |
 |---|---|---|---|---|
 | #123 | Session role staleness — stale JWT after role change | security | 2h | Was D1. High priority — close before onboarding real users |
+| #82 | UAT completion | qa | 2h | |
+| #83 | Remove test toast button | chore | 0.5h | |
 | #102 | Email verification flow for invited users | auth | 2h | |
 | #103 | Password strength enforcement for temp password | auth | 1h | |
 | #100 | User Management access enhancements | feat | 2h | |
@@ -74,24 +82,32 @@ Soon subtotal: ~21–24h
 | #95 | Light mode toggle | feat | 3–4h |
 | #66 | Store weekly staffing snapshots | feat | 6–8h |
 | #64 | Export and import Excel for supply and needs | feat | 4–6h |
+| #43 | Toggl integration | integration | — |
+| #117 | Role switching UI | feat | — |
+| #118 | Audit log | feat | — |
+| #94 | UAT testing mode | qa | — |
 
 ---
 
-## Hygiene — Pending before next session
+## Hygiene — Session 13 complete
 
 | Task | Issues | Status |
 |---|---|---|
-| Confirm and close duplicate issues | #110 → #120, #111 → #121 | Pending |
-| Batch triage 29 unmilesoned issues | See session_tracker.md | Pending |
+| Confirm and close duplicate issues | #110 → #120, #111 → #121 | ✅ Done (Session 13) |
+| Batch triage 29 unmilesoned issues | 18 issues actioned | ✅ Done (Session 13) |
 
 ---
 
 ## Prioritization notes (Session 13 review)
 
+- **Active Sprint cleared** — #109, #122, #108, #106, #127 all closed and browser-verified
+- **18 issues triaged** — milestones assigned, 10 stale/completed issues closed, 2 duplicates (#110/#111) closed
 - **#122 moved up** from low priority into Active Sprint — executive role seeing broken data is a stakeholder credibility issue
 - **#108 moved up** — hardcoded badge count is visible to every user on every page load and signals unfinished work during demos
 - **#123 (was D1) elevated** from Phase 2 into V1 Stable — session role staleness is a security gap, not a nice-to-have
-- **#110 and #111** are likely duplicates of #120 and #121 — confirm and close before starting work on either
+- **#110 and #111 confirmed duplicates** — closed in favour of #120 and #121
+- **#119** assigned to Soon pending review vs #125 (consultant profile editor) — close as duplicate if confirmed
+- **New issues #124–#128 logged** — all assigned to Soon or created during session
 
 ---
 
@@ -122,3 +138,10 @@ Soon subtotal: ~21–24h
 | #113 | Success toast after reactivateUser | 12 |
 | #105 | Role gating UAT — all 4 roles verified | 12 |
 | B-save | serviceClient fix for write routes | 12 |
+| #109 | Fix isBillable defaulting to true for new assignments | 13 |
+| #122 | Executive overview — Projects with Most Utilization shows no data | 13 |
+| #108 | Bell notification badge hardcoded to 4 | 13 |
+| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | 13 |
+| #127 | Success toast after heatmap Save All | 13 |
+| #110 | Duplicate of #120 — closed | 13 |
+| #111 | Duplicate of #121 — closed | 13 |
