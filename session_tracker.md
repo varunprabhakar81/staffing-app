@@ -38,6 +38,16 @@
 
 ---
 
+### New issues logged this session
+
+| # | Issue | Milestone | Done |
+|---|-------|-----------|------|
+| #124 | Add new project assignment to consultant from heatmap | Soon | [ ] |
+| #125 | Consultant profile editor — edit is_billable, capacity, rate overrides from UI | Soon | [ ] |
+| #126 | Consultants management panel in Settings tab | Soon | [ ] |
+
+---
+
 ### Session admin — before wrapping up
 
 | Task | Notes | Done |
