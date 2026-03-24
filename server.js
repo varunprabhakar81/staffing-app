@@ -561,7 +561,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 
     const { supply } = freshData;
     const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
-    const year = new Date().getFullYear();
+    const { weekKeyToDate } = freshData._meta;
 
     function parseDateStr(str) {
       if (!str) return null;
@@ -575,14 +575,10 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
     }
 
     function parseWkDate(wk) {
-      const m = wk.match(/(\d+)\/(\d+)/);
-      return m ? new Date(year, parseInt(m[1]) - 1, parseInt(m[2])) : null;
-    }
-
-    function weekKeyToDate(wk) {
-      const m = wk.match(/(\d+)\/(\d+)/);
-      if (!m) return null;
-      return `${year}-${String(parseInt(m[1])).padStart(2, '0')}-${String(parseInt(m[2])).padStart(2, '0')}`;
+      const iso = weekKeyToDate[wk];
+      if (!iso) return null;
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
     }
 
     // 2. Apply changes via Supabase write operations
@@ -612,7 +608,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
             for (const wk of weekKeys) {
               const wkDate = parseWkDate(wk);
               if (wkDate && wkDate >= start && wkDate <= end) {
-                const weekEnding = weekKeyToDate(wk);
+                const weekEnding = weekKeyToDate[wk];
                 if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
               }
             }
@@ -629,7 +625,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
         for (const wk of weekKeys) {
           const wkDate = parseWkDate(wk);
           if (start && end && wkDate && wkDate >= start && wkDate <= end) {
-            const weekEnding = weekKeyToDate(wk);
+            const weekEnding = weekKeyToDate[wk];
             if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
           }
         }
