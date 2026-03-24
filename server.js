@@ -524,6 +524,7 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
+      console.log('[#109 row check]', { consultantId, projectId, weekEnding, rowFound: !!row, rowIsBillable: row?.isBillable });
       // isBillable: prefer existing assignment row → consultants.is_billable default → true as last resort
       let isBillable = row?.isBillable;
       if (isBillable === undefined || isBillable === null) {
@@ -534,7 +535,6 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
           .single();
         isBillable = empRow?.is_billable ?? true;
       }
-
       await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable }, serviceClient);
     }
 

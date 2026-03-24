@@ -14,7 +14,7 @@
 
 | # | Issue | Notes | Done |
 |---|-------|-------|------|
-| #109 | Fix isBillable defaulting to true for new assignments | server.js — read from employees table when no supply row exists | [ ] |
+| #109 | Fix isBillable defaulting to true for new assignments | server.js — read from employees table when no supply row exists | [x] |
 | #122 | Executive overview — Projects with Most Utilization shows no data | Executive role sees empty projects panel — RBAC or query gap | [ ] |
 | #108 | Bell notification badge hardcoded to 4 | Visible to every user on every page load | [ ] |
 | #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | server.js /api/supply/update — bad date logic at year boundary | [ ] |
