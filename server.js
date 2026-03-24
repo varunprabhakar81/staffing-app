@@ -524,7 +524,18 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
-      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable: row?.isBillable ?? true }, serviceClient);
+      // isBillable: prefer existing assignment row → employee table default → true as last resort
+      let isBillable = row?.isBillable;
+      if (isBillable === undefined || isBillable === null) {
+        const { data: empRow } = await serviceClient
+          .from('employees')
+          .select('is_billable')
+          .eq('id', consultantId)
+          .single();
+        isBillable = empRow?.is_billable ?? true;
+      }
+
+      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable }, serviceClient);
     }
 
     staffingData = await readStaffingData(null, serviceClient);
