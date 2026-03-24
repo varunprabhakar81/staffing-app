@@ -4,9 +4,9 @@
 
 ---
 
-## Session 13 — March 24 2026
+## Session 15 — [Date]
 
-**Goal:** Active sprint bug fixes + GitHub hygiene + triage 29 unmilesoned issues
+**Goal:** [one line]
 
 ---
 
@@ -14,56 +14,42 @@
 
 | # | Issue | Notes | Done |
 |---|-------|-------|------|
-| #109 | Fix isBillable defaulting to true for new assignments | server.js — read from employees table when no supply row exists | [x] |
-| #122 | Executive overview — Projects with Most Utilization shows no data | Executive role sees empty projects panel — RBAC or query gap | [x] |
-| #108 | Bell notification badge hardcoded to 4 | Visible to every user on every page load | [x] |
-| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | server.js /api/supply/update — bad date logic at year boundary | [x] |
-| #127 | Success toast not appearing after heatmap Save All | Added showToast call in saveStaffingChanges success path | [x] |
+|   |       |       | [ ]  |
 
 ---
 
-### Hygiene — GitHub duplicate cleanup
+### Soon — Wiring & polish
 
-| # | Task | Notes | Done |
-|---|------|-------|------|
-| #110 | Confirm duplicate of #120 — close if confirmed | #110 = "header search bar" · #120 = "search employees/projects input" | [x] |
-| #111 | Confirm duplicate of #121 — close if confirmed | #111 = "date range selector" · #121 = "week selector dropdown" | [x] |
+| # | Issue | Notes | Done |
+|---|-------|-------|------|
+| #128 | Total row expand + focus first cell | 1–2h | [ ] |
+| #61  | Comprehensive drilldown review | 3–4h | [ ] |
+| #124 | Add new project assignment from heatmap | 3–4h | [ ] |
 
 ---
 
-### Triage — 29 unmilesoned issues
+### Hygiene
 
 | Task | Notes | Done |
 |------|-------|------|
-| Batch triage all 29 unmilesoned open issues | Includes #101, #105, #107, #110–#113, #117–#119, #61–#63, #79–#83, #94, #43 + others. Assign milestone or close as duplicate/stale. | [x] |
+| #119 vs #125 | Compare on GitHub, close #119 as duplicate if confirmed | [ ] |
+| #66 vs #129 | Close #66 as duplicate if #129 covers it fully | [ ] |
 
 ---
 
-### New issues logged this session
-
-| # | Issue | Milestone | Done |
-|---|-------|-----------|------|
-| #124 | Add new project assignment to consultant from heatmap | Soon | [ ] |
-| #125 | Consultant profile editor — edit is_billable, capacity, rate overrides from UI | Soon | [ ] |
-| #126 | Consultants management panel in Settings tab | Soon | [ ] |
-
----
-
-### Session admin — before wrapping up
+### Session admin
 
 | Task | Notes | Done |
 |------|-------|------|
-| Verify Railway deploy | Hard refresh Ctrl+Shift+R · confirm cache buster incremented · log in and verify each fix in browser | [ ] |
-| Update HANDOFF_6.md | Note: D1 is now #123 · cache buster at v=21 · milestones created · triage status | [ ] |
-| Close completed issues in GitHub | Add commit references · never close before browser verification | [ ] |
+| Verify Railway deploy | Hard refresh · cache buster · browser verify | [ ] |
+| Update HANDOFF.md | Capture state, issue numbers, cache buster version | [ ] |
+| Close completed GitHub issues | Commit refs · browser verified only | [ ] |
 
 ---
 
 ### Session notes
 
-_Add anything worth capturing for the next session here._
-
-- 
+-
 
 ---
 
@@ -104,9 +90,10 @@ _Add anything worth capturing for the next session here._
 
 ## Completed sessions
 
-| Session | Date | Issues closed | Notes |
-|---------|------|---------------|-------|
-| 13 | March 24 2026 | #109, #122, #108, #106, #127 closed. #124–#128 logged. 18 issues triaged. #110/#111 closed as duplicates | Active Sprint cleared, hygiene pass complete |
+| Session | Summary | Commits | Cache busters |
+|---------|---------|---------|---------------|
+| 14 | #120 search navigator, #121 closed→#129, #104/#114/#115 Settings polish | b830c84→20446e9 | app.js v=32, styles.css v=35 |
+| 13 | March 24 2026 · #109, #122, #108, #106, #127 closed. #124–#128 logged. 18 issues triaged. #110/#111 closed as duplicates | — | — |
 | 12 | — | #105, #107, #112, #113, B-save | Role gating UAT done, critical save bug fixed (serviceClient), stale roles cleaned |
 | 11 | — | #101, B7, B-isBillable | User management invited/deactivated, temp password masked |
 | 10 | — | #63, B1, B2 | User management UI, RBAC guards, heatmap end date dynamic |

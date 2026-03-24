@@ -15,4 +15,28 @@ Rules:
 - The heatmap has NO Edit Mode button — cells are always editable for admin/resource_manager (Airtable/Float model). Do not add an Edit Mode toggle back under any circumstances.
 - app.js cache buster must be incremented on every deploy with frontend changes — hard refresh with Ctrl+Shift+R after deploy
 
-Read docs/HANDOFF_7.md and give me a 5-bullet summary of current state, then open docs/session_tracker.md and show me this session's task list, then confirm the first issue to tackle.
+Read docs/HANDOFF.md and give me a 5-bullet summary of current state, then open docs/session_tracker.md and show me this session's task list, then confirm the first issue to tackle.
+
+---
+
+_Last updated: Session 14 complete._
+
+---
+
+## Next session starts with
+
+Soon queue — start here:
+1. #128 — Total row expand + focus first cell (1–2h)
+2. #61 — Comprehensive drilldown review (3–4h)
+3. #124 — Add new project assignment from heatmap (3–4h)
+4. #119/#125 — Review for duplicate first, then consultant profile editor
+5. #126 — Consultants management panel in Settings (6–8h)
+
+---
+
+## Session 14 follow-ups (carry into Session 15)
+
+- Row flash polish deferred to #61
+- Week selector removed from nav (code commented out in app.js for Phase 2 restoration)
+- #129 created for historical snapshots (Phase 2)
+- Holistic UI/UX pass needed before V1 — not yet a GitHub issue

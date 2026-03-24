@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: #63 User Management UI complete — #77 Edit Mode UX or #96 Tenant Onboarding next
+Last updated: Session 14 complete — #120 (search navigator), #121 (closed→#129), #104/#114/#115 (Settings polish). Next: #128, #61, #124.
 
 ---
 
@@ -236,9 +236,29 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 
 ---
 
+## Cache Busters
+
+| File | Current version |
+|---|---|
+| app.js | v=32 |
+| styles.css | v=35 |
+
+---
+
+## GitHub Milestones
+
+| Milestone | Remaining issues |
+|---|---|
+| Active Sprint | — (cleared Session 13) |
+| Soon | #128, #61, #124, #119, #125, #126 |
+| V1 Stable | #123, #82, #83, #102, #103, #100, #116 |
+| Phase 2 | #129, #96, #99, #98, #97, #95, #66, #64, #43, #117, #118, #94 |
+
+---
+
 ## Issues Completed
 
-| Issue | Title | Status |
+| Issue | Title | Session |
 |---|---|---|
 | #29 | Supabase: schema setup | ✅ Closed |
 | #30 | Supabase: Excel → import script | ✅ Closed |
@@ -252,14 +272,33 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | RLS | RLS tightening — WITH CHECK + tenants lockdown | ✅ Closed |
 | #62 | RBAC role enforcement | ✅ Closed |
 | #63 | User Management UI | ✅ Closed |
+| #120 | Wire search input — global typeahead navigator | 14 |
+| #121 | Week selector — closed, superseded by #129 | 14 |
+| #104 | Settings tab styling inconsistencies | 14 |
+| #114 | Deactivated section expand default logic | 14 |
+| #115 | Tooltip on disabled role select | 14 |
 
 ---
 
 ## Build Order — Next Session
 
-1. **#77 follow-up** — Edit Mode UX: evaluate auto-entering edit mode on cell click vs requiring explicit Edit button. Current button feels unintuitive.
-2. **#96** — Tenant signup/onboarding flow (new firm self-service)
-3. **#105** — Role gating UAT (needs test users for each role)
+Soon (start here):
+1. **#128** — Total row expand + focus first cell (1–2h)
+2. **#61** — Comprehensive drilldown review (3–4h)
+3. **#124** — Add new project assignment from heatmap (3–4h)
+4. **#119/#125** — Review for duplicate, then consultant profile editor (4–6h)
+5. **#126** — Consultants management panel (6–8h)
+
+### Session 15 carry-forward items
+
+1. **#119 vs #125** — compare on GitHub, close duplicate
+2. **Heatmap inline filter** — new GitHub issue
+3. **#82 UAT cases** — formal test script before real users onboard
+4. **#61** — add row flash note from #120
+5. **#66 vs #129** — close #66 as duplicate if #129 covers it
+6. **Cache buster audit** — app.js v=32, styles.css v=35
+7. **Kill node in Git Bash** — pkill node not working, document workaround
+8. **Holistic UI/UX design pass** — new GitHub issue, V1 Stable candidate
 
 ---
 
@@ -306,6 +345,9 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Ban duration for deactivated users: '87600h' (~10 years). Reactivate sets ban_duration: 'none'
 * Password complexity regex: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
 * VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive']
+* Global search: typeahead navigator pattern (not heatmap filter) — consistent with Float/Runn. Selects employee → Staffing tab, scrolls+highlights row. Selects project → expands all consultants on that project, scrolls to first. / and Ctrl+K focus the input from anywhere.
+* Week selector removed Session 14 — code commented out in app.js. To be rebuilt as historical snapshots feature (#129, Phase 2).
+* Row flash on search: amber border-left + box-shadow on name cell. Subtle against dark theme — polish deferred to #61 UX pass.
 
 ---
 
