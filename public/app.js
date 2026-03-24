@@ -255,8 +255,10 @@ window.selectedDateRange = { type: 'current', weekOffset: 0 };
 
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
-      if (!dd.classList.contains('hidden')) { closeDropdown(); e.stopPropagation(); }
-      else { input.value = ''; input.blur(); e.stopPropagation(); }
+      closeDropdown();
+      input.value = '';
+      input.blur();
+      e.stopPropagation();
       return;
     }
     if (dd.classList.contains('hidden')) return;
@@ -330,26 +332,26 @@ function navigateToProject(projName) {
   }, 120);
 }
 
-// ── Flash a heatmap row: quick teal pulse, then fade out ──────────
+// ── Flash a heatmap row: amber pulse, clearly visible on dark rows ─
 function flashHeatmapRow(tr) {
   if (!tr) return;
   const cells  = Array.from(tr.querySelectorAll('td'));
   const origBg = cells.map(td => td.style.background);
   const origTr = tr.style.background;
   // Instant-on
-  cells.forEach(td => { td.style.transition = 'background 0.1s'; td.style.background = 'rgba(99,102,241,0.38)'; });
-  tr.style.background = 'rgba(99,102,241,0.38)';
-  // Fade out after 350ms hold
+  cells.forEach(td => { td.style.transition = 'background 0.1s'; td.style.background = 'rgba(250,204,21,0.45)'; });
+  tr.style.background = 'rgba(250,204,21,0.45)';
+  // Fade out after 500ms hold
   setTimeout(() => {
-    cells.forEach(td => { td.style.transition = 'background 1.2s ease-out'; td.style.background = 'rgba(99,102,241,0)'; });
-    tr.style.background = 'rgba(99,102,241,0)';
+    cells.forEach(td => { td.style.transition = 'background 1.5s ease-out'; td.style.background = 'rgba(250,204,21,0)'; });
+    tr.style.background = 'rgba(250,204,21,0)';
     // Restore original inline styles after fade completes
     setTimeout(() => {
       cells.forEach((td, i) => { td.style.transition = ''; td.style.background = origBg[i]; });
       tr.style.transition = '';
       tr.style.background = origTr;
-    }, 1200);
-  }, 350);
+    }, 1500);
+  }, 500);
 }
 
 // ── Header: Notification Bell ─────────────────────────────────────
