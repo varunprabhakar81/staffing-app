@@ -15,4 +15,4 @@ Rules:
 - The heatmap has NO Edit Mode button — cells are always editable for admin/resource_manager (Airtable/Float model). Do not add an Edit Mode toggle back under any circumstances.
 - app.js cache buster must be incremented on every deploy with frontend changes — hard refresh with Ctrl+Shift+R after deploy
 
-Read HANDOFF_6.md in the repo root and give me a 5-bullet summary of current state, then open session_tracker.md and show me this session's task list, then confirm the first issue to tackle.
+Read docs/HANDOFF_7.md and give me a 5-bullet summary of current state, then open docs/session_tracker.md and show me this session's task list, then confirm the first issue to tackle.
