@@ -287,7 +287,8 @@ function navigateToEmployee(name) {
     for (let i = 0; i < rowIdx; i++) y += _vsAllRows[i].height;
     const scrollWrap = document.querySelector('.hm-scroll-wrap');
     if (!scrollWrap) return;
-    scrollWrap.scrollTop = y;
+    scrollWrap.scrollLeft = 0; // ensure name column is visible
+    scrollWrap.scrollTop  = y;
     _vsRenderVisible();
     requestAnimationFrame(() => {
       const td = Array.from(document.querySelectorAll('td.hm-name-cell'))
@@ -320,7 +321,8 @@ function navigateToProject(projName) {
     y = Math.max(0, y - VS_H_EMP); // nudge up so parent emp row is visible
     const scrollWrap = document.querySelector('.hm-scroll-wrap');
     if (!scrollWrap) return;
-    scrollWrap.scrollTop = y;
+    scrollWrap.scrollLeft = 0; // ensure name column is visible
+    scrollWrap.scrollTop  = y;
     _vsRenderVisible();
     requestAnimationFrame(() => {
       document.querySelectorAll('tr.hm-sub-row').forEach(tr => {
@@ -332,26 +334,31 @@ function navigateToProject(projName) {
   }, 120);
 }
 
-// ── Flash a heatmap row: amber pulse, clearly visible on dark rows ─
+// ── Flash a heatmap row: amber left-border + glow on name cell ────
+// Animates border/shadow instead of background so inline cell colors don't overpower it
 function flashHeatmapRow(tr) {
   if (!tr) return;
-  const cells  = Array.from(tr.querySelectorAll('td'));
-  const origBg = cells.map(td => td.style.background);
-  const origTr = tr.style.background;
-  // Instant-on
-  cells.forEach(td => { td.style.transition = 'background 0.1s'; td.style.background = 'rgba(250,204,21,0.45)'; });
-  tr.style.background = 'rgba(250,204,21,0.45)';
-  // Fade out after 500ms hold
+  const nameCell = tr.querySelector('td:first-child');
+  if (!nameCell) return;
+  const origBorderLeft = nameCell.style.borderLeft;
+  const origBoxShadow  = nameCell.style.boxShadow;
+  const origTransition = nameCell.style.transition;
+  // Instant-on: amber left border + inset glow
+  nameCell.style.transition  = '';
+  nameCell.style.borderLeft  = '3px solid #FACC15';
+  nameCell.style.boxShadow   = 'inset 3px 0 12px rgba(250,204,21,0.4)';
+  // Hold 600ms then fade both out over 1.5s
   setTimeout(() => {
-    cells.forEach(td => { td.style.transition = 'background 1.5s ease-out'; td.style.background = 'rgba(250,204,21,0)'; });
-    tr.style.background = 'rgba(250,204,21,0)';
-    // Restore original inline styles after fade completes
+    nameCell.style.transition     = 'border-color 1.5s ease-out, box-shadow 1.5s ease-out';
+    nameCell.style.borderLeftColor = 'rgba(250,204,21,0)';
+    nameCell.style.boxShadow      = 'inset 3px 0 12px rgba(250,204,21,0)';
+    // Restore original state after fade completes
     setTimeout(() => {
-      cells.forEach((td, i) => { td.style.transition = ''; td.style.background = origBg[i]; });
-      tr.style.transition = '';
-      tr.style.background = origTr;
+      nameCell.style.transition  = origTransition;
+      nameCell.style.borderLeft  = origBorderLeft;
+      nameCell.style.boxShadow   = origBoxShadow;
     }, 1500);
-  }, 500);
+  }, 600);
 }
 
 // ── Header: Notification Bell ─────────────────────────────────────
