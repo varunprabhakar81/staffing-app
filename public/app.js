@@ -2579,6 +2579,7 @@ async function saveStaffingChanges() {
     _pendingStaffing.clear();
     _editActiveCell = null;
     updateHmSaveBar();
+    showToast('Changes saved successfully', 'success', 5000);
     await new Promise(resolve => setTimeout(resolve, 1500));
     await loadDashboard();
   } catch (err) {
