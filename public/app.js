@@ -85,59 +85,63 @@ function toggleShortcutGuide() { const el = document.getElementById('shortcutOve
 function handleShortcutOverlayClick(e) { if (e.target === e.currentTarget) closeShortcutGuide(); }
 
 // ── Header: Date Range Selector ───────────────────────────────────
-window.selectedDateRange = { type: 'current', weekOffset: 0 };
-
-(function initDateRange() {
-  function getWeekEndDate(offsetWeeks) {
-    const today = new Date();
-    const daysToSat = (6 - today.getDay() + 7) % 7;
-    const sat = new Date(today);
-    sat.setDate(today.getDate() + daysToSat + offsetWeeks * 7);
-    return sat;
-  }
-
-  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function formatWeekLabel(date) {
-    return `Week of ${MONTHS[date.getMonth()]} ${date.getDate()}`;
-  }
-
-  const labelBtn  = document.getElementById('dateRangeLabel');
-  const dropdown  = document.getElementById('dateRangeDropdown');
-  const prevBtn   = document.getElementById('dateRangePrev');
-  const nextBtn   = document.getElementById('dateRangeNext');
-
-  if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(0));
-
-  function applyWeekOffset() {
-    window.selectedDateRange.type = 'custom';
-    if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(window.selectedDateRange.weekOffset));
-    document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
-  }
-
-  if (labelBtn) {
-    labelBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      if (dropdown) dropdown.classList.toggle('hidden');
-    });
-  }
-
-  document.querySelectorAll('.hdr-date-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const range = btn.dataset.range;
-      window.selectedDateRange.type = range;
-      window.selectedDateRange.weekOffset = 0;
-      const labels = { current: 'Current Week', next2: 'Next 2 Weeks', next4: 'Next 4 Weeks', month: 'This Month' };
-      if (labelBtn) labelBtn.textContent = labels[range] || 'Current Week';
-      if (dropdown) dropdown.classList.add('hidden');
-      document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
-    });
-  });
-
-  if (prevBtn) prevBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset--; applyWeekOffset(); });
-  if (nextBtn) nextBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset++; applyWeekOffset(); });
-
-  document.addEventListener('click', () => { if (dropdown) dropdown.classList.add('hidden'); });
-})();
+// Commented out Session 14 — week selector removed from nav.
+// To be rebuilt properly as part of historical snapshots
+// feature (Phase 2). See GitHub issue #[new issue number].
+//
+// window.selectedDateRange = { type: 'current', weekOffset: 0 };
+//
+// (function initDateRange() {
+//   function getWeekEndDate(offsetWeeks) {
+//     const today = new Date();
+//     const daysToSat = (6 - today.getDay() + 7) % 7;
+//     const sat = new Date(today);
+//     sat.setDate(today.getDate() + daysToSat + offsetWeeks * 7);
+//     return sat;
+//   }
+//
+//   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+//   function formatWeekLabel(date) {
+//     return `Week of ${MONTHS[date.getMonth()]} ${date.getDate()}`;
+//   }
+//
+//   const labelBtn  = document.getElementById('dateRangeLabel');
+//   const dropdown  = document.getElementById('dateRangeDropdown');
+//   const prevBtn   = document.getElementById('dateRangePrev');
+//   const nextBtn   = document.getElementById('dateRangeNext');
+//
+//   if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(0));
+//
+//   function applyWeekOffset() {
+//     window.selectedDateRange.type = 'custom';
+//     if (labelBtn) labelBtn.textContent = formatWeekLabel(getWeekEndDate(window.selectedDateRange.weekOffset));
+//     document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
+//   }
+//
+//   if (labelBtn) {
+//     labelBtn.addEventListener('click', e => {
+//       e.stopPropagation();
+//       if (dropdown) dropdown.classList.toggle('hidden');
+//     });
+//   }
+//
+//   document.querySelectorAll('.hdr-date-option').forEach(btn => {
+//     btn.addEventListener('click', () => {
+//       const range = btn.dataset.range;
+//       window.selectedDateRange.type = range;
+//       window.selectedDateRange.weekOffset = 0;
+//       const labels = { current: 'Current Week', next2: 'Next 2 Weeks', next4: 'Next 4 Weeks', month: 'This Month' };
+//       if (labelBtn) labelBtn.textContent = labels[range] || 'Current Week';
+//       if (dropdown) dropdown.classList.add('hidden');
+//       document.dispatchEvent(new CustomEvent('dateRangeChanged', { detail: { ...window.selectedDateRange } }));
+//     });
+//   });
+//
+//   if (prevBtn) prevBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset--; applyWeekOffset(); });
+//   if (nextBtn) nextBtn.addEventListener('click', () => { window.selectedDateRange.weekOffset++; applyWeekOffset(); });
+//
+//   document.addEventListener('click', () => { if (dropdown) dropdown.classList.add('hidden'); });
+// })();
 
 // ── Header: Search Bar (Global Typeahead Navigator) (#120) ───────
 (function initHeaderSearch() {
