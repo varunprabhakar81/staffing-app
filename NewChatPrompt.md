@@ -1,6 +1,6 @@
-# Staffing Intelligence — New Chat Starter Prompt
+# New Chat Starter Prompt
 
-Paste this into a new Claude chat to resume work on the project.
+Paste everything below this line into a new Claude chat to resume work on Staffing Intelligence.
 
 ---
 
@@ -15,10 +15,4 @@ Rules:
 - The heatmap has NO Edit Mode button — cells are always editable for admin/resource_manager (Airtable/Float model). Do not add an Edit Mode toggle back under any circumstances.
 - app.js cache buster must be incremented on every deploy with frontend changes — hard refresh with Ctrl+Shift+R after deploy
 
-Read HANDOFF_3.md in the repo root and give me a 5-bullet summary of current state, then confirm the first issue to tackle.
-
----
-
-## Notes
-- Update the HANDOFF reference to the latest handoff doc at the start of each new session
-- The rules above are permanent — do not remove them
+Read HANDOFF_6.md in the repo root and give me a 5-bullet summary of current state, then open session_tracker.md and show me this session's task list, then confirm the first issue to tackle.

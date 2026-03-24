@@ -1,62 +1,119 @@
-# Staffing Intelligence — Build Roadmap
+# Staffing Intelligence — Product Roadmap
 
-Last updated: March 2026
-
----
-
-## Phase 1 — Clean v1 (Internal Deloitte Use)
-
-| # | Issue | Title | Status |
-|---|-------|-------|--------|
-| 1 | #112 | Replace alert() with showToast() | ✅ Done |
-| 2 | #107 | try/catch on changeUserRole/deactivateUser/reactivateUser | ✅ Done |
-| 3 | #113 | Success toast after reactivateUser | ✅ Done |
-| 4 | #105 | Role gating UAT — all 4 roles end to end | 🔄 In Progress |
-| 5 | #109 | isBillable defaulting true for new assignments | ⬜ Todo |
-| 6 | #104 | Settings tab styling inconsistencies | ⬜ Todo |
-| 7 | #110 | Wire header search bar | ⬜ Todo |
-| 8 | #111 | Wire date range selector on heatmap | ⬜ Todo |
-| 9 | #114 | Deactivated section expand default logic | ⬜ Todo |
-| 10 | #115 | Tooltip on disabled role select | ⬜ Todo |
-| 11 | #108 | Bell badge hardcoded to 4 | ⬜ Todo |
-| 12 | #106 | Year-boundary week upsert bug | ⬜ Todo |
-| 13 | #119 | Consultant profile editor — edit skill sets, level, and details from app UI | ⬜ Todo |
+Last updated: Session 13 · March 24 2026
+Live app: https://staffing-app-production.up.railway.app
+GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase 2 (#20)
 
 ---
 
-## Phase 2 — Multi-Tenant Product
+## Summary
 
-| # | Issue | Title | Status |
-|---|-------|-------|--------|
-| 1 | #96 | Tenant onboarding flow | ⬜ Todo |
-| 2 | #102 | Email verification for invited users | ⬜ Todo |
-| 3 | #103 | Password strength policy in Supabase | ⬜ Todo |
-| 4 | #99 | Multi-role support + role toggle UI | ⬜ Todo |
-| 5 | #97 | Extended roles — consultant, finance, recruiter | ⬜ Todo |
-| 6 | #98 | Finance and Ops Dashboard | ⬜ Todo |
-| 7 | #95 | Light mode toggle | ⬜ Todo |
-| 8 | #66 | Weekly snapshots | ⬜ Todo |
-| 9 | #64 | Excel export/import | ⬜ Todo |
-| 10 | D1 | Session role staleness | ⬜ Todo |
-| 11 | #100 | User Management enhancements | ⬜ Todo |
-| 12 | #116 | Document RBAC matrix for extended roles | ⬜ Todo |
-| 13 | #117 | Role switching — users with multiple roles can switch active role per session | ⬜ Todo |
-| 14 | #118 | Audit log — track all write actions by user and active role | ⬜ Todo |
+| Phase | Issues | Est. effort |
+|---|---|---|
+| Active Sprint | 4 | ~6h |
+| Soon | 5 | ~8h |
+| V1 Stable | 5 | ~7.5h |
+| Phase 2 | 7 | ~55–65h |
+| Unmilesoned (needs triage) | 29 | — |
+| **Total** | **50 open** | **~85h** |
 
 ---
 
-## Notes
-- Phase 1 must be stable before Phase 2 begins
-- #96 (tenant onboarding) is the unlock for all of Phase 2
-- #102 and #103 deprioritized — not needed for internal Deloitte use
+## Active Sprint — Bug fixes & data integrity
+
+Priority order. All must be browser-verified before closing.
+
+| # | Title | Type | Est. |
+|---|---|---|---|
+| #109 | Fix isBillable defaulting to true for new assignments | data bug | 1h |
+| #122 | Executive overview — Projects with Most Utilization shows no data | stakeholder bug | 1–2h |
+| #108 | Bell notification badge hardcoded to 4 | visible defect | 1h |
+| #106 | Year-boundary week upsert — getFullYear() not weekKeyToDate | data bug | 2h |
 
 ---
 
-## Hygiene
+## Soon — Polish & wiring
 
-| File | Purpose |
-|---|---|
-| HYGIENE.md | Codebase audit checklist — run at end of each session |
-| NewChatPrompt.md | Starter prompt for new Claude chat sessions |
-| HANDOFF_3.md | Latest session handoff doc |
-| ROADMAP.md | This file — build order tracking |
+| # | Title | Type | Est. | Note |
+|---|---|---|---|---|
+| #120 | Wire employee/project search input (client-side keyup filter) | wiring | 2h | Confirm #110 is duplicate first |
+| #121 | Wire week selector dropdown on heatmap | wiring | 2h | Confirm #111 is duplicate first |
+| #104 | Settings tab styling inconsistencies | polish | 2h | |
+| #114 | Deactivated section expanded by default | feat | 1h | |
+| #115 | Tooltip on disabled role select for invited rows | feat | 1h | |
+
+---
+
+## V1 Stable — Production hardening
+
+| # | Title | Type | Est. | Note |
+|---|---|---|---|---|
+| #123 | Session role staleness — stale JWT after role change | security | 2h | Was D1. High priority — close before onboarding real users |
+| #102 | Email verification flow for invited users | auth | 2h | |
+| #103 | Password strength enforcement for temp password | auth | 1h | |
+| #100 | User Management access enhancements | feat | 2h | |
+| #116 | Document tab access matrix in HANDOFF | chore | 0.5h | |
+
+---
+
+## Phase 2 — Scale & multi-tenancy
+
+#96 is the gate — nothing else in Phase 2 can ship without tenant onboarding.
+
+| # | Title | Type | Est. |
+|---|---|---|---|
+| #96 | Tenant onboarding + signup flow | epic | 12–16h |
+| #99 | Multi-role support + role toggle UI | feat | 6–8h |
+| #98 | Finance and Ops Dashboard — rates, margin, billing | feat | 8–12h |
+| #97 | Extended roles — consultant, finance, recruiter | feat | 4h |
+| #95 | Light mode toggle | feat | 3–4h |
+| #66 | Store weekly staffing snapshots | feat | 6–8h |
+| #64 | Export and import Excel for supply and needs | feat | 4–6h |
+
+---
+
+## Hygiene — Pending before next session
+
+| Task | Issues | Status |
+|---|---|---|
+| Confirm and close duplicate issues | #110 → #120, #111 → #121 | Pending |
+| Batch triage 29 unmilesoned issues | See session_tracker.md | Pending |
+
+---
+
+## Prioritization notes (Session 13 review)
+
+- **#122 moved up** from low priority into Active Sprint — executive role seeing broken data is a stakeholder credibility issue
+- **#108 moved up** — hardcoded badge count is visible to every user on every page load and signals unfinished work during demos
+- **#123 (was D1) elevated** from Phase 2 into V1 Stable — session role staleness is a security gap, not a nice-to-have
+- **#110 and #111** are likely duplicates of #120 and #121 — confirm and close before starting work on either
+
+---
+
+## Completed issues
+
+| Issue | Title | Session |
+|---|---|---|
+| #29 | Supabase schema setup | 2 |
+| #30 | Supabase Excel import script | 2 |
+| #31 | Supabase swap backend data layer | 3 |
+| #17 | Auto-refresh SSE | 4 |
+| #67 | Refresh button relocate | 4 |
+| #77 | Merge Manage into Staffing: Hybrid Edit Mode | 5 |
+| #84 | Terminology rename Supply/Demand | 6 |
+| #87–#93 | Supabase Auth setup (#32) | 7 |
+| #38 | Railway deploy | 8 |
+| RLS | RLS tightening | 8 |
+| #62 | RBAC role enforcement | 9 |
+| #77 | Edit Mode removed (Airtable model) | 9 |
+| #63 | User Management UI | 10 |
+| B1 | RBAC guards on /api/supply and /api/employees | 10 |
+| B2 | Heatmap end date dynamic | 10 |
+| #101 | User Management invited/deactivated | 11 |
+| B7 | Temp password field masked | 11 |
+| B-isBillable | isBillable passed correctly on save | 11 |
+| #112 | Replace alert() with showToast() | 12 |
+| #107 | try/catch on role/deactivate/reactivate | 12 |
+| #113 | Success toast after reactivateUser | 12 |
+| #105 | Role gating UAT — all 4 roles verified | 12 |
+| B-save | serviceClient fix for write routes | 12 |
