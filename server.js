@@ -524,11 +524,11 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
       if (!consultantId || !projectId) continue;
 
-      // isBillable: prefer existing assignment row → employee table default → true as last resort
+      // isBillable: prefer existing assignment row → consultants.is_billable default → true as last resort
       let isBillable = row?.isBillable;
       if (isBillable === undefined || isBillable === null) {
         const { data: empRow } = await serviceClient
-          .from('employees')
+          .from('consultants')
           .select('is_billable')
           .eq('id', consultantId)
           .single();
