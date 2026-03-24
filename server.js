@@ -356,7 +356,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 });
 
 // GET /api/heatmap
-app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
