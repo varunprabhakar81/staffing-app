@@ -11,7 +11,7 @@ GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase
 | Phase | Issues | Est. effort |
 |---|---|---|
 | Active Sprint | 4 | ~6h |
-| Soon | 5 | ~8h |
+| Soon | 8 | ~21–24h |
 | V1 Stable | 5 | ~7.5h |
 | Phase 2 | 7 | ~55–65h |
 | Unmilesoned (needs triage) | 29 | — |
@@ -41,6 +41,11 @@ Priority order. All must be browser-verified before closing.
 | #104 | Settings tab styling inconsistencies | polish | 2h | |
 | #114 | Deactivated section expanded by default | feat | 1h | |
 | #115 | Tooltip on disabled role select for invited rows | feat | 1h | |
+| #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | |
+| #125 | Consultant profile editor — is_billable, capacity, rate overrides | feat | 4–6h | |
+| #126 | Consultants management panel in Settings tab | feat | 6–8h | |
+
+Soon subtotal: ~21–24h
 
 ---
 
