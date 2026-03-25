@@ -38,19 +38,21 @@ const C = {
   s.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.7, fill:{ color:C.navy }, line:{ color:C.navy } });
   s.addText("WHAT WE BUILT", { x:0.5, y:0, w:9, h:0.7, fontSize:10, color:C.ice, bold:true, charSpacing:3, valign:"middle", fontFace:"Calibri", margin:0 });
   s.addText("A platform that replaces spreadsheets", { x:0.5, y:0.9, w:9, h:0.65, fontSize:26, color:C.navy, bold:true, fontFace:"Calibri", margin:0 });
-  s.addText("Built from scratch in 13 sessions — live on Railway, backed by Supabase, powered by Claude AI.", { x:0.5, y:1.55, w:9, h:0.4, fontSize:12, color:C.slate, fontFace:"Calibri", margin:0 });
+  s.addText("Built from scratch in 18 sessions — live on Railway, backed by Supabase, powered by Claude AI.", { x:0.5, y:1.55, w:9, h:0.4, fontSize:12, color:C.slate, fontFace:"Calibri", margin:0 });
 
   const caps = [
-    { title:"Availability heatmap",     desc:"Weekly hours by consultant across all projects. Inline editing, no spreadsheets." },
-    { title:"Role-based access",        desc:"4 roles — admin, resource manager, project manager, executive." },
-    { title:"Ask Claude (AI)",          desc:"Natural language queries against live staffing data." },
-    { title:"Staffing needs pipeline",  desc:"Open roles matched to available consultants with AI recommendations." },
-    { title:"Utilization dashboard",    desc:"KPIs, overallocation alerts, rolling-off warnings, top projects." },
-    { title:"User management",          desc:"Invite, activate, deactivate and manage roles from an admin panel." },
+    { title:"Availability heatmap",          desc:"Weekly hours by consultant across all projects. Inline editing, no spreadsheets." },
+    { title:"Role-based access",             desc:"4 roles — admin, resource manager, project manager, executive." },
+    { title:"Ask Claude (AI)",               desc:"Natural language queries against live staffing data." },
+    { title:"Staffing needs pipeline",       desc:"Open roles matched to available consultants with AI recommendations." },
+    { title:"Utilization dashboard",         desc:"KPIs, overallocation alerts, rolling-off warnings, top projects." },
+    { title:"User management",               desc:"Invite, activate, deactivate and manage roles from an admin panel." },
+    { title:"Consultant profile editor",     desc:"View and edit skill sets, level, location, and rate overrides per consultant. Role-gated." },
+    { title:"Consultants management panel",  desc:"Manage all 25 consultants from Settings — edit, deactivate, and reactivate." },
   ];
-  const colW=2.9, rowH=1.35, startX=0.4, startY=2.1, gap=0.2;
+  const colW=2.1, rowH=1.35, startX=0.4, startY=2.1, gap=0.17;
   caps.forEach((cap, i) => {
-    const col=i%3, row=Math.floor(i/3);
+    const col=i%4, row=Math.floor(i/4);
     const x=startX+col*(colW+gap), y=startY+row*(rowH+gap);
     s.addShape(pres.shapes.RECTANGLE, { x, y, w:colW, h:rowH, fill:{ color:C.white }, line:{ color:"E2E8F0", pt:0.75 } });
     s.addShape(pres.shapes.RECTANGLE, { x, y, w:0.06, h:rowH, fill:{ color:C.teal }, line:{ color:C.teal } });
@@ -66,12 +68,12 @@ const C = {
   s.background = { color: C.navy };
   s.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.7, fill:{ color:C.teal }, line:{ color:C.teal } });
   s.addText("WHERE WE ARE", { x:0.5, y:0, w:9, h:0.7, fontSize:10, color:C.white, bold:true, charSpacing:3, valign:"middle", fontFace:"Calibri", margin:0 });
-  s.addText("72%", { x:0.5, y:1.0, w:3, h:1.4, fontSize:72, bold:true, color:C.teal, fontFace:"Calibri", margin:0 });
+  s.addText("80%", { x:0.5, y:1.0, w:3, h:1.4, fontSize:72, bold:true, color:C.teal, fontFace:"Calibri", margin:0 });
   s.addText("of v1 complete", { x:0.5, y:2.35, w:3, h:0.4, fontSize:14, color:C.ice, fontFace:"Calibri", margin:0 });
   s.addShape(pres.shapes.RECTANGLE, { x:0.5, y:2.85, w:9,      h:0.22, fill:{ color:"FFFFFF", transparency:80 }, line:{ color:C.navy } });
-  s.addShape(pres.shapes.RECTANGLE, { x:0.5, y:2.85, w:9*0.72, h:0.22, fill:{ color:C.teal }, line:{ color:C.teal } });
-  s.addText("30 issues shipped across auth, RBAC, heatmap editing, user management, AI integration, and production deploy.", { x:3.7, y:1.2, w:5.8, h:0.9, fontSize:12, color:C.ice, fontFace:"Calibri", wrap:true, margin:0 });
-  const kpis=[{val:"13",label:"Sessions shipped"},{val:"30",label:"Issues closed"},{val:"~29h",label:"To v1 stable"},{val:"~60h",label:"Phase 2 scope"}];
+  s.addShape(pres.shapes.RECTANGLE, { x:0.5, y:2.85, w:9*0.80, h:0.22, fill:{ color:C.teal }, line:{ color:C.teal } });
+  s.addText("35 issues shipped across auth, RBAC, heatmap editing, user management, consultant management, AI integration, and production deploy.", { x:3.7, y:1.2, w:5.8, h:0.9, fontSize:12, color:C.ice, fontFace:"Calibri", wrap:true, margin:0 });
+  const kpis=[{val:"18",label:"Sessions shipped"},{val:"35",label:"Issues closed"},{val:"~13h",label:"To v1 stable"},{val:"~60h",label:"Phase 2 scope"}];
   kpis.forEach((k,i)=>{
     const x=0.5+i*2.35;
     s.addShape(pres.shapes.RECTANGLE, { x, y:3.3, w:2.15, h:1.4, fill:{ color:"FFFFFF", transparency:90 }, line:{ color:C.navy } });
@@ -91,7 +93,7 @@ const C = {
   const phases=[
     { name:"Foundation",    status:"Complete",          statusColor:C.green,  done:true,  items:["Supabase data layer","Real-time SSE refresh","Railway production deploy","Auth + session management","Row-level security"] },
     { name:"Core platform", status:"Complete",          statusColor:C.green,  done:true,  items:["Availability heatmap","RBAC — 4 roles","User management panel","Staffing needs + AI match","Overview dashboard"] },
-    { name:"V1 stable",     status:"In progress · ~29h",statusColor:C.amber,  done:false, items:["Search + week selector","Consultant management UI","Security hardening","UX polish pass","UAT sign-off"] },
+    { name:"V1 stable",     status:"In progress · ~13h",statusColor:C.amber,  done:false, items:["Session role staleness fix","UAT sign-off","Auth hardening","User mgmt enhancements","UX polish pass"] },
     { name:"Phase 2",       status:"Planned · ~60h",   statusColor:"378ADD", done:false, items:["Multi-tenant onboarding","Finance + ops dashboard","Weekly snapshots","Extended roles","Excel export/import"] },
   ];
   phases.forEach((phase,i)=>{
@@ -116,14 +118,14 @@ const C = {
   s.background = { color: C.offwhite };
   s.addShape(pres.shapes.RECTANGLE, { x:0, y:0, w:10, h:0.7, fill:{ color:C.navy }, line:{ color:C.navy } });
   s.addText("WHAT'S NEXT", { x:0.5, y:0, w:9, h:0.7, fontSize:10, color:C.ice, bold:true, charSpacing:3, valign:"middle", fontFace:"Calibri", margin:0 });
-  s.addText("Soon queue — v1 stable in ~29h of build time", { x:0.5, y:0.85, w:9, h:0.5, fontSize:20, color:C.navy, bold:true, fontFace:"Calibri", margin:0 });
+  s.addText("V1 Stable — production-ready in ~13h of build time", { x:0.5, y:0.85, w:9, h:0.5, fontSize:20, color:C.navy, bold:true, fontFace:"Calibri", margin:0 });
 
   const items=[
-    { id:"#120", title:"Wire search input on heatmap",     desc:"Type a consultant or project name to instantly filter the staffing view.", est:"2h",   pri:"high" },
-    { id:"#121", title:"Wire week selector dropdown",      desc:"Navigate to any date range from the heatmap header — no page reload.",    est:"2h",   pri:"high" },
-    { id:"#126", title:"Consultant management panel",      desc:"Admin UI to manage billability, capacity, and rate overrides per consultant.", est:"6–8h", pri:"high" },
-    { id:"#124", title:"Add new assignment from heatmap",  desc:"Assign a consultant to a project directly from the UI — no database access needed.", est:"3–4h", pri:"med" },
-    { id:"#123", title:"Session role staleness fix",       desc:"Role changes take effect immediately without requiring a manual logout.", est:"2h",   pri:"sec" },
+    { id:"#123", title:"Session role staleness fix",              desc:"Role changes take effect immediately without requiring a manual logout.", est:"2h",   pri:"sec" },
+    { id:"#82",  title:"UAT completion",                          desc:"Write formal test script and sign off before onboarding real users.", est:"2h",   pri:"high" },
+    { id:"#102", title:"Email verification flow",                 desc:"Enforce magic link confirmation for invited users.", est:"2h",   pri:"high" },
+    { id:"#103", title:"Password strength policy",                desc:"Enforce complexity rules in Supabase Auth for all user accounts.", est:"1h",   pri:"high" },
+    { id:"#100", title:"User management access enhancements",     desc:"Additional access controls and audit columns for the admin panel.", est:"2h",   pri:"med" },
   ];
   items.forEach((item,i)=>{
     const y=1.55+i*0.74;
@@ -136,7 +138,7 @@ const C = {
     s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x:8.7, y:y+0.15, w:0.75, h:0.3, fill:{ color:C.light }, line:{ color:C.light }, rectRadius:0.05 });
     s.addText(item.est, { x:8.7, y:y+0.15, w:0.75, h:0.3, fontSize:9, color:C.navy, fontFace:"Calibri", align:"center", valign:"middle", bold:true, margin:0 });
   });
-  s.addText("staffing-app-production.up.railway.app  ·  Session 13  ·  March 2026", { x:0.5, y:5.3, w:9, h:0.25, fontSize:9, color:C.muted, fontFace:"Calibri", margin:0 });
+  s.addText("staffing-app-production.up.railway.app  ·  Session 18  ·  March 2026", { x:0.5, y:5.3, w:9, h:0.25, fontSize:9, color:C.muted, fontFace:"Calibri", margin:0 });
 }
 
 // ─── WRITE ─────────────────────────────────────────────────

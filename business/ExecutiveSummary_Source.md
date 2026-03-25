@@ -26,9 +26,9 @@ No edits needed. Pulls from deck metadata above.
 ## Slide 2 — What we built
 
 **Heading:** A platform that replaces spreadsheets
-**Subheading:** Built from scratch in 13 sessions — live on Railway, backed by Supabase, powered by Claude AI.
+**Subheading:** Built from scratch in 18 sessions — live on Railway, backed by Supabase, powered by Claude AI.
 
-### Capability cards (6)
+### Capability cards (8)
 
 | Title | Description |
 |---|---|
@@ -38,24 +38,26 @@ No edits needed. Pulls from deck metadata above.
 | Staffing needs pipeline | Open roles matched to available consultants with AI recommendations. |
 | Utilization dashboard | KPIs, overallocation alerts, rolling-off warnings, top projects. |
 | User management | Invite, activate, deactivate and manage roles from an admin panel. |
+| Consultant profile editor | View and edit skill sets, level, location, and rate overrides per consultant. Role-gated. |
+| Consultants management panel | Manage all 25 consultants from Settings — edit, deactivate, and reactivate. |
 
 ---
 
 ## Slide 3 — Where we are
 
-**Hero stat:** 72%
+**Hero stat:** 80%
 **Hero label:** of v1 complete
-**Progress bar:** 72% filled
+**Progress bar:** 80% filled
 
-**Supporting text:** 30 issues shipped across auth, RBAC, heatmap editing, user management, AI integration, and production deploy.
+**Supporting text:** 35 issues shipped across auth, RBAC, heatmap editing, user management, consultant management, AI integration, and production deploy.
 
 ### KPI cards (4)
 
 | Value | Label |
 |---|---|
-| 13 | Sessions shipped |
-| 30 | Issues closed |
-| ~29h | To v1 stable |
+| 18 | Sessions shipped |
+| 35 | Issues closed |
+| ~13h | To v1 stable |
 | ~60h | Phase 2 scope |
 
 ---
@@ -71,24 +73,24 @@ No edits needed. Pulls from deck metadata above.
 |---|---|---|---|
 | Foundation | Complete | green | Supabase data layer · Real-time SSE refresh · Railway production deploy · Auth + session management · Row-level security |
 | Core platform | Complete | green | Availability heatmap · RBAC — 4 roles · User management panel · Staffing needs + AI match · Overview dashboard |
-| V1 stable | In progress · ~29h | amber | Search + week selector · Consultant management UI · Security hardening · UX polish pass · UAT sign-off |
+| V1 stable | In progress · ~13h | amber | Session role staleness fix · UAT sign-off · Auth hardening · User mgmt enhancements · UX polish pass |
 | Phase 2 | Planned · ~60h | blue | Multi-tenant onboarding · Finance + ops dashboard · Weekly snapshots · Extended roles · Excel export/import |
 
 ---
 
 ## Slide 5 — What's next
 
-**Heading:** Soon queue — v1 stable in ~29h of build time
+**Heading:** V1 Stable — production-ready in ~13h of build time
 
 ### Next items
 
 | ID | Title | Description | Est. |
 |---|---|---|---|
-| #120 | Wire search input on heatmap | Type a consultant or project name to instantly filter the staffing view. | 2h |
-| #121 | Wire week selector dropdown | Navigate to any date range from the heatmap header — no page reload. | 2h |
-| #126 | Consultant management panel | Admin UI to manage billability, capacity, and rate overrides per consultant. | 6–8h |
-| #124 | Add new assignment from heatmap | Assign a consultant to a project directly from the UI — no database access needed. | 3–4h |
 | #123 | Session role staleness fix | Role changes take effect immediately without requiring a manual logout. | 2h |
+| #82 | UAT completion | Write formal test script and sign off before onboarding real users. | 2h |
+| #102 | Email verification flow | Enforce magic link confirmation for invited users. | 2h |
+| #103 | Password strength policy | Enforce complexity rules in Supabase Auth for all user accounts. | 1h |
+| #100 | User management access enhancements | Additional access controls and audit columns for the admin panel. | 2h |
 
 ---
 
@@ -122,3 +124,4 @@ Read ExecutiveSummary_Source.md from the repo root. Using the content in that fi
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | March 24 2026 | Initial deck — Session 13 complete |
+| 1.1 | March 25 2026 | Session 18 — Soon milestone cleared, consultant profile editor + management panel shipped, 35 issues closed, V1 Stable next |

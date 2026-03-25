@@ -2,6 +2,16 @@
 
 'use strict';
 
+// ── Central fetch wrapper — redirects to login on 401 before any local handler runs ──
+async function apiFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    return new Promise(() => {}); // never resolves; prevents caller from handling the response
+  }
+  return res;
+}
+
 // ── Current user role (set after auth check, used for role-based gating) ──
 let currentUserRole         = null;
 let currentUserCanViewRates = false;
@@ -488,10 +498,10 @@ async function loadDashboard() {
   if (refreshBtn) refreshBtn.classList.add('spinning');
   try {
     const [dashRes, supplyRes, empRes, heatmapRes] = await Promise.all([
-      fetch('/api/dashboard'),
-      fetch('/api/supply'),
-      fetch('/api/employees'),
-      fetch('/api/heatmap'),
+      apiFetch('/api/dashboard'),
+      apiFetch('/api/supply'),
+      apiFetch('/api/employees'),
+      apiFetch('/api/heatmap'),
     ]);
 
     const [dashText, supplyText, empText, heatmapText] = await Promise.all([
@@ -1768,7 +1778,7 @@ function toggleNeedExpansion(roleIdx, event) {
     renderNeedMatchPanel(roleIdx);
   } else if (_needs.loadState === 'idle') {
     _needs.loadState = 'loading';
-    fetch('/api/recommendations')
+    apiFetch('/api/recommendations')
       .then(r => r.json())
       .then(data => {
         if (data.error) throw new Error(data.error);
@@ -1902,7 +1912,7 @@ async function saveAllAssignments() {
   }));
 
   try {
-    const res  = await fetch('/api/supply/update', {
+    const res  = await apiFetch('/api/supply/update', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ changes }),
@@ -2541,7 +2551,7 @@ async function loadSuggestedQuestions() {
   container.querySelectorAll('.suggestion-chip').forEach(el => el.remove());
 
   try {
-    const res = await fetch('/api/suggested-questions', { method: 'POST' });
+    const res = await apiFetch('/api/suggested-questions', { method: 'POST' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data.questions) || !data.questions.length) throw new Error('empty');
@@ -2600,7 +2610,7 @@ async function submitQuestion() {
 
   try {
     const url = `/api/ask?question=${encodeURIComponent(question)}`;
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) throw new Error(`Server error ${res.status}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
@@ -2997,7 +3007,7 @@ async function saveStaffingChanges() {
   }
 
   try {
-    const res = await fetch('/api/save-staffing', {
+    const res = await apiFetch('/api/save-staffing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ changes }),
@@ -3082,7 +3092,7 @@ async function loadConsultantsPanel() {
 
   let consultants;
   try {
-    const res = await fetch('/api/consultants');
+    const res = await apiFetch('/api/consultants');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     consultants = await res.json();
   } catch (err) {
@@ -3212,7 +3222,7 @@ function _renderInactiveConsultantRow(c) {
 async function deactivateConsultant(id, name) {
   if (!confirm(`Deactivate ${name}? They will be removed from scheduling.`)) return;
   try {
-    const res = await fetch(`/api/consultants/${encodeURIComponent(id)}/deactivate`, { method: 'PATCH' });
+    const res = await apiFetch(`/api/consultants/${encodeURIComponent(id)}/deactivate`, { method: 'PATCH' });
     if (!res.ok) { showToast('Failed to deactivate consultant.', 'error'); return; }
     showToast(`${name} deactivated.`);
     loadConsultantsPanel();
@@ -3223,7 +3233,7 @@ async function deactivateConsultant(id, name) {
 
 async function reactivateConsultant(id, name) {
   try {
-    const res = await fetch(`/api/consultants/${encodeURIComponent(id)}/reactivate`, { method: 'PATCH' });
+    const res = await apiFetch(`/api/consultants/${encodeURIComponent(id)}/reactivate`, { method: 'PATCH' });
     if (!res.ok) { showToast('Failed to reactivate consultant.', 'error'); return; }
     showToast(`${name} reactivated.`, 'success');
     loadConsultantsPanel();
@@ -3244,7 +3254,7 @@ async function loadUsers() {
 
   let users;
   try {
-    const res = await fetch('/api/admin/users');
+    const res = await apiFetch('/api/admin/users');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     users = await res.json();
   } catch (err) {
@@ -3381,7 +3391,7 @@ async function changeUserRole(userId, newRole, selectEl) {
                 || newRole;
 
   try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/role`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ role: newRole }),
@@ -3404,7 +3414,7 @@ async function deactivateUser(userId) {
   if (!confirm('Deactivate this user? They will lose access immediately.')) return;
 
   try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/deactivate`, { method: 'PATCH' });
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/deactivate`, { method: 'PATCH' });
     if (!res.ok) { showToast('Failed to deactivate user.'); return; }
     loadUsers();
   } catch (err) {
@@ -3414,7 +3424,7 @@ async function deactivateUser(userId) {
 
 async function reactivateUser(userId) {
   try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/reactivate`, { method: 'PATCH' });
     if (!res.ok) { showToast('Failed to reactivate user.'); return; }
     showToast('User reactivated successfully.', 'success');
     loadUsers();
@@ -3425,7 +3435,7 @@ async function reactivateUser(userId) {
 
 async function resendInvite(userId) {
   try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       showToast(data.error || 'Failed to resend invite.');
@@ -3440,7 +3450,7 @@ async function resendInvite(userId) {
 async function cancelInvite(userId) {
   if (!confirm('Cancel this invite? The pending account will be permanently deleted.')) return;
   try {
-    const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/invite`, { method: 'DELETE' });
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/invite`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       showToast(data.error || 'Failed to cancel invite.');
@@ -3462,7 +3472,7 @@ async function openAddProjectModal(empName) {
   // Fetch active projects from server
   let allProjects = [];
   try {
-    const res = await fetch('/api/projects');
+    const res = await apiFetch('/api/projects');
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       console.error('[addProject] /api/projects returned', res.status, body);
@@ -3565,7 +3575,7 @@ async function submitAddProject(event) {
   if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
 
   try {
-    const res = await fetch('/api/save-staffing', {
+    const res = await apiFetch('/api/save-staffing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ changes }),
@@ -3597,7 +3607,7 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
 
   let profile;
   try {
-    const res = await fetch(`/api/consultants/${encodeURIComponent(consultantId)}`);
+    const res = await apiFetch(`/api/consultants/${encodeURIComponent(consultantId)}`);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       showToast(`Failed to load profile (${res.status}): ${body.error || ''}`, 'error');
@@ -3729,7 +3739,7 @@ async function toggleConsultantActiveFromModal() {
   if (btn) { btn.disabled = true; btn.textContent = label + 'ing…'; }
 
   try {
-    const res = await fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/${action}`, { method: 'PATCH' });
+    const res = await apiFetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/${action}`, { method: 'PATCH' });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       showToast(`Failed to ${action} consultant: ${body.error || res.status}`, 'error');
@@ -3767,12 +3777,12 @@ async function submitConsultantProfile(event) {
 
   try {
     const [patchRes, skillsRes] = await Promise.all([
-      fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}`, {
+      apiFetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, level_id, location, bill_rate_override, cost_rate_override }),
       }),
-      fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/skills`, {
+      apiFetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/skills`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skillSetIds: selectedIds }),
@@ -3862,7 +3872,7 @@ async function submitInvite(e) {
   btn.textContent = 'Sending…';
 
   try {
-    const res = await fetch('/api/admin/users/invite', {
+    const res = await apiFetch('/api/admin/users/invite', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, email, role, deliveryMethod, tempPassword }),
@@ -3891,7 +3901,7 @@ async function submitInvite(e) {
 // ── Auth ──────────────────────────────────────────────────────────
 async function logout() {
   try {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await apiFetch('/api/auth/logout', { method: 'POST' });
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
   }
@@ -3901,7 +3911,7 @@ async function logout() {
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
-    const res = await fetch('/api/auth/me');
+    const res = await apiFetch('/api/auth/me');
     if (res.status === 401) { window.location.replace('login.html'); return; }
     const me = await res.json();
     currentUserRole         = me.role || null;
