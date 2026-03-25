@@ -16,6 +16,11 @@ const supabaseAuth = createClient(process.env.SUPABASE_URL, process.env.SUPABASE
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Secondary index: userId → Set<sessionId>
+// Maintained on login/logout so we can target and destroy a specific user's sessions
+// without scanning the entire MemoryStore.
+const userSessionMap = new Map();
+
 app.set('trust proxy', 1); // Required for Railway reverse proxy + secure cookies in prod
 
 // ── Load staffing data at startup ───────────────────────────────────────────
@@ -109,6 +114,9 @@ app.post('/api/auth/login', async (req, res) => {
     req.session.user      = data.user;
     req.session.tenant_id = data.user.app_metadata?.tenant_id;
     req.session.role      = data.user.app_metadata?.role;
+    const uid = data.user.id;
+    if (!userSessionMap.has(uid)) userSessionMap.set(uid, new Set());
+    userSessionMap.get(uid).add(req.session.id);
     res.json({ user: data.user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -117,6 +125,11 @@ app.post('/api/auth/login', async (req, res) => {
 
 // POST /api/auth/logout
 app.post('/api/auth/logout', (req, res) => {
+  const uid = req.session.user?.id;
+  if (uid && userSessionMap.has(uid)) {
+    userSessionMap.get(uid).delete(req.session.id);
+    if (userSessionMap.get(uid).size === 0) userSessionMap.delete(uid);
+  }
   req.session.destroy();
   res.json({ success: true });
 });
@@ -1035,6 +1048,16 @@ app.patch('/api/admin/users/:id/role', requireAuth, requireRole('admin'), async 
       app_metadata: { role },
     });
     if (error) return res.status(500).json({ error: error.message });
+    // Invalidate the target user's active sessions so the role change takes effect
+    // immediately. Skip if the admin is changing their own role.
+    const targetId = req.params.id;
+    if (targetId !== req.session.user?.id) {
+      const sids = userSessionMap.get(targetId);
+      if (sids) {
+        for (const sid of sids) req.sessionStore.destroy(sid, () => {});
+        userSessionMap.delete(targetId);
+      }
+    }
     res.json(data.user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1048,6 +1071,13 @@ app.patch('/api/admin/users/:id/deactivate', requireAuth, requireRole('admin'), 
       ban_duration: '87600h',
     });
     if (error) return res.status(500).json({ error: error.message });
+    // Kick the deactivated user off immediately — destroy their active sessions.
+    const targetId = req.params.id;
+    const sids = userSessionMap.get(targetId);
+    if (sids) {
+      for (const sid of sids) req.sessionStore.destroy(sid, () => {});
+      userSessionMap.delete(targetId);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
