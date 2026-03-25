@@ -96,22 +96,22 @@ staffing-app/
 ├── claudeService.js       # Claude API integration
 ├── public/
 │   ├── index.html         # Main app shell
-│   ├── app.js             # Frontend SPA logic (v=44)
-│   ├── styles.css         # Dark theme styles (v=36)
+│   ├── app.js             # Frontend SPA logic (v=52)
+│   ├── styles.css         # Dark theme styles (v=39)
 │   └── login.html         # Login page
 ├── docs/
-│   └── session-17/
-│       ├── HANDOFF_v17.md          # Full technical context for AI-assisted development
-│       ├── README_v17.md           # This file
-│       ├── Roadmap_v17.md          # Prioritized issue roadmap with effort estimates
-│       └── session-dashboard_v17.html  # Session tracker
+│   └── session-18/
+│       ├── HANDOFF_v18.md          # Full technical context for AI-assisted development
+│       ├── README_v18.md           # This file
+│       ├── Roadmap_v18.md          # Prioritized issue roadmap with effort estimates
+│       └── session-dashboard_v18.html  # Session tracker
 ```
 
 ---
 
 ## Development workflow
 
-This project is built using Claude Code (CC) as a co-pilot. Each session starts with a new Claude chat — upload HANDOFF_v17.md and session-dashboard_v17.html to load context.
+This project is built using Claude Code (CC) as a co-pilot. Each session starts with a new Claude chat — upload HANDOFF_v18.md and session-dashboard_v18.html to load context.
 
 ```bash
 # Terminal 1 — Claude Code
@@ -130,8 +130,8 @@ Railway auto-deploys from GitHub on every push to `main`. Allow 1–3 min for bu
 
 - **Version:** v1 in progress
 - **Consultants:** 25 real employees, real project data
-- **Sessions:** 15 build sessions completed
-- **Issues closed:** 33
-- **Next milestone:** V1 stable — Soon milestone: #124, #119/#125, #126 remaining
+- **Sessions:** 18 build sessions completed
+- **Issues closed:** 35
+- **Next milestone:** V1 Stable — 10 issues: #123, #82, #83, #102, #103, #100, #116, #133, #134, #135
 
-See `Roadmap_v17.md` for the full prioritized build queue.
+See `Roadmap_v18.md` for the full prioritized build queue.

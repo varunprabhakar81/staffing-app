@@ -1,5 +1,5 @@
-Staffing Intelligence App — Session 17 Handoff
-Last updated: Session 16 complete
+Staffing Intelligence App — Session 18 Handoff
+Last updated: Session 18 complete
 
 ---
 
@@ -259,8 +259,9 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 
 | File | Current version |
 |---|---|
-| app.js | v=45 |
-| styles.css | v=37 |
+| app.js | v=52 |
+| styles.css | v=39 |
+| index.html | v=50 |
 
 ---
 
@@ -269,8 +270,8 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 | Milestone | Remaining issues |
 |---|---|
 | Active Sprint | — (cleared Session 13) |
-| Soon | #119, #126 |
-| V1 Stable | #123, #82, #83, #102, #103, #100, #116 |
+| Soon | — (cleared Session 18) |
+| V1 Stable | #123, #82, #83, #102, #103, #100, #116, #133, #134, #135 |
 | Phase 2 | #129, #96, #99, #98, #97, #95, #131, #132, #64, #43, #117, #118, #94 |
 
 ---
@@ -299,23 +300,24 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 | #128 | Total row expand + focus first cell | closed prior to Session 15 |
 | #61 | Comprehensive drilldown review + all fixes | 15 |
 | #124 | Add new project assignment to consultant from heatmap | 16 |
+| #119 | Consultant profile editor — skill sets, level, details | 18 |
+| #126 | Consultants management panel in Settings tab | 18 |
 
 ---
 
 ## Build Order — Next Session
 
-Soon (start here):
-1. **#119** — Consultant profile editor (skill sets, level, details) (4–6h)
-2. **#126** — Consultants management panel in Settings tab (6–8h)
-
-### Session 17 carry-forward items
-
-1. **#82 UAT test script** — write formal test script before real users onboard (pending)
-2. **#131** — Heatmap inline filter issue created (done)
-3. **#132** — Holistic UI/UX design pass issue created (done)
-4. **Cache busters: app.js v=45, styles.css v=37** — current, no bump needed (done)
-5. **GitHub housekeeping** — stale Epic milestones closed, all 27 issues labeled and milestoned (done)
-6. **Kill node workaround** — documented in HANDOFF (done)
+V1 Stable (start here):
+1. **#123** — Session role staleness — stale JWT after role change (security, high priority)
+2. **#82** — UAT completion — write formal test script before real users onboard
+3. **#83** — Remove test toast button (chore)
+4. **#102** — Email verification flow for invited users (auth)
+5. **#103** — Password strength enforcement for temp password (auth)
+6. **#100** — User Management access enhancements
+7. **#116** — Document tab access matrix in HANDOFF (chore)
+8. **#133** — V1 Stable issue
+9. **#134** — V1 Stable issue
+10. **#135** — V1 Stable issue
 
 ---
 
@@ -382,6 +384,38 @@ Soon (start here):
 - [ ] Verify: login → all tabs load with data
 - [ ] Verify: make a heatmap edit → save → hard refresh → change persists
 - [ ] Verify: logout → redirects to login.html
+
+---
+
+## UAT Testing Pattern
+
+All browser testing in this project uses an **interactive UAT widget** rendered inline in the Claude chat. This is the standard pattern for every feature verification — do not use plain bullet point checklists.
+
+### How it works
+- Claude renders a clickable test checklist as an interactive widget in chat
+- Each test row has three buttons: **pass**, **fail**, **note**
+- Clicking a button highlights the entire row and the selected button in the corresponding color (green/red/amber)
+- Selecting **fail** or **note** reveals a text field for additional detail
+- A summary bar tracks pass/fail/note/pending counts in real time
+- A **"send results to Claude"** button packages all results and notes and sends them as a single message for Claude to triage
+
+### How to trigger it
+When you want to run UAT, say:
+> "give me tests to verify X" or "can you give me a UAT checklist for X"
+
+Claude will render the interactive widget automatically. No bullet points, no manual typing of results.
+
+### Widget structure per test row
+- Test description (what to check in the browser)
+- pass / fail / note buttons
+- Optional notes textarea (appears on fail or note)
+- Row + button highlights on selection
+
+### Notes
+- The widget is session-only — it does not persist between chats
+- Always run UAT before committing and closing an issue
+- If a test fails, fix in CC before closing — do not close issues with open failures
+- "note" is for observations that are not blockers (minor polish, future improvements) — log these as GitHub issues if worth tracking
 
 ---
 

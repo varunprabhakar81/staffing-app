@@ -1,6 +1,6 @@
 # Staffing Intelligence — Product Roadmap
 
-Last updated: Session 16 · March 24 2026
+Last updated: Session 18 · March 25 2026
 Live app: https://staffing-app-production.up.railway.app
 GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase 2 (#20)
 
@@ -11,12 +11,12 @@ GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase
 | Phase | Issues | Est. effort |
 |---|---|---|
 | Active Sprint | — | ✅ Cleared (Session 13) |
-| Soon | 2 | ~9–14h |
-| V1 Stable | 7 | ~10h |
+| Soon | — | ✅ Cleared (Session 18) |
+| V1 Stable | 10 | ~13h |
 | Phase 2 | 11 | ~72–85h |
-| **Total** | **~21 open** | **~95–113h** |
+| **Total** | **~21 open** | **~88–101h** |
 
-33 issues closed · ~75% complete
+35 issues closed · ~80% complete
 
 ---
 
@@ -46,10 +46,10 @@ All Active Sprint issues closed and browser-verified.
 | #128 | Clicking consultant total row expands + focuses first cell | feat | 1–2h | ✅ Closed prior to Session 15 |
 | #61 | Comprehensive drilldown review | feat | 3–4h | ✅ Done Session 15 |
 | #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | ✅ Done Session 16 |
-| #119 | Consultant profile editor — skill sets, level, details | feat | 4–6h | |
-| #126 | Consultants management panel in Settings tab | feat | 6–8h | |
+| #119 | Consultant profile editor — skill sets, level, details | feat | 4–6h | ✅ Done Session 18 |
+| #126 | Consultants management panel in Settings tab | feat | 6–8h | ✅ Done Session 18 |
 
-Soon subtotal: ~9–14h remaining (2 issues open: #119, #126)
+Soon subtotal: 0 issues remaining — milestone cleared ✅
 
 ---
 
@@ -64,6 +64,11 @@ Soon subtotal: ~9–14h remaining (2 issues open: #119, #126)
 | #103 | Password strength enforcement for temp password | auth | 1h | |
 | #100 | User Management access enhancements | feat | 2h | |
 | #116 | Document tab access matrix in HANDOFF | chore | 0.5h | |
+| #133 | Neutral skill set pills | polish | — | Logged Session 18 |
+| #134 | Skill set display fix | polish | — | Logged Session 18 |
+| #135 | Consultant panel polish | polish | — | Logged Session 18 |
+
+V1 Stable subtotal: 10 issues
 
 ---
 
@@ -131,3 +136,5 @@ Soon subtotal: ~9–14h remaining (2 issues open: #119, #126)
 | #128 | Total row expand + focus first cell | pre-15 |
 | #61 | Comprehensive drilldown review + all 4 fixes | 15 |
 | #124 | Add new project assignment to consultant from heatmap | 16 |
+| #119 | Consultant profile editor — skill sets, level, details | 18 |
+| #126 | Consultants management panel in Settings tab | 18 |

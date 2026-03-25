@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Session 17 — Staffing Intelligence</title>
+<title>Session 18 — Staffing Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -274,8 +274,8 @@
 
   <div class="header">
     <div class="header-left">
-      <h1>Session 17 — Staffing Intelligence App</h1>
-      <div class="sub">staffing-app · Soon milestone · in progress</div>
+      <h1>Session 18 — Staffing Intelligence App</h1>
+      <div class="sub">staffing-app · Soon milestone cleared · V1 Stable next</div>
     </div>
     <div class="header-right">
       <span id="live-time"></span>
@@ -290,7 +290,7 @@
     </div>
     <div class="metric">
       <div class="metric-label">Closed</div>
-      <div class="metric-value green" id="m-closed">0</div>
+      <div class="metric-value green" id="m-closed">2</div>
     </div>
     <div class="metric">
       <div class="metric-label">Carry-fwds</div>
@@ -309,52 +309,47 @@
     <!-- Planned -->
     <div class="panel">
       <div class="panel-header">Planned — Soon milestone <span class="cnt">2 issues</span></div>
-      <div class="issue-row" onclick="togglePlanned(this,'p1','#119','Consultant profile editor')">
+      <div class="issue-row done" onclick="togglePlanned(this,'p1','#119','Consultant profile editor')">
         <span class="issue-num">#119</span>
         <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
         <span class="issue-est">4–6h</span>
-        <span class="badge b-open" id="p1">open</span>
+        <span class="badge b-closed" id="p1">closed</span>
       </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p2','#126','Consultants management panel')">
+      <div class="issue-row done" onclick="togglePlanned(this,'p2','#126','Consultants management panel')">
         <span class="issue-num">#126</span>
         <span class="issue-title">Consultants management panel in Settings</span>
         <span class="issue-est">6–8h</span>
-        <span class="badge b-open" id="p2">open</span>
+        <span class="badge b-closed" id="p2">closed</span>
       </div>
     </div>
 
     <!-- Carry-forwards -->
     <div class="panel">
-      <div class="panel-header">Carry-forward housekeeping <span class="cnt">6 items</span></div>
-      <div class="issue-row" onclick="toggleCarry(this,'c1','#82 UAT test script')">
-        <span class="issue-num">#82</span>
-        <span class="issue-title">UAT test script — write before real users onboard</span>
-        <span class="badge b-carry" id="c1">pending</span>
+      <div class="panel-header">Session 18 housekeeping <span class="cnt">5 items</span></div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c1','#133 #134 #135 logged as GitHub issues')">
+        <span class="issue-num">#133–135</span>
+        <span class="issue-title">#133, #134, #135 logged — neutral skill pills + polish</span>
+        <span class="badge b-done" id="c1">done</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c2','#131 heatmap inline filter issue created')">
-        <span class="issue-num">#131</span>
-        <span class="issue-title">Heatmap inline filter issue created</span>
+      <div class="issue-row done" onclick="toggleCarry(this,'c2','Cache busters bumped — app.js v=52, styles.css v=39, index.html v=50')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Cache busters — app.js v=52, styles.css v=39, index.html v=50</span>
         <span class="badge b-done" id="c2">done</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c3','#132 holistic UI/UX design pass issue created')">
-        <span class="issue-num">#132</span>
-        <span class="issue-title">Holistic UI/UX design pass issue created</span>
+      <div class="issue-row done" onclick="toggleCarry(this,'c3','UAT widget added as standard testing pattern in HANDOFF')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Interactive UAT widget documented in HANDOFF as standard testing pattern</span>
         <span class="badge b-done" id="c3">done</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c4','Cache busters current — app.js v=45, styles.css v=37')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c4','Session docs updated to v18')">
         <span class="issue-num">—</span>
-        <span class="issue-title">Cache busters — app.js v=45, styles.css v=37 (no bump needed)</span>
+        <span class="issue-title">Session docs updated to v18 — HANDOFF, README, Roadmap, dashboard</span>
         <span class="badge b-done" id="c4">done</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c5','GitHub housekeeping — milestones closed, issues labeled')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c5','Soon milestone cleared — V1 Stable next')">
         <span class="issue-num">—</span>
-        <span class="issue-title">GitHub housekeeping — stale milestones closed, 27 issues labeled</span>
+        <span class="issue-title">Soon milestone cleared — V1 Stable (10 issues) is next</span>
         <span class="badge b-done" id="c5">done</span>
-      </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c6','Kill node workaround documented in HANDOFF')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Kill node workaround documented in HANDOFF</span>
-        <span class="badge b-done" id="c6">done</span>
       </div>
     </div>
 
@@ -363,51 +358,98 @@
   <!-- Session closed panels -->
   <div class="columns" style="margin-bottom:10px;">
     <div class="panel">
-      <div class="panel-header">Closed last session (S16) <span class="cnt">1 issue</span></div>
-      <div class="issue-row done">
-        <span class="issue-num">#124</span>
-        <span class="issue-title">Add new project assignment to consultant from heatmap</span>
-        <span class="badge b-closed">closed</span>
+      <div class="panel-header">Closed last session (S17) <span class="cnt">0 issues</span></div>
+      <div class="issue-row" style="cursor:default;">
+        <span class="issue-title" style="color:var(--text-muted); font-size:12px; font-family:var(--mono);">carry-forward session — no new issues closed</span>
       </div>
     </div>
 
     <!-- Closed this session -->
     <div class="panel">
-      <div class="panel-header">Closed this session (S17) <span class="cnt">0 issues</span></div>
-      <div class="issue-row" style="cursor:default;">
-        <span class="issue-title" style="color:var(--text-muted); font-size:12px; font-family:var(--mono);">none yet</span>
+      <div class="panel-header">Closed this session (S18) <span class="cnt">2 issues</span></div>
+      <div class="issue-row done">
+        <span class="issue-num">#119</span>
+        <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done">
+        <span class="issue-num">#126</span>
+        <span class="issue-title">Consultants management panel in Settings</span>
+        <span class="badge b-closed">closed</span>
       </div>
     </div>
   </div>
 
   <!-- Next session -->
   <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-header">Next session — Soon milestone <span class="cnt">2 issues</span></div>
+    <div class="panel-header">Next session — V1 Stable milestone <span class="cnt">10 issues</span></div>
     <div class="issue-row">
-      <span class="issue-num">#119</span>
-      <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
-      <span class="issue-est">4–6h</span>
+      <span class="issue-num">#123</span>
+      <span class="issue-title">Session role staleness — stale JWT after role change</span>
+      <span class="issue-est">2h</span>
       <span class="badge b-open">open</span>
     </div>
     <div class="issue-row">
-      <span class="issue-num">#126</span>
-      <span class="issue-title">Consultants management panel in Settings</span>
-      <span class="issue-est">6–8h</span>
+      <span class="issue-num">#82</span>
+      <span class="issue-title">UAT completion — formal test script before onboarding real users</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#83</span>
+      <span class="issue-title">Remove test toast button</span>
+      <span class="issue-est">0.5h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#102</span>
+      <span class="issue-title">Email verification flow for invited users</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#103</span>
+      <span class="issue-title">Password strength enforcement for temp password</span>
+      <span class="issue-est">1h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#100</span>
+      <span class="issue-title">User Management access enhancements</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#116</span>
+      <span class="issue-title">Document tab access matrix in HANDOFF</span>
+      <span class="issue-est">0.5h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#133</span>
+      <span class="issue-title">Neutral skill set pills</span>
+      <span class="issue-est">—</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#134</span>
+      <span class="issue-title">Skill set display fix (logged S18)</span>
+      <span class="issue-est">—</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#135</span>
+      <span class="issue-title">Consultant panel polish (logged S18)</span>
+      <span class="issue-est">—</span>
       <span class="badge b-open">open</span>
     </div>
   </div>
 
-  <!-- V1 Stable Backlog -->
+  <!-- UAT Widget note -->
   <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-header">V1 Stable backlog <span class="cnt">7 issues · reference only</span></div>
-    <div class="backlog-grid">
-      <div class="issue-row"><span class="issue-num">#123</span><span class="issue-title" style="color:var(--text-secondary)">Session role staleness</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#82</span><span class="issue-title" style="color:var(--text-secondary)">UAT cases</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#83</span><span class="issue-title" style="color:var(--text-secondary)">Remove test toast button</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#102</span><span class="issue-title" style="color:var(--text-secondary)">Email verification flow</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#103</span><span class="issue-title" style="color:var(--text-secondary)">Password strength policy</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#100</span><span class="issue-title" style="color:var(--text-secondary)">User mgmt access enhancements</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#116</span><span class="issue-title" style="color:var(--text-secondary)">Document tab access matrix</span><span class="badge b-backlog">v1 stable</span></div>
+    <div class="panel-header">Testing pattern — new this session</div>
+    <div class="issue-row" style="cursor:default;">
+      <span class="issue-title" style="font-size:12px;">Interactive UAT widget is now the standard for all feature verification. Say <span style="color:var(--blue); font-family:var(--mono);">"give me tests to verify X"</span> — Claude renders a clickable checklist with pass/fail/note buttons and a send-results action. No bullet points.</span>
     </div>
   </div>
 
@@ -419,7 +461,7 @@
     <div class="log-list" id="log-list">
       <div class="log-entry">
         <span class="log-time" id="start-time">--:--</span>
-        <span class="log-msg">Session 17 <span class="hl">started</span></span>
+        <span class="log-msg">Session 18 <span class="hl">complete</span> — Soon milestone cleared</span>
       </div>
     </div>
   </div>
@@ -427,7 +469,7 @@
 </div>
 
 <script>
-  const STORAGE_KEY = 'session17_state';
+  const STORAGE_KEY = 'session18_state';
 
   function tick() {
     const now = new Date();
@@ -522,7 +564,7 @@
 
   function updateMetrics() {
     const plannedIds = ['p1','p2'];
-    const carryIds   = ['c1','c2','c3','c4','c5','c6'];
+    const carryIds   = ['c1','c2','c3','c4','c5'];
     const closedCount = plannedIds.filter(id => state.planned[id]).length;
     const carryDone   = carryIds.filter(id => state.carry[id]).length;
     const pct = Math.round((closedCount / plannedIds.length) * 100);
