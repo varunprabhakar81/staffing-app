@@ -3939,6 +3939,9 @@ async function logout() {
 
   loadDashboard();
 
+  // ── Background session poll — silently checks auth every 30s ──────
+  setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);
+
   // Redirect to first accessible tab if the default (overview) is hidden
   const activeTabName = document.querySelector('.nav-item.active')?.dataset.tab;
   if (role === 'executive' && activeTabName === 'needs') {
