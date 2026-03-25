@@ -525,8 +525,8 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!consultantId || !projectId) continue;
 
       console.log('[#109 row check]', { consultantId, projectId, weekEnding, rowFound: !!row, rowIsBillable: row?.isBillable });
-      // isBillable: prefer existing assignment row → consultants.is_billable default → true as last resort
-      let isBillable = row?.isBillable;
+      // isBillable: prefer explicit value from request → existing assignment row → consultant default → true
+      let isBillable = ch.isBillable !== undefined ? ch.isBillable : row?.isBillable;
       if (isBillable === undefined || isBillable === null) {
         const { data: empRow } = await serviceClient
           .from('consultants')
@@ -545,6 +545,16 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
     console.error('[save-staffing]', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/projects — active projects list for Add Project modal
+app.get('/api/projects', requireRole('admin', 'resource_manager'), (req, res) => {
+  if (!staffingData || !staffingData.projects) return res.json([]);
+  const active = staffingData.projects
+    .filter(p => p.status === 'Verbal Commit' || p.status === 'Sold')
+    .map(p => ({ id: p.projectId, name: p.projectName, status: p.status }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  res.json(active);
 });
 
 // POST /api/supply/update — apply add/update/delete changes to supply via Supabase

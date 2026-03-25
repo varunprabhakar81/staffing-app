@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=36">
+  <link rel="stylesheet" href="styles.css?v=37">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -604,6 +604,76 @@
     </div>
   </div>
 
-  <script src="app.js?v=44"></script>
+  <!-- Add Project Assignment Modal -->
+  <div id="addProjectModal" class="hidden"
+    onclick="if(event.target===this)closeAddProjectModal()"
+    style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+    <div onclick="event.stopPropagation()"
+      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:460px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <h3 style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">Add Project Assignment</h3>
+          <div id="apEmpName" style="font-size:12px;color:#8892B0;margin-top:3px"></div>
+        </div>
+        <button type="button" onclick="closeAddProjectModal()"
+          style="background:none;border:none;color:#8892B0;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px"
+          onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">✕</button>
+      </div>
+
+      <form onsubmit="submitAddProject(event)">
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">PROJECT</label>
+          <select id="apProject" required
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </select>
+        </div>
+
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">HOURS PER WEEK</label>
+          <input id="apHours" type="number" min="1" max="45" placeholder="e.g. 20" required
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START WEEK</label>
+            <select id="apStartWeek" required
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END WEEK</label>
+            <select id="apEndWeek" required
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px">
+          <input id="apBillable" type="checkbox" checked
+            style="accent-color:#A8C7FA;width:15px;height:15px;cursor:pointer">
+          <label for="apBillable" style="font-size:13px;color:#CBD5E0;cursor:pointer">Billable</label>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button type="button" onclick="closeAddProjectModal()"
+            style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
+            onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
+          <button type="submit" id="apSubmitBtn"
+            style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:130px"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Add Assignment</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js?v=45"></script>
 </body>
 </html>

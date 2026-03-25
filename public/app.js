@@ -8,6 +8,7 @@ let currentUserCanViewRates = false;
 
 // ── Inline edit state ─────────────────────────────────────────────
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
+let _addProjEmp = null;       // empName being targeted by the Add Project modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
 // ── Tracks which employee rows are expanded in the heatmap ────────
@@ -1176,6 +1177,9 @@ function _vsRenderRow(row) {
         <span class="hm-info-icon"
           onclick="event.stopPropagation();drillHeatmapEmployee(this.closest('td').dataset.emp)"
           title="Full booking history">ℹ</span>
+        ${_hmCanEdit() ? `<span class="hm-add-proj-btn"
+          onclick="event.stopPropagation();openAddProjectModal(this.closest('td').dataset.emp)"
+          title="Add project assignment">+</span>` : ''}
       </td>${cells}</tr>`;
   }
 
@@ -3271,6 +3275,117 @@ async function cancelInvite(userId) {
     loadUsers();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+// ── Add Project Modal (#124) ──────────────────────────────────────
+
+async function openAddProjectModal(empName) {
+  if (!_vsData || !empName) return;
+  _addProjEmp = empName;
+
+  // Fetch active projects from server
+  let allProjects = [];
+  try {
+    const res = await fetch('/api/projects');
+    if (res.ok) allProjects = await res.json();
+  } catch (e) {
+    showToast('Failed to load projects', 'error');
+    return;
+  }
+
+  // Determine already-assigned projects for this employee across all visible weeks
+  const emp = _vsData.employees.find(e => e.name === empName);
+  const assignedProjects = new Set();
+  if (emp) {
+    for (const wkProjs of emp.weeklyProjects)
+      for (const p of wkProjs)
+        if (p.project && p.project !== 'Unassigned') assignedProjects.add(p.project);
+  }
+
+  // Populate project dropdown (exclude already assigned)
+  const projSel = document.getElementById('apProject');
+  projSel.innerHTML = '<option value="">Select project…</option>';
+  const available = allProjects.filter(p => !assignedProjects.has(p.name));
+  for (const p of available) {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = `${p.name} (${p.status})`;
+    projSel.appendChild(opt);
+  }
+
+  // Populate week dropdowns from heatmap weeks
+  const weeks = _vsData.weeks;
+  const startSel = document.getElementById('apStartWeek');
+  const endSel   = document.getElementById('apEndWeek');
+  startSel.innerHTML = '';
+  endSel.innerHTML   = '';
+  for (let i = 0; i < weeks.length; i++) {
+    const makeOpt = () => {
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = `Week of ${weeks[i]}`;
+      return o;
+    };
+    startSel.appendChild(makeOpt());
+    endSel.appendChild(makeOpt());
+  }
+  endSel.selectedIndex = weeks.length - 1;
+
+  // Reset other fields
+  document.getElementById('apEmpName').textContent = empName;
+  document.getElementById('apHours').value = '';
+  document.getElementById('apBillable').checked = true;
+
+  document.getElementById('addProjectModal').classList.remove('hidden');
+  setTimeout(() => { const s = document.getElementById('apProject'); if (s) s.focus(); }, 50);
+}
+
+function closeAddProjectModal() {
+  document.getElementById('addProjectModal').classList.add('hidden');
+  _addProjEmp = null;
+}
+
+async function submitAddProject(event) {
+  event.preventDefault();
+  if (!_addProjEmp || !_vsData) return;
+
+  const project    = document.getElementById('apProject').value;
+  const hoursRaw   = Number(document.getElementById('apHours').value);
+  const hours      = Math.max(1, Math.min(45, hoursRaw || 0));
+  const startIdx   = parseInt(document.getElementById('apStartWeek').value);
+  const endIdx     = parseInt(document.getElementById('apEndWeek').value);
+  const isBillable = document.getElementById('apBillable').checked;
+
+  if (!project)          { showToast('Select a project first.', 'error'); return; }
+  if (!hoursRaw)         { showToast('Enter hours per week (1–45).', 'error'); return; }
+  if (startIdx > endIdx) { showToast('Start week must be before or equal to end week.', 'error'); return; }
+
+  const weeks   = _vsData.weeks;
+  const changes = [];
+  for (let i = startIdx; i <= endIdx; i++) {
+    changes.push({ employeeName: _addProjEmp, weekLabel: weeks[i], project, hours, isBillable });
+  }
+
+  const btn = document.getElementById('apSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+
+  try {
+    const res = await fetch('/api/save-staffing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ changes }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+    const empSaved = _addProjEmp;
+    closeAddProjectModal();
+    showToast(`Added ${project} for ${empSaved} (${changes.length} week${changes.length === 1 ? '' : 's'})`, 'success');
+    await loadDashboard();
+  } catch (err) {
+    showToast(`Failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Add Assignment'; }
   }
 }
 

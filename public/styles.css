@@ -2808,6 +2808,25 @@ td[data-cell-type="emp-total"]:hover {
 .hm-emp-row:hover .hm-info-icon { opacity: 1; }
 .hm-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
 
+.hm-add-proj-btn {
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  font-weight: 500;
+  color: #4A5568;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: 3px;
+  user-select: none;
+}
+.hm-emp-row:hover .hm-add-proj-btn { opacity: 1; }
+.hm-add-proj-btn:hover { color: var(--accent) !important; opacity: 1 !important; }
+
 /* ── Project sub-rows ────────────────────────────────────────────── */
 .hm-sub-row {
   display: none;
