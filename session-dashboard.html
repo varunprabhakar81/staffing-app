@@ -3,282 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Session 15 — Staffing Intelligence</title>
+<title>Session 16 — Staffing Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg: #0F1117;
-    --bg-card: #1A1D27;
-    --bg-hover: #20242f;
-    --border: rgba(255,255,255,0.07);
-    --border-mid: rgba(255,255,255,0.12);
-    --text-primary: #E8EAF0;
-    --text-secondary: #8892B0;
-    --text-muted: #4A5168;
-    --blue: #A8C7FA;
-    --blue-bg: rgba(168,199,250,0.1);
-    --mint: #A8E6CF;
-    --mint-bg: rgba(168,230,207,0.1);
-    --amber: #FFF3A3;
-    --amber-bg: rgba(255,243,163,0.1);
-    --coral: #FFB3B3;
-    --coral-bg: rgba(255,179,179,0.1);
-    --purple: #C9B8FF;
-    --purple-bg: rgba(201,184,255,0.1);
-    --font: 'IBM Plex Sans', sans-serif;
-    --mono: 'IBM Plex Mono', monospace;
+    --bg: #0F1117; --bg-card: #1A1D27; --bg-hover: #20242f;
+    --border: rgba(255,255,255,0.07); --border-mid: rgba(255,255,255,0.12);
+    --text-primary: #E8EAF0; --text-secondary: #8892B0; --text-muted: #4A5168;
+    --blue: #A8C7FA; --blue-bg: rgba(168,199,250,0.1);
+    --mint: #A8E6CF; --mint-bg: rgba(168,230,207,0.1);
+    --amber: #FFF3A3; --amber-bg: rgba(255,243,163,0.1);
+    --coral: #FFB3B3; --coral-bg: rgba(255,179,179,0.1);
+    --purple: #C9B8FF; --purple-bg: rgba(201,184,255,0.1);
+    --font: 'IBM Plex Sans', sans-serif; --mono: 'IBM Plex Mono', monospace;
   }
+  html, body { background: var(--bg); color: var(--text-primary); font-family: var(--font); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .shell { max-width: 1060px; margin: 0 auto; padding: 32px 24px 60px; }
 
-  html, body {
-    background: var(--bg);
-    color: var(--text-primary);
-    font-family: var(--font);
-    font-size: 14px;
-    line-height: 1.5;
-    min-height: 100vh;
-  }
+  .header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 0.5px solid var(--border-mid); }
+  .header-left h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-left .sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; font-family: var(--mono); }
+  .header-right { font-size: 11px; color: var(--text-muted); font-family: var(--mono); text-align: right; }
+  #live-time { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 2px; }
 
-  /* Layout */
-  .shell {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 32px 24px 60px;
-  }
-
-  /* Header */
-  .header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 28px;
-    padding-bottom: 20px;
-    border-bottom: 0.5px solid var(--border-mid);
-  }
-  .header-left h1 {
-    font-size: 20px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-    color: var(--text-primary);
-  }
-  .header-left .sub {
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 3px;
-    font-family: var(--mono);
-  }
-  .header-right {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-    text-align: right;
-  }
-  #live-time {
-    font-size: 13px;
-    color: var(--text-secondary);
-    display: block;
-    margin-bottom: 2px;
-  }
-
-  /* Metric cards */
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  .metric {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-  }
-  .metric-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    font-family: var(--mono);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .metric-value {
-    font-size: 26px;
-    font-weight: 600;
-    font-family: var(--mono);
-    color: var(--text-primary);
-  }
+  .metrics { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; margin-bottom: 20px; }
+  .metric { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text-secondary); font-family: var(--mono); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 26px; font-weight: 600; font-family: var(--mono); }
   .metric-value.green { color: var(--mint); }
   .metric-value.amber { color: var(--amber); }
+  .metric-value.muted { font-size: 18px; color: var(--text-secondary); }
+  .prog-wrap { height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 8px; }
+  .prog-fill { height: 100%; border-radius: 2px; background: var(--mint); transition: width 0.4s ease; }
 
-  .prog-wrap {
-    height: 3px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 2px;
-    margin-top: 8px;
-  }
-  .prog-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: var(--mint);
-    transition: width 0.4s ease;
-  }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .panel { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .panel-header { padding: 10px 16px; border-bottom: 0.5px solid var(--border); font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; justify-content: space-between; }
+  .panel-header .cnt { font-weight: 400; color: var(--text-muted); }
 
-  /* Columns */
-  .columns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  /* Panel */
-  .panel {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .panel-header {
-    padding: 10px 16px;
-    border-bottom: 0.5px solid var(--border);
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    font-family: var(--mono);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .panel-header .cnt {
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-
-  /* Issue rows */
-  .issue-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 16px;
-    border-bottom: 0.5px solid var(--border);
-    cursor: pointer;
-    transition: background 0.12s;
-    user-select: none;
-  }
+  .issue-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.12s; user-select: none; }
   .issue-row:last-child { border-bottom: none; }
   .issue-row:hover { background: var(--bg-hover); }
   .issue-row.done { opacity: 0.38; }
+  .issue-row.ref { cursor: default; }
+  .issue-row.ref:hover { background: transparent; }
 
-  .issue-num {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-    min-width: 48px;
-  }
-  .issue-title {
-    flex: 1;
-    font-size: 13px;
-    color: var(--text-primary);
-    line-height: 1.35;
-  }
-  .issue-est {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-    white-space: nowrap;
-  }
+  .issue-num { font-size: 11px; color: var(--text-muted); font-family: var(--mono); min-width: 52px; }
+  .issue-title { flex: 1; font-size: 13px; color: var(--text-primary); line-height: 1.35; }
+  .issue-est { font-size: 11px; color: var(--text-muted); font-family: var(--mono); white-space: nowrap; }
 
-  /* Badges */
-  .badge {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-family: var(--mono);
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-  }
+  .badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; font-family: var(--mono); white-space: nowrap; letter-spacing: 0.02em; }
   .b-open    { background: var(--blue-bg);   color: var(--blue);   border: 0.5px solid rgba(168,199,250,0.2); }
   .b-closed  { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
   .b-carry   { background: var(--amber-bg);  color: var(--amber);  border: 0.5px solid rgba(255,243,163,0.2); }
   .b-done    { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
   .b-backlog { background: var(--purple-bg); color: var(--purple); border: 0.5px solid rgba(201,184,255,0.2); }
+  .b-new     { background: var(--coral-bg);  color: var(--coral);  border: 0.5px solid rgba(255,179,179,0.2); }
 
-  /* Backlog grid */
-  .backlog-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .backlog-grid .issue-row {
-    border-bottom: 0.5px solid var(--border);
-    cursor: default;
-  }
+  .backlog-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .backlog-grid .issue-row { cursor: default; border-bottom: 0.5px solid var(--border); }
   .backlog-grid .issue-row:hover { background: transparent; }
 
-  /* Footer hint */
-  .hint {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: var(--mono);
-    margin-top: 10px;
-    padding-left: 2px;
-  }
+  .hint { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 10px; }
   .hint span { color: var(--blue); }
 
-  /* Log */
-  .log-section {
-    margin-top: 20px;
-  }
-  .log-header {
-    font-size: 11px;
-    font-family: var(--mono);
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .log-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--mint);
-    animation: blink 2s infinite;
-  }
-  @keyframes blink {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.2; }
-  }
-  .log-list {
-    background: var(--bg-card);
-    border: 0.5px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    max-height: 180px;
-    overflow-y: auto;
-  }
-  .log-entry {
-    padding: 7px 16px;
-    font-size: 12px;
-    font-family: var(--mono);
-    border-bottom: 0.5px solid var(--border);
-    display: flex;
-    gap: 12px;
-    align-items: baseline;
-  }
+  .log-section { margin-top: 20px; }
+  .log-header { font-size: 11px; font-family: var(--mono); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .log-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .log-list { background: var(--bg-card); border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; max-height: 180px; overflow-y: auto; }
+  .log-entry { padding: 7px 16px; font-size: 12px; font-family: var(--mono); border-bottom: 0.5px solid var(--border); display: flex; gap: 12px; }
   .log-entry:last-child { border-bottom: none; }
   .log-time { color: var(--text-muted); min-width: 54px; }
   .log-msg { color: var(--text-secondary); }
   .log-msg .hl { color: var(--mint); }
   .log-msg .hl-amber { color: var(--amber); }
-
-  /* scrollbar */
   .log-list::-webkit-scrollbar { width: 4px; }
-  .log-list::-webkit-scrollbar-track { background: transparent; }
   .log-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 </style>
 </head>
@@ -287,7 +88,7 @@
 
   <div class="header">
     <div class="header-left">
-      <h1>Session 15 — Staffing Intelligence App</h1>
+      <h1>Session 16 — Staffing Intelligence App</h1>
       <div class="sub">staffing-app · Soon milestone · active sprint</div>
     </div>
     <div class="header-right">
@@ -297,19 +98,14 @@
   </div>
 
   <div class="metrics">
-    <div class="metric">
-      <div class="metric-label">Planned</div>
-      <div class="metric-value" id="m-planned">5</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Closed</div>
-      <div class="metric-value green" id="m-closed">0</div>
-    </div>
+    <div class="metric"><div class="metric-label">Planned</div><div class="metric-value">4</div></div>
+    <div class="metric"><div class="metric-label">Closed</div><div class="metric-value green" id="m-closed">0</div></div>
     <div class="metric">
       <div class="metric-label">Carry-fwds</div>
       <div class="metric-value amber" id="m-carry-done">0</div>
       <div class="prog-wrap"><div class="prog-fill" id="carry-bar" style="width:0%"></div></div>
     </div>
+    <div class="metric"><div class="metric-label">Cache buster</div><div class="metric-value muted">v=39</div></div>
     <div class="metric">
       <div class="metric-label">Progress</div>
       <div class="metric-value" id="m-pct">0%</div>
@@ -319,236 +115,160 @@
 
   <div class="columns">
 
-    <!-- Planned -->
     <div class="panel">
-      <div class="panel-header">Planned — Soon milestone <span class="cnt">5 issues</span></div>
-      <div class="issue-row" onclick="togglePlanned(this,'p1','#128','Total row expand + focus first cell')">
-        <span class="issue-num">#128</span>
-        <span class="issue-title">Total row expand + focus first cell</span>
-        <span class="issue-est">1–2h</span>
+      <div class="panel-header">Planned — Soon milestone <span class="cnt">4 issues</span></div>
+      <div class="issue-row" onclick="togglePlanned(this,'p1','#61','#61 cleanup — remaining drilldowns + Rolling Off Soon fix')">
+        <span class="issue-num">#61</span>
+        <span class="issue-title">#61 cleanup: 3 remaining drilldowns + Rolling Off Soon truncation fix</span>
+        <span class="issue-est">2–3h</span>
         <span class="badge b-open" id="p1">open</span>
       </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p2','#61','Comprehensive drilldown review')">
-        <span class="issue-num">#61</span>
-        <span class="issue-title">Comprehensive drilldown review</span>
-        <span class="issue-est">3–4h</span>
-        <span class="badge b-open" id="p2">open</span>
-      </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p3','#124','Add new project assignment from heatmap')">
+      <div class="issue-row" onclick="togglePlanned(this,'p2','#124','Add new project assignment from heatmap')">
         <span class="issue-num">#124</span>
         <span class="issue-title">Add new project assignment from heatmap</span>
         <span class="issue-est">3–4h</span>
+        <span class="badge b-open" id="p2">open</span>
+      </div>
+      <div class="issue-row" onclick="togglePlanned(this,'p3','#119','Consultant profile editor')">
+        <span class="issue-num">#119</span>
+        <span class="issue-title">Consultant profile editor — name, level, location, skills, is_billable, capacity, rates</span>
+        <span class="issue-est">4–6h</span>
         <span class="badge b-open" id="p3">open</span>
       </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p4','#119/#125','Compare duplicate + consultant profile editor')">
-        <span class="issue-num">#119/#125</span>
-        <span class="issue-title">Compare for duplicate → consultant profile editor</span>
-        <span class="issue-est">4–6h</span>
-        <span class="badge b-open" id="p4">open</span>
-      </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p5','#126','Consultants management panel')">
+      <div class="issue-row" onclick="togglePlanned(this,'p4','#126','Consultants management panel')">
         <span class="issue-num">#126</span>
         <span class="issue-title">Consultants management panel</span>
         <span class="issue-est">6–8h</span>
-        <span class="badge b-open" id="p5">open</span>
+        <span class="badge b-open" id="p4">open</span>
       </div>
     </div>
 
-    <!-- Carry-forwards -->
     <div class="panel">
-      <div class="panel-header">Carry-forward housekeeping <span class="cnt">8 items</span></div>
-      <div class="issue-row" onclick="toggleCarry(this,'c1','#119 vs #125 duplicate check')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">#119 vs #125 — compare &amp; close duplicate</span>
+      <div class="panel-header">Carry-forward housekeeping <span class="cnt">10 items</span></div>
+      <div class="issue-row" onclick="toggleCarry(this,'c1','Heatmap inline filter — new GitHub issue')">
+        <span class="issue-num">—</span><span class="issue-title">Heatmap inline filter — new GitHub issue</span>
         <span class="badge b-carry" id="c1">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c2','Heatmap inline filter — new issue')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Heatmap inline filter — new GitHub issue</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c2','#82 UAT test script')">
+        <span class="issue-num">#82</span><span class="issue-title">UAT test script before real users onboard</span>
         <span class="badge b-carry" id="c2">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c3','#82 UAT test script')">
-        <span class="issue-num">#82</span>
-        <span class="issue-title">UAT test script before real users onboard</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c3','#61 row flash note from #120')">
+        <span class="issue-num">#61</span><span class="issue-title">Add row flash note from #120</span>
         <span class="badge b-carry" id="c3">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c4','#61 row flash note from #120')">
-        <span class="issue-num">#61</span>
-        <span class="issue-title">Add row flash note from #120</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c4','#66 vs #129 duplicate check')">
+        <span class="issue-num">#66/#129</span><span class="issue-title">Close #66 as duplicate if #129 covers it</span>
         <span class="badge b-carry" id="c4">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c5','#66 vs #129 duplicate check')">
-        <span class="issue-num">#66/#129</span>
-        <span class="issue-title">Close #66 as duplicate if #129 covers it</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c5','Cache buster audit — app.js v=39, styles.css v=35')">
+        <span class="issue-num">—</span><span class="issue-title">Cache buster audit — app.js v=39, styles.css v=35</span>
         <span class="badge b-carry" id="c5">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c6','Cache buster audit')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Cache buster audit — app.js v=32, styles.css v=35</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c6','Kill node in Git Bash — document pkill workaround')">
+        <span class="issue-num">—</span><span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
         <span class="badge b-carry" id="c6">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c7','Kill node workaround doc')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c7','Holistic UI/UX design pass — new GitHub issue')">
+        <span class="issue-num">—</span><span class="issue-title">Holistic UI/UX design pass — new GitHub issue</span>
         <span class="badge b-carry" id="c7">pending</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c8','Holistic UI/UX design pass — new issue')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Holistic UI/UX design pass — new GitHub issue</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c8','Quick Fill date UX improvement')">
+        <span class="issue-num">#130</span><span class="issue-title">Quick Fill date UX — default current week, freeform input, arrow keys ±1 week</span>
         <span class="badge b-carry" id="c8">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleCarry(this,'c9','Industry master table — new GitHub issue')">
+        <span class="issue-num">—</span><span class="issue-title">Industry master table — create GitHub issue (V1 Stable)</span>
+        <span class="badge b-carry" id="c9">pending</span>
+      </div>
+      <div class="issue-row" onclick="toggleCarry(this,'c10','Industry field on consultants — new GitHub issue')">
+        <span class="issue-num">—</span><span class="issue-title">Industry field on consultants — create GitHub issue (depends on industry table)</span>
+        <span class="badge b-carry" id="c10">pending</span>
       </div>
     </div>
 
   </div>
 
-  <!-- V1 Stable Backlog -->
-  <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-header">V1 Stable backlog <span class="cnt">7 issues · reference only</span></div>
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="panel-header">V1 Stable backlog <span class="cnt">9 issues · reference only</span></div>
     <div class="backlog-grid">
-      <div class="issue-row"><span class="issue-num">#123</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#82</span><span class="issue-title" style="color:var(--text-secondary)">UAT cases</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#83</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#102</span><span class="issue-title" style="color:var(--text-secondary)">Email verification flow</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#103</span><span class="issue-title" style="color:var(--text-secondary)">Password strength policy</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#100</span><span class="issue-title" style="color:var(--text-secondary)">User mgmt access enhancements</span><span class="badge b-backlog">v1 stable</span></div>
-      <div class="issue-row"><span class="issue-num">#116</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#123</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#82</span><span class="issue-title" style="color:var(--text-secondary)">UAT cases</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#83</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#102</span><span class="issue-title" style="color:var(--text-secondary)">Email verification flow</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#103</span><span class="issue-title" style="color:var(--text-secondary)">Password strength policy</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#100</span><span class="issue-title" style="color:var(--text-secondary)">User mgmt access enhancements</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">#116</span><span class="issue-title" style="color:var(--text-secondary)">—</span><span class="badge b-backlog">v1 stable</span></div>
+      <div class="issue-row ref"><span class="issue-num">new</span><span class="issue-title" style="color:var(--text-secondary)">Industry master table</span><span class="badge b-new">new</span></div>
+      <div class="issue-row ref"><span class="issue-num">new</span><span class="issue-title" style="color:var(--text-secondary)">Industry field on consultants</span><span class="badge b-new">new</span></div>
     </div>
   </div>
 
-  <div class="hint">Click planned issues or carry-forwards to mark done · <span>state persists in localStorage</span></div>
+  <div class="hint">Click planned issues or carry-forwards to toggle · <span>state persists in localStorage</span></div>
 
-  <!-- Activity log -->
   <div class="log-section">
     <div class="log-header"><span class="log-dot"></span> Activity log</div>
     <div class="log-list" id="log-list">
       <div class="log-entry">
         <span class="log-time" id="start-time">--:--</span>
-        <span class="log-msg">Session 15 <span class="hl">started</span></span>
+        <span class="log-msg">Session 16 <span class="hl">started</span></span>
       </div>
     </div>
   </div>
 
 </div>
-
 <script>
-  const STORAGE_KEY = 'session15_state';
+  const STORAGE_KEY = 'session16_state';
+  const plannedIds = ['p1','p2','p3','p4'];
+  const carryIds   = ['c1','c2','c3','c4','c5','c6','c7','c8','c9','c10'];
 
-  // Clock
   function tick() {
-    const now = new Date();
-    const t = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    document.getElementById('live-time').textContent = t;
+    document.getElementById('live-time').textContent =
+      new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }
-  tick(); setInterval(tick, 1000);
+  tick(); setInterval(tick,1000);
+  document.getElementById('start-time').textContent =
+    new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 
-  // Set start time on log
-  (function() {
-    const now = new Date();
-    document.getElementById('start-time').textContent =
-      now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  })();
+  const state = (function(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):{planned:{},carry:{}}; }catch(e){return{planned:{},carry:{}};}})();
 
-  // State
-  const state = loadState();
-  applyState();
+  plannedIds.forEach(id=>{ if(state.planned[id]){ const el=document.getElementById(id); if(el){el.className='badge b-closed';el.textContent='closed';el.closest('.issue-row').classList.add('done');}}});
+  carryIds.forEach(id=>{ if(state.carry[id]){ const el=document.getElementById(id); if(el){el.className='badge b-done';el.textContent='done';el.closest('.issue-row').classList.add('done');}}});
+  updateMetrics();
 
-  function loadState() {
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? JSON.parse(s) : { planned: {}, carry: {} };
-    } catch(e) { return { planned: {}, carry: {} }; }
+  function save(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }
+
+  function togglePlanned(row,id,num,title){
+    const badge=document.getElementById(id);
+    state.planned[id]=!state.planned[id];
+    if(state.planned[id]){badge.className='badge b-closed';badge.textContent='closed';row.classList.add('done');addLog(`Closed <span class="hl">${num}</span> — ${title}`);}
+    else{badge.className='badge b-open';badge.textContent='open';row.classList.remove('done');addLog(`Reopened <span class="hl-amber">${num}</span>`);}
+    save(); updateMetrics();
   }
-
-  function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  function toggleCarry(row,id,label){
+    const badge=document.getElementById(id);
+    state.carry[id]=!state.carry[id];
+    if(state.carry[id]){badge.className='badge b-done';badge.textContent='done';row.classList.add('done');addLog(`Done: <span class="hl">${label}</span>`);}
+    else{badge.className='badge b-carry';badge.textContent='pending';row.classList.remove('done');addLog(`Reopened: <span class="hl-amber">${label}</span>`);}
+    save(); updateMetrics();
   }
-
-  function applyState() {
-    Object.entries(state.planned).forEach(([id, closed]) => {
-      if (closed) {
-        const el = document.getElementById(id);
-        if (el) {
-          el.className = 'badge b-closed';
-          el.textContent = 'closed';
-          el.closest('.issue-row').classList.add('done');
-        }
-      }
-    });
-    Object.entries(state.carry).forEach(([id, done]) => {
-      if (done) {
-        const el = document.getElementById(id);
-        if (el) {
-          el.className = 'badge b-done';
-          el.textContent = 'done';
-          el.closest('.issue-row').classList.add('done');
-        }
-      }
-    });
-    updateMetrics();
+  function updateMetrics(){
+    const closed=plannedIds.filter(id=>state.planned[id]).length;
+    const cdone=carryIds.filter(id=>state.carry[id]).length;
+    const pct=Math.round(closed/plannedIds.length*100);
+    const cpct=Math.round(cdone/carryIds.length*100);
+    document.getElementById('m-closed').textContent=closed;
+    document.getElementById('m-carry-done').textContent=cdone;
+    document.getElementById('m-pct').textContent=pct+'%';
+    document.getElementById('prog-bar').style.width=pct+'%';
+    document.getElementById('carry-bar').style.width=cpct+'%';
   }
-
-  function togglePlanned(row, id, num, title) {
-    const badge = document.getElementById(id);
-    const isClosed = state.planned[id];
-    if (isClosed) {
-      state.planned[id] = false;
-      badge.className = 'badge b-open';
-      badge.textContent = 'open';
-      row.classList.remove('done');
-      addLog(`Reopened <span class="hl-amber">${num}</span> — ${title}`);
-    } else {
-      state.planned[id] = true;
-      badge.className = 'badge b-closed';
-      badge.textContent = 'closed';
-      row.classList.add('done');
-      addLog(`Closed <span class="hl">${num}</span> — ${title}`);
-    }
-    saveState();
-    updateMetrics();
-  }
-
-  function toggleCarry(row, id, label) {
-    const badge = document.getElementById(id);
-    const isDone = state.carry[id];
-    if (isDone) {
-      state.carry[id] = false;
-      badge.className = 'badge b-carry';
-      badge.textContent = 'pending';
-      row.classList.remove('done');
-      addLog(`Reopened carry-fwd: <span class="hl-amber">${label}</span>`);
-    } else {
-      state.carry[id] = true;
-      badge.className = 'badge b-done';
-      badge.textContent = 'done';
-      row.classList.add('done');
-      addLog(`Done: <span class="hl">${label}</span>`);
-    }
-    saveState();
-    updateMetrics();
-  }
-
-  function updateMetrics() {
-    const plannedIds = ['p1','p2','p3','p4','p5'];
-    const carryIds   = ['c1','c2','c3','c4','c5','c6','c7','c8'];
-    const closedCount = plannedIds.filter(id => state.planned[id]).length;
-    const carryDone   = carryIds.filter(id => state.carry[id]).length;
-    const pct = Math.round((closedCount / plannedIds.length) * 100);
-    const carryPct = Math.round((carryDone / carryIds.length) * 100);
-    document.getElementById('m-closed').textContent = closedCount;
-    document.getElementById('m-carry-done').textContent = carryDone;
-    document.getElementById('m-pct').textContent = pct + '%';
-    document.getElementById('prog-bar').style.width = pct + '%';
-    document.getElementById('carry-bar').style.width = carryPct + '%';
-  }
-
-  function addLog(msg) {
-    const list = document.getElementById('log-list');
-    const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-    const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    entry.innerHTML = `<span class="log-time">${now}</span><span class="log-msg">${msg}</span>`;
-    list.appendChild(entry);
-    list.scrollTop = list.scrollHeight;
+  function addLog(msg){
+    const list=document.getElementById('log-list');
+    const now=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const e=document.createElement('div'); e.className='log-entry';
+    e.innerHTML=`<span class="log-time">${now}</span><span class="log-msg">${msg}</span>`;
+    list.appendChild(e); list.scrollTop=list.scrollHeight;
   }
 </script>
 </body>

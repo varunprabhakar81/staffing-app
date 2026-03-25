@@ -711,11 +711,16 @@ function renderOverviewStats(data, heatmapData) {
   if (donutCanvas && totalRoles > 0) {
     charts.needsDonut = new Chart(donutCanvas, {
       type: 'doughnut',
-      data: { datasets: [{ data: [summary.fully_met || 0, summary.partially_met || 0, unmet],
-        backgroundColor: ['#A8E6CF', '#FFF3A3', '#FFB3B3'], borderWidth: 0, hoverOffset: 0 }] },
+      data: { datasets: [{ data: [summary.partially_met || 0, unmet],
+        backgroundColor: ['#FFF3A3', '#FFB3B3'], borderWidth: 0, hoverOffset: 0 }] },
       options: { responsive: false, cutout: '60%',
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        animation: { duration: 600 } }
+        animation: { duration: 600 },
+        onClick: (evt, activeElements) => {
+          if (!activeElements.length) return;
+          const statusMap = ['partially_met', 'unmet'];
+          drillNeedsByStatus(statusMap[activeElements[0].index]);
+        } }
     });
   }
 
@@ -886,7 +891,7 @@ function renderTopProjects(heatmapData) {
   }
   const maxHrs = sorted[0][1];
   el.innerHTML = sorted.map(([project, hours]) => `
-    <div class="ov-project-row">
+    <div class="ov-project-row dd-clickable" style="cursor:pointer" onclick="navigateToProject('${_esc(project)}')" title="Click to view in Staffing tab">
       <div class="ov-project-label">
         <span class="ov-project-name">${project}</span>
         <span class="ov-project-hours">${hours}h</span>
@@ -957,7 +962,14 @@ function renderNeedsAttention(data) {
     const bc        = isUnmet ? '#FFB3B3' : '#FFF3A3';
     const startD    = r.startDate ? new Date(r.startDate) : null;
     const dateCol   = startD && startD <= today ? '#FFB3B3' : '#FFF3A3';
-    return `<div class="ov-needs-item">
+    // Look up roleIdx in rawData.coverageRoles by matching project + level + skillSet
+    const roleIdx = rawData.coverageRoles.findIndex(
+      cr => cr.project === r.project && cr.level === r.level && cr.skillSet === r.skillSet
+    );
+    const clickAttr = roleIdx >= 0
+      ? `onclick="drillCoverage(${roleIdx})" style="cursor:pointer" title="Click for matching resources"`
+      : '';
+    return `<div class="ov-needs-item dd-clickable" ${clickAttr}>
       <div class="ov-needs-row">
         <span class="ov-needs-project">${r.project || '—'}</span>
         <span class="ov-needs-badge" style="background:${bc}22;color:${bc};border-color:${bc}">${isUnmet ? 'Unmet' : 'Partial'}</span>
@@ -1205,7 +1217,12 @@ function _vsRenderRow(row) {
       return `<td class="hm-sub-cell" style="background:#161820;color:${heatmapCellFg(h)};border-left:${_bl}">${h > 0 ? h : '—'}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-visible">
-      <td class="hm-sub-name-cell"><span class="hm-sub-indent">${encodeAttr(projName)}</span></td>${cells}</tr>`;
+      <td class="hm-sub-name-cell">
+        <span class="hm-sub-indent">${encodeAttr(projName)}</span>
+        <span class="hm-sub-info-icon"
+          onclick="event.stopPropagation();drillHeatmapEmployee('${_esc(emp.name)}')"
+          title="Full booking history">ℹ</span>
+      </td>${cells}</tr>`;
   }
 
   if (row.type === 'total') {
@@ -2129,6 +2146,41 @@ function drillCliff(weekIndex) {
         <th>Level</th><th>Skill Set</th><th>Available</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
+    </table>`);
+}
+
+// ── Drilldown 4a: Needs by Status (donut segment click) ────────────
+function drillNeedsByStatus(status) {
+  const roles = (rawData.coverageRoles || []).filter(r => r.status === status);
+  const labelMap = {
+    fully_met:     'Fully Met Needs',
+    partially_met: 'Partially Met Needs',
+    unmet:         'Unmet Needs',
+  };
+  const badgeMap = {
+    fully_met:     '<span class="dd-badge status-full">Fully Met</span>',
+    partially_met: '<span class="dd-badge status-under">Partially Met</span>',
+    unmet:         '<span class="dd-badge status-bench">Unmet</span>',
+  };
+  const title = `${labelMap[status] || status} — ${roles.length} role${roles.length !== 1 ? 's' : ''}`;
+  if (!roles.length) {
+    openDrilldown(title, '<p class="dd-empty">No roles with this status.</p>');
+    return;
+  }
+  const rows = roles.map((r, i) => {
+    const globalIdx = rawData.coverageRoles.indexOf(r);
+    return `<tr class="dd-clickable" onclick="drillCoverage(${globalIdx})" title="Click for detail">
+      <td>${r.project || '—'}</td>
+      <td style="color:#8892B0;font-size:12px">${r.level || '—'}</td>
+      <td style="font-size:12px">${r.skillSet || '—'}</td>
+      <td style="font-size:11px;color:#8892B0">${r.startDate || '—'} – ${r.endDate || '—'}</td>
+      <td>${badgeMap[r.status] || r.status}</td>
+    </tr>`;
+  }).join('');
+  openDrilldown(title, `
+    <table class="dd-table">
+      <thead><tr><th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
     </table>`);
 }
 

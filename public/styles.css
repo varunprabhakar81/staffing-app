@@ -2827,7 +2827,27 @@ td[data-cell-type="emp-total"]:hover {
   border-bottom: 1px solid rgba(255,255,255,0.03);
   vertical-align: middle;
   height: 26px;
+  position: relative;
 }
+
+/* ── Sub-row info icon (ℹ) — appears on row hover ───────────────── */
+.hm-sub-info-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: #4A5568;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 3px;
+  user-select: none;
+}
+.hm-sub-row:hover .hm-sub-info-icon { opacity: 1; }
+.hm-sub-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
 
 .hm-sub-indent {
   font-size: 12px;
