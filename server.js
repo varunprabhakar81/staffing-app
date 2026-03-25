@@ -497,7 +497,7 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply } = freshData;
-    const { weekKeyToDate } = freshData._meta;
+    const { weekKeyToDate, projectByName, consultantByName } = freshData._meta;
 
     // Map "M/D" display label → "YYYY-MM-DD" week ending date (year from actual DB dates)
     function weekLabelToDate(label) {
@@ -520,8 +520,9 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       let consultantId = row?._consultantId ?? null;
       let projectId    = row?._projectId    ?? null;
 
-      if (!consultantId) consultantId = await resolveConsultantId(req.session.token, ch.employeeName);
-      if (!projectId)    projectId    = await resolveProjectId(req.session.token, ch.project, true);
+      // Fall back to _meta lookups (serviceClient-loaded, bypasses RLS) — never use anonClient here
+      if (!consultantId) consultantId = consultantByName[ch.employeeName]?.id ?? null;
+      if (!projectId)    projectId    = projectByName[ch.project]?.id ?? null;
       if (!consultantId || !projectId) continue;
 
       console.log('[#109 row check]', { consultantId, projectId, weekEnding, rowFound: !!row, rowIsBillable: row?.isBillable });
