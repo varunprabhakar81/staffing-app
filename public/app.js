@@ -3815,9 +3815,34 @@ function closeInviteModal() {
   modal.classList.add('hidden');
   document.getElementById('inviteForm').reset();
   document.getElementById('inviteError').classList.add('hidden');
+  checkInvitePwStrength(''); // reset checklist and re-disable submit
+}
+
+function checkInvitePwStrength(val) {
+  const rules = [
+    { id: 'pwRule-len',   ok: val.length >= 12,              label: 'At least 12 characters' },
+    { id: 'pwRule-upper', ok: /[A-Z]/.test(val),             label: 'Uppercase letter' },
+    { id: 'pwRule-lower', ok: /[a-z]/.test(val),             label: 'Lowercase letter' },
+    { id: 'pwRule-num',   ok: /\d/.test(val),                label: 'Number' },
+    { id: 'pwRule-spec',  ok: /[^A-Za-z\d]/.test(val),      label: 'Special character' },
+  ];
+  let allPass = true;
+  for (const r of rules) {
+    const el = document.getElementById(r.id);
+    if (!el) continue;
+    if (r.ok) {
+      el.textContent = `✓ ${r.label}`;
+      el.style.color = '#10B981';
+    } else {
+      el.textContent = `✕ ${r.label}`;
+      el.style.color = val.length === 0 ? '#4A4D5A' : '#F87171';
+      allPass = false;
+    }
+  }
   const btn = document.getElementById('inviteSubmitBtn');
-  btn.textContent = 'Create User';
-  btn.disabled = false;
+  btn.disabled      = !allPass;
+  btn.style.opacity = allPass ? '1' : '0.45';
+  btn.style.cursor  = allPass ? 'pointer' : 'not-allowed';
 }
 
 function handleInviteOverlayClick(e) {
@@ -3844,12 +3869,6 @@ async function submitInvite(e) {
   }
   if (!tempPassword) {
     errEl.textContent = 'A temporary password is required.';
-    errEl.classList.remove('hidden');
-    return;
-  }
-  const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
-  if (!pwRe.test(tempPassword)) {
-    errEl.textContent = 'Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character.';
     errEl.classList.remove('hidden');
     return;
   }

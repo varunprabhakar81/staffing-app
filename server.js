@@ -1010,9 +1010,14 @@ app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (re
   }
 
   if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required' });
-  const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
-  if (!pwRe.test(tempPassword)) {
-    return res.status(400).json({ error: 'Password does not meet complexity requirements' });
+  const pwFailures = [];
+  if (tempPassword.length < 12)           pwFailures.push('at least 12 characters');
+  if (!/[A-Z]/.test(tempPassword))        pwFailures.push('an uppercase letter');
+  if (!/[a-z]/.test(tempPassword))        pwFailures.push('a lowercase letter');
+  if (!/\d/.test(tempPassword))           pwFailures.push('a number');
+  if (!/[^A-Za-z\d]/.test(tempPassword)) pwFailures.push('a special character');
+  if (pwFailures.length) {
+    return res.status(400).json({ error: `Password must include: ${pwFailures.join(', ')}.` });
   }
 
   try {
