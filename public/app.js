@@ -2821,45 +2821,80 @@ function hmCellKeydown(event, input) {
 }
 
 // ── Quick Fill ────────────────────────────────────────────────────
+// Employee, Project, From, To are all optional filters.
+// If omitted: applies to all expanded consultants, all their projects, all visible weeks.
+// Only hours is required — enter a value and click Apply.
 function applyQuickFill() {
-  const empName = document.getElementById('qfEmployee')?.value?.trim();
-  const project = document.getElementById('qfProject')?.value?.trim();
-  const fromVal = document.getElementById('qfFrom')?.value;
-  const toVal   = document.getElementById('qfTo')?.value;
-  const hours   = Math.max(0, Math.min(100, Number(document.getElementById('qfHours')?.value) || 0));
+  const empFilter  = document.getElementById('qfEmployee')?.value?.trim() || null;
+  const projFilter = document.getElementById('qfProject')?.value?.trim() || null;
+  const fromVal    = document.getElementById('qfFrom')?.value || null;
+  const toVal      = document.getElementById('qfTo')?.value || null;
+  const hoursRaw   = document.getElementById('qfHours')?.value;
+  const hours      = Math.max(0, Math.min(100, Number(hoursRaw) || 0));
 
-  if (!empName || !project || !fromVal || !toVal) {
-    showToast('Please fill in Employee, Project, From, and To fields.', 'error');
+  if (!_vsData) { showToast('Heatmap data not loaded yet.', 'error'); return; }
+  if (_hmExpanded.size === 0) { showToast('Expand at least one consultant row first.', 'error'); return; }
+  if (hoursRaw === '' || hoursRaw === null || hoursRaw === undefined) {
+    showToast('Enter hours per week before applying Quick Fill.', 'error');
     return;
   }
 
-  const fromDate = new Date(fromVal + 'T00:00:00');
-  const toDate   = new Date(toVal   + 'T00:00:00');
-  if (fromDate > toDate) { showToast('From date must be before To date.', 'error'); return; }
-
-  if (!_vsData) { showToast('Heatmap data not loaded yet.', 'error'); return; }
+  // Optional date range
+  let fromDate = null, toDate = null;
+  if (fromVal) fromDate = new Date(fromVal + 'T00:00:00');
+  if (toVal)   toDate   = new Date(toVal   + 'T00:00:00');
+  if (fromDate && toDate && fromDate > toDate) {
+    showToast('From date must be before To date.', 'error');
+    return;
+  }
 
   const year = new Date().getFullYear();
   let count = 0;
-  for (const weekLabel of _vsData.weeks) {
-    // weekLabel is "M/D" — parse to Date
-    const m = weekLabel.match(/(\d+)\/(\d+)/);
-    if (!m) continue;
-    const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
-    if (wkDate >= fromDate && wkDate <= toDate) {
-      _pendingStaffing.set(`${empName}||${weekLabel}||${project}`, hours);
-      count++;
+
+  // Target: filtered employee or all expanded consultants
+  const targetEmps = _vsData.employees.filter(e =>
+    _hmExpanded.has(e.name) && (!empFilter || e.name === empFilter)
+  );
+
+  for (const emp of targetEmps) {
+    // Collect unique projects for this employee
+    const allProjects = [];
+    for (const wkProjs of emp.weeklyProjects)
+      for (const p of wkProjs)
+        if (!allProjects.includes(p.project)) allProjects.push(p.project);
+
+    // If a project filter is set, narrow to that project only
+    const projects = projFilter ? allProjects.filter(p => p === projFilter) : allProjects;
+    if (!projects.length) continue;
+
+    for (let weekIdx = 0; weekIdx < _vsData.weeks.length; weekIdx++) {
+      const weekLabel = _vsData.weeks[weekIdx];
+
+      // Apply optional date range filter
+      if (fromDate || toDate) {
+        const m = weekLabel.match(/(\d+)\/(\d+)/);
+        if (!m) continue;
+        const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+        if (fromDate && wkDate < fromDate) continue;
+        if (toDate   && wkDate > toDate)   continue;
+      }
+
+      for (const project of projects) {
+        _pendingStaffing.set(`${emp.name}||${weekLabel}||${project}`, hours);
+        count++;
+      }
     }
   }
 
   if (count === 0) {
-    showToast('No heatmap weeks fall within the selected date range.', 'error');
+    showToast('No cells matched — check employee/project filters or date range.', 'error');
     return;
   }
 
   _buildVsAllRows();
   _vsRenderVisible();
   updateHmSaveBar();
+  showToast(`Quick Fill: applied ${hours}h to ${count} cell${count === 1 ? '' : 's'}.`, 'success');
 }
 
 // ── Save / Cancel bar ─────────────────────────────────────────────
