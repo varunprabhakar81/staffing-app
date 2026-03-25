@@ -559,6 +559,86 @@ app.get('/api/projects', requireRole('admin', 'resource_manager'), (req, res) =>
   res.json(active);
 });
 
+// GET /api/consultants — list all consultants for the Consultants Management panel (#126)
+app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const tenantId = process.env.TENANT_ID;
+  try {
+    const [{ data: consultants, error: cErr }, { data: levels, error: lErr },
+           { data: css, error: cssErr }, { data: skillSets, error: ssErr }] = await Promise.all([
+      serviceClient.from('consultants')
+        .select('id, name, level_id, location, is_active')
+        .eq('tenant_id', tenantId)
+        .order('name'),
+      serviceClient.from('levels').select('id, name').eq('tenant_id', tenantId),
+      serviceClient.from('consultant_skill_sets').select('consultant_id, skill_set_id').eq('tenant_id', tenantId),
+      serviceClient.from('skill_sets').select('id, name, type').eq('tenant_id', tenantId),
+    ]);
+    if (cErr)   return res.status(500).json({ error: cErr.message });
+    if (lErr)   return res.status(500).json({ error: lErr.message });
+    if (cssErr) return res.status(500).json({ error: cssErr.message });
+    if (ssErr)  return res.status(500).json({ error: ssErr.message });
+
+    const levelById = Object.fromEntries(levels.map(l => [l.id, l.name]));
+    const ssById    = Object.fromEntries(skillSets.map(s => [s.id, s]));
+
+    const consultantSkills = {};
+    for (const row of css) {
+      const ss = ssById[row.skill_set_id];
+      if (!ss) continue;
+      if (!consultantSkills[row.consultant_id]) consultantSkills[row.consultant_id] = { practice: [], other: [] };
+      const e = consultantSkills[row.consultant_id];
+      if (ss.type === 'Practice Area') e.practice.push(ss.name);
+      else e.other.push(ss.name);
+    }
+
+    res.json(consultants.map(c => {
+      const sk = consultantSkills[c.id];
+      const skillSets = sk ? [
+        ...sk.practice.map(name => ({ name, type: 'Practice Area' })),
+        ...sk.other.map(name => ({ name, type: 'Technology' })),
+      ] : [];
+      return {
+        id:              c.id,
+        name:            c.name,
+        level:           levelById[c.level_id] || null,
+        location:        c.location || null,
+        skillSets,
+        is_active:       c.is_active !== false,
+      };
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/consultants/:id/deactivate — set is_active = false
+app.patch('/api/consultants/:id/deactivate', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const tenantId = process.env.TENANT_ID;
+  try {
+    const { error } = await serviceClient.from('consultants').update({ is_active: false }).eq('tenant_id', tenantId).eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'consultant-updated', id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/consultants/:id/reactivate — set is_active = true
+app.patch('/api/consultants/:id/reactivate', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const tenantId = process.env.TENANT_ID;
+  try {
+    const { error } = await serviceClient.from('consultants').update({ is_active: true }).eq('tenant_id', tenantId).eq('id', req.params.id);
+    if (error) return res.status(500).json({ error: error.message });
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'consultant-updated', id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/consultants/:id — consultant profile + skill sets + available levels/skill sets
 app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   const { id } = req.params;

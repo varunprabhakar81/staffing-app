@@ -9,7 +9,8 @@ let currentUserCanViewRates = false;
 // ── Inline edit state ─────────────────────────────────────────────
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
-let _editConsultantId = null; // consultant id open in the profile editor
+let _editConsultantId = null;     // consultant id open in the profile editor
+let _editConsultantStatus = null; // status of the consultant open in the profile editor
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
 // ── Tracks which employee rows are expanded in the heatmap ────────
@@ -47,7 +48,8 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     }
     // Reload user list each time Settings tab is opened
     if (tab === 'settings') {
-      loadUsers();
+      if (currentUserRole === 'admin') loadUsers();
+      if (_hmCanEdit()) loadConsultantsPanel();
     }
   });
 });
@@ -3065,6 +3067,170 @@ function umPill(color, text) {
 }
 
 let _deactivatedExpanded = false;
+let _inactiveConsultantsExpanded = false;
+
+// ── Consultants Management Panel (#126) ───────────────────────────
+async function loadConsultantsPanel() {
+  const tbody   = document.getElementById('consultantTableBody');
+  const emptyEl = document.getElementById('consultantTableEmpty');
+  const inactEl = document.getElementById('inactiveConsultantsSection');
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="6" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">Loading…</td></tr>`;
+  if (emptyEl) emptyEl.classList.add('hidden');
+  if (inactEl) inactEl.innerHTML = '';
+
+  let consultants;
+  try {
+    const res = await fetch('/api/consultants');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    consultants = await res.json();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px 20px;text-align:center;color:#FCA5A5;font-size:13px">Failed to load consultants: ${_esc(err.message)}</td></tr>`;
+    return;
+  }
+
+  const active   = consultants.filter(c => c.is_active !== false);
+  const inactive = consultants.filter(c => c.is_active === false);
+
+  if (!active.length && !inactive.length) {
+    tbody.innerHTML = '';
+    if (emptyEl) emptyEl.classList.remove('hidden');
+    return;
+  }
+
+  tbody.innerHTML = active.length
+    ? active.map(c => _renderConsultantRow(c)).join('')
+    : `<tr><td colspan="6" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active consultants</td></tr>`;
+
+  if (inactEl) _renderInactiveConsultantsSection(inactEl, inactive);
+}
+
+function _renderConsultantRow(c) {
+  const levelCell    = c.level    ? `<span style="color:#C9B8FF;font-size:12px">${_esc(c.level)}</span>`    : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const skills       = Array.isArray(c.skillSets) ? c.skillSets : (c.primarySkillSet ? [{ name: c.primarySkillSet, type: 'Technology' }] : []);
+  const skillPills   = skills.map(s => {
+    const label = typeof s === 'string' ? s : s.name;
+    return `<span class="skill-pill">${_esc(label)}</span>`;
+  });
+  const skillCell    = skillPills.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${skillPills.join('')}</div>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const locationCell = c.location ? `<span style="color:#8892B0;font-size:12px">${_esc(c.location)}</span>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)">Active</span>`;
+
+  const editBtn = c.id
+    ? `<button onclick="openConsultantProfileEditor('${_esc(c.id)}','${_esc(c.name)}')"
+         style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Edit</button>`
+    : '';
+
+  const deactBtn = c.id
+    ? `<button onclick="deactivateConsultant('${_esc(c.id)}','${_esc(c.name)}')"
+         style="height:32px;padding:0 12px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`
+    : '';
+
+  return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
+    <td style="padding:13px 16px">${levelCell}</td>
+    <td style="padding:13px 16px">${skillCell}</td>
+    <td style="padding:13px 16px">${locationCell}</td>
+    <td style="padding:13px 16px">${statusPill}</td>
+    <td style="padding:13px 20px">
+      <div style="display:flex;align-items:center;gap:8px">
+        ${editBtn}
+        ${deactBtn}
+      </div>
+    </td>
+  </tr>`;
+}
+
+function _renderInactiveConsultantsSection(container, consultants) {
+  _inactiveConsultantsExpanded = false;
+  const countBadge = consultants.length > 0 ? ` (${consultants.length})` : '';
+
+  const rowsHtml = consultants.length === 0
+    ? `<div style="padding:24px;text-align:center;color:#4A4D5A;font-size:13px">No inactive consultants</div>`
+    : `<div class="chart-card" style="padding:0;overflow:hidden;margin-top:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tbody>${consultants.map(c => _renderInactiveConsultantRow(c)).join('')}</tbody>
+        </table>
+      </div>`;
+
+  container.innerHTML = `
+    <div style="margin-top:16px">
+      <div onclick="toggleInactiveConsultants()"
+           style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;padding:4px 0">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+        <span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#4A4D5A;text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap">
+          <span id="inactiveConsultantsArrow" style="font-size:9px">${_inactiveConsultantsExpanded ? '▼' : '▶'}</span>
+          Inactive Consultants${countBadge}
+        </span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+      </div>
+      <div id="inactiveConsultantsContent" style="overflow:hidden;${_inactiveConsultantsExpanded ? '' : 'display:none'}">
+        ${rowsHtml}
+      </div>
+    </div>`;
+}
+
+function toggleInactiveConsultants() {
+  _inactiveConsultantsExpanded = !_inactiveConsultantsExpanded;
+  const content = document.getElementById('inactiveConsultantsContent');
+  const arrow   = document.getElementById('inactiveConsultantsArrow');
+  if (!content || !arrow) return;
+  content.style.display = _inactiveConsultantsExpanded ? '' : 'none';
+  arrow.textContent = _inactiveConsultantsExpanded ? '▼' : '▶';
+}
+
+function _renderInactiveConsultantRow(c) {
+  const levelCell    = c.level    ? `<span style="color:#C9B8FF;font-size:12px">${_esc(c.level)}</span>`    : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const skills       = Array.isArray(c.skillSets) ? c.skillSets : (c.primarySkillSet ? [{ name: c.primarySkillSet, type: 'Technology' }] : []);
+  const skillPills   = skills.map(s => {
+    const label = typeof s === 'string' ? s : s.name;
+    return `<span class="skill-pill">${_esc(label)}</span>`;
+  });
+  const skillCell    = skillPills.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${skillPills.join('')}</div>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const locationCell = c.location ? `<span style="color:#8892B0;font-size:12px">${_esc(c.location)}</span>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
+  const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#6B6F76;background:#1A1D27;border:1px solid rgba(255,255,255,0.1)">Inactive</span>`;
+
+  const reactBtn = c.id
+    ? `<button onclick="reactivateConsultant('${_esc(c.id)}','${_esc(c.name)}')"
+         style="height:32px;padding:0 12px;background:rgba(168,230,207,.12);border:1px solid rgba(168,230,207,.25);border-radius:6px;color:#A8E6CF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>`
+    : '';
+
+  return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);opacity:0.5">
+    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
+    <td style="padding:13px 16px">${levelCell}</td>
+    <td style="padding:13px 16px">${skillCell}</td>
+    <td style="padding:13px 16px">${locationCell}</td>
+    <td style="padding:13px 16px">${statusPill}</td>
+    <td style="padding:13px 20px">${reactBtn}</td>
+  </tr>`;
+}
+
+async function deactivateConsultant(id, name) {
+  if (!confirm(`Deactivate ${name}? They will be removed from scheduling.`)) return;
+  try {
+    const res = await fetch(`/api/consultants/${encodeURIComponent(id)}/deactivate`, { method: 'PATCH' });
+    if (!res.ok) { showToast('Failed to deactivate consultant.', 'error'); return; }
+    showToast(`${name} deactivated.`);
+    loadConsultantsPanel();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+async function reactivateConsultant(id, name) {
+  try {
+    const res = await fetch(`/api/consultants/${encodeURIComponent(id)}/reactivate`, { method: 'PATCH' });
+    if (!res.ok) { showToast('Failed to reactivate consultant.', 'error'); return; }
+    showToast(`${name} reactivated.`, 'success');
+    loadConsultantsPanel();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
 
 async function loadUsers() {
   const tbody   = document.getElementById('userTableBody');
@@ -3514,14 +3680,31 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
     }
   }
 
+  // Track status for deactivate/reactivate button
+  _editConsultantStatus = consultant.status;
+
   // Show/hide save button
-  const actions = document.getElementById('cpActions');
   if (readOnly) {
     document.getElementById('cpSubmitBtn').style.display = 'none';
-    document.querySelector('#cpActions button[type="button"]').textContent = 'Close';
+    document.querySelector('#cpActions button[type="button"][onclick*="close"]').textContent = 'Close';
   } else {
     document.getElementById('cpSubmitBtn').style.display = '';
-    document.querySelector('#cpActions button[type="button"]').textContent = 'Cancel';
+    document.querySelector('#cpActions button[type="button"][onclick*="close"]').textContent = 'Cancel';
+  }
+
+  // Deactivate / Reactivate button (editors only)
+  const deactBtn = document.getElementById('cpDeactivateBtn');
+  if (!readOnly) {
+    const isActive = consultant.status !== 'deactivated';
+    deactBtn.textContent = isActive ? 'Deactivate' : 'Reactivate';
+    deactBtn.style.background    = isActive ? 'rgba(252,165,165,.12)' : 'rgba(168,230,207,.12)';
+    deactBtn.style.color         = isActive ? '#FCA5A5'               : '#6EE7B7';
+    deactBtn.style.borderColor   = isActive ? 'rgba(252,165,165,.2)'  : 'rgba(110,231,183,.2)';
+    deactBtn.onmouseover = () => { deactBtn.style.background = isActive ? 'rgba(252,165,165,.22)' : 'rgba(168,230,207,.22)'; };
+    deactBtn.onmouseout  = () => { deactBtn.style.background = isActive ? 'rgba(252,165,165,.12)' : 'rgba(168,230,207,.12)'; };
+    deactBtn.classList.remove('hidden');
+  } else {
+    deactBtn.classList.add('hidden');
   }
 }
 
@@ -3530,6 +3713,36 @@ function closeConsultantProfileEditor() {
   if (!modal) return;
   modal.classList.add('hidden');
   _editConsultantId = null;
+  _editConsultantStatus = null;
+}
+
+async function toggleConsultantActiveFromModal() {
+  if (!_editConsultantId) return;
+  const isActive = _editConsultantStatus !== 'deactivated';
+  const action   = isActive ? 'deactivate' : 'reactivate';
+  const label    = isActive ? 'Deactivate' : 'Reactivate';
+  const name     = document.getElementById('cpTitle').textContent;
+
+  if (isActive && !confirm(`Deactivate ${name}? They will be removed from scheduling.`)) return;
+
+  const btn = document.getElementById('cpDeactivateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = label + 'ing…'; }
+
+  try {
+    const res = await fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/${action}`, { method: 'PATCH' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(`Failed to ${action} consultant: ${body.error || res.status}`, 'error');
+      return;
+    }
+    showToast(`${name} ${action}d.`, 'success');
+    closeConsultantProfileEditor();
+    await loadConsultantsPanel();
+  } catch (e) {
+    showToast(`Failed to ${action} consultant.`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
 }
 
 async function submitConsultantProfile(event) {
@@ -3574,6 +3787,7 @@ async function submitConsultantProfile(event) {
     closeConsultantProfileEditor();
     showToast(`Profile updated for ${name}`, 'success');
     await loadDashboard();
+    if (document.getElementById('tab-settings')?.classList.contains('active')) loadConsultantsPanel();
   } catch (err) {
     showToast(`Failed: ${err.message}`, 'error');
   } finally {
@@ -3703,8 +3917,14 @@ async function logout() {
 
   if (role === 'executive')       { hideTab('needs'); hideTab('settings'); } // staffing: read-only access granted
   if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
-  if (role === 'resource_manager'){ hideTab('settings'); }
+  // resource_manager: settings tab visible (Consultants panel), but User Management is hidden
   // admin: no tabs hidden
+
+  // Hide User Management section for non-admin roles
+  if (role !== 'admin') {
+    const umSection = document.getElementById('userMgmtSection');
+    if (umSection) umSection.style.display = 'none';
+  }
 
   loadDashboard();
 

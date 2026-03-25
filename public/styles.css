@@ -257,6 +257,10 @@ body {
   min-height: 0;
 }
 
+#tab-settings {
+  overflow-y: auto;
+}
+
 /* ── Main Header ────────────────────────────────────────────────── */
 .main-header {
   height: 56px;
@@ -3198,4 +3202,16 @@ td[data-cell-type="emp-total"]:hover {
   color: var(--mint);
   cursor: default;
   transform: none;
+}
+
+/* ── Consultant skill pills ─────────────────────────────────────── */
+.skill-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
 }

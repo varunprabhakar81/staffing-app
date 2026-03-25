@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=37">
+  <link rel="stylesheet" href="styles.css?v=39">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -397,7 +397,7 @@
       <div style="padding:0 0 32px">
 
         <!-- User management card: header + table -->
-        <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
+        <div id="userMgmtSection" style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
 
           <!-- Page header -->
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
@@ -439,6 +439,37 @@
 
         <!-- Deactivated users section (rendered by loadUsers()) -->
         <div id="deactivatedSection"></div>
+
+        <!-- Consultants Management panel (#126) -->
+        <div id="consultantsMgmtSection" style="margin-top:24px">
+          <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+              <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0">Consultants</h2>
+            </div>
+            <div style="overflow:hidden;border-radius:8px;border:0.5px solid rgba(255,255,255,0.07)">
+              <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <thead>
+                  <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+                    <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Name</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Level</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Skill Set</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Location</th>
+                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Status</th>
+                    <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="consultantTableBody">
+                  <!-- populated by loadConsultantsPanel() -->
+                </tbody>
+              </table>
+              <div id="consultantTableEmpty" class="hidden"
+                style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
+                No consultants found
+              </div>
+            </div>
+            <div id="inactiveConsultantsSection"></div>
+          </div>
+        </div>
 
       </div>
     </div>
@@ -733,19 +764,26 @@
           <div id="cpSkillEmpty" class="hidden" style="font-size:12px;color:#4A5168;padding:6px 0">No skill sets found.</div>
         </div>
 
-        <div id="cpActions" style="display:flex;justify-content:flex-end;gap:10px">
-          <button type="button" onclick="closeConsultantProfileEditor()"
-            style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
-            onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
-          <button type="submit" id="cpSubmitBtn"
-            style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:100px"
-            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
+        <div id="cpActions" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <button type="button" id="cpDeactivateBtn" onclick="toggleConsultantActiveFromModal()" class="hidden"
+              style="padding:8px 18px;background:rgba(252,165,165,.12);color:#FCA5A5;border:1px solid rgba(252,165,165,.2);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button type="button" onclick="closeConsultantProfileEditor()"
+              style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
+            <button type="submit" id="cpSubmitBtn"
+              style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:100px"
+              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
+          </div>
         </div>
 
       </form>
     </div>
   </div>
 
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=52"></script>
 </body>
 </html>
