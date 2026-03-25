@@ -79,17 +79,16 @@ Railway dashboard needs these 7 variables (PORT is injected automatically by Rai
 | admin | Full access + User Management |
 | resource_manager | All tabs except Settings. Edit Mode available |
 | project_manager | Overview, Needs (own projects), Ask Claude. No Edit Mode |
-| executive | Overview + Ask Claude only. Read-only |
+| executive | Overview, Staffing (read-only), Ask Claude. No edit access |
 
 Tab visibility matrix:
 | Tab | admin | resource_manager | project_manager | executive |
 |---|---|---|---|---|
 | Overview | ✅ | ✅ | ✅ | ✅ |
-| Staffing | ✅ | ✅ | ❌ | ❌ |
+| Staffing | ✅ | ✅ | ❌ | ✅ (read-only) |
 | Needs | ✅ | ✅ | ✅ | ❌ |
 | Ask Claude | ✅ | ✅ | ✅ | ✅ |
 | Settings | ✅ | ❌ | ❌ | ❌ |
-| Edit Mode button | ✅ | ✅ | ❌ | ❌ |
 
 API route protection:
 | Route | Roles allowed |

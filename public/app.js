@@ -837,7 +837,7 @@ function renderLevelBreakdown(heatmapData) {
       </div>`;
     }
     return `<div class="ov-level-row-wrap">
-      <div class="ov-level-row" style="background:${rowBg}">
+      <div class="ov-level-row dd-clickable" data-level="${_esc(r.level)}" style="background:${rowBg}" title="Click for ${r.level} breakdown">
         <span class="ov-level-name">${r.level}</span>
         <span class="ov-level-count">(${r.count})</span>
         <div class="ov-level-bar-track">
@@ -852,10 +852,14 @@ function renderLevelBreakdown(heatmapData) {
   if (el._overallocHandler) el.removeEventListener('click', el._overallocHandler);
   el._overallocHandler = function(e) {
     const warn = e.target.closest('.ov-level-warn--clickable');
-    if (!warn) return;
-    e.stopPropagation();
-    const panel = document.getElementById(warn.dataset.panel);
-    if (panel) panel.classList.toggle('hidden');
+    if (warn) {
+      e.stopPropagation();
+      const panel = document.getElementById(warn.dataset.panel);
+      if (panel) panel.classList.toggle('hidden');
+      return;
+    }
+    const levelRow = e.target.closest('.ov-level-row[data-level]');
+    if (levelRow) drillUtilization(levelRow.dataset.level);
   };
   el.addEventListener('click', el._overallocHandler);
 }
@@ -921,7 +925,7 @@ function renderRollingOff(heatmapData) {
   }
   el.innerHTML = results.slice(0, 4).map(r => {
     const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
-    return `<div class="ov-cliff-item" style="border-left-color:${bc}">
+    return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" onclick="drillHeatmapEmployee('${_esc(r.name)}')" title="Click for full booking history">
       <div class="ov-cliff-name">${r.name}</div>
       <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
@@ -1410,7 +1414,7 @@ function toggleHmExpand(empName, focusWeekIdx = 0) {
 function _updateQuickFillVisibility() {
   const bar = document.getElementById('hmQuickFillBar');
   if (!bar) return;
-  if (_hmExpanded.size > 0) {
+  if (_hmExpanded.size > 0 && _hmCanEdit()) {
     bar.classList.remove('hidden');
   } else {
     bar.classList.add('hidden');
@@ -2561,7 +2565,11 @@ let _empTotalTipTimer = null;
 let _empTotalDismissHandler = null;
 
 function empTotalCellClick(evt, cell) {
-  if (!_hmCanEdit()) return; // only editable roles see tooltip/expand
+  if (!_hmCanEdit()) {
+    // Non-edit roles (executive, project_manager): open cell drilldown
+    drillHeatmapCell(cell.dataset.emp, parseInt(cell.dataset.idx) || 0);
+    return;
+  }
   evt.stopPropagation();
 
   // Auto-expand (or focus correct week if already expanded)
@@ -3334,7 +3342,7 @@ async function logout() {
     if (el) el.style.display = 'none';
   };
 
-  if (role === 'executive')       { hideTab('staffing'); hideTab('needs'); hideTab('settings'); }
+  if (role === 'executive')       { hideTab('needs'); hideTab('settings'); } // staffing: read-only access granted
   if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
   if (role === 'resource_manager'){ hideTab('settings'); }
   // admin: no tabs hidden
@@ -3343,7 +3351,7 @@ async function logout() {
 
   // Redirect to first accessible tab if the default (overview) is hidden
   const activeTabName = document.querySelector('.nav-item.active')?.dataset.tab;
-  if (role === 'executive' && (activeTabName === 'staffing' || activeTabName === 'needs')) {
+  if (role === 'executive' && activeTabName === 'needs') {
     navigateTo('overview');
   }
   if (role === 'project_manager' && activeTabName === 'staffing') {
