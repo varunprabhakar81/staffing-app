@@ -390,7 +390,7 @@ Soon (start here):
 
 ```
 cd staffing-app
-taskkill /F /IM node.exe   # Terminal 2 only, never in CC terminal (Windows/Git Bash workaround — pkill node does not work in Git Bash)
+taskkill /F /IM node.exe   # Terminal 2 only, never in CC terminal
 claude                      # Terminal 1 — start Claude Code
 node server.js              # Terminal 2 — restart server after changes
 ```

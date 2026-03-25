@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Session 16 — Staffing Intelligence</title>
+<title>Session 17 — Staffing Intelligence</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -274,12 +274,12 @@
 
   <div class="header">
     <div class="header-left">
-      <h1>Session 16 — Staffing Intelligence App</h1>
-      <div class="sub">staffing-app · Soon milestone · session complete</div>
+      <h1>Session 17 — Staffing Intelligence App</h1>
+      <div class="sub">staffing-app · Soon milestone · active sprint</div>
     </div>
     <div class="header-right">
       <span id="live-time"></span>
-      session documented
+      session opened
     </div>
   </div>
 
@@ -337,10 +337,10 @@
         <span class="issue-title">#119 vs #125 — compare &amp; close duplicate</span>
         <span class="badge b-done" id="c1">done</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c2','Heatmap inline filter — new issue')">
-        <span class="issue-num">#131</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c2','Heatmap inline filter — new issue')">
+        <span class="issue-num">—</span>
         <span class="issue-title">Heatmap inline filter — new GitHub issue</span>
-        <span class="badge b-done" id="c2">done</span>
+        <span class="badge b-carry" id="c2">pending</span>
       </div>
       <div class="issue-row" onclick="toggleCarry(this,'c3','#82 UAT test script')">
         <span class="issue-num">#82</span>
@@ -362,63 +362,13 @@
         <span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
         <span class="badge b-carry" id="c6">pending</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c7','Holistic UI/UX design pass — new issue')">
-        <span class="issue-num">#132</span>
+      <div class="issue-row" onclick="toggleCarry(this,'c7','Holistic UI/UX design pass — new issue')">
+        <span class="issue-num">—</span>
         <span class="issue-title">Holistic UI/UX pass — new issue (incl. project filter heatmap)</span>
-        <span class="badge b-done" id="c7">done</span>
+        <span class="badge b-carry" id="c7">pending</span>
       </div>
     </div>
 
-  </div>
-
-  <!-- Session 15 completed -->
-  <div class="columns" style="margin-bottom:10px;">
-    <div class="panel">
-      <div class="panel-header">Closed last session (S15) <span class="cnt">1 issue</span></div>
-      <div class="issue-row done">
-        <span class="issue-num">#61</span>
-        <span class="issue-title">Comprehensive drilldown review + all 4 fixes</span>
-        <span class="badge b-closed">closed</span>
-      </div>
-    </div>
-
-    <!-- New issues created this session -->
-    <div class="panel">
-      <div class="panel-header">New issues created this session <span class="cnt">2 issues · Phase 2</span></div>
-      <div class="issue-row">
-        <span class="issue-num">#131</span>
-        <span class="issue-title">Heatmap inline filter — filter by project from Overview</span>
-        <span class="badge b-backlog">phase 2</span>
-      </div>
-      <div class="issue-row">
-        <span class="issue-num">#132</span>
-        <span class="issue-title">Holistic UI/UX design pass</span>
-        <span class="badge b-backlog">phase 2</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Next session -->
-  <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-header">Next session — Soon milestone <span class="cnt">3 issues</span></div>
-    <div class="issue-row">
-      <span class="issue-num">#124</span>
-      <span class="issue-title">Add new project assignment from heatmap</span>
-      <span class="issue-est">3–4h</span>
-      <span class="badge b-open">open</span>
-    </div>
-    <div class="issue-row">
-      <span class="issue-num">#119</span>
-      <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
-      <span class="issue-est">4–6h</span>
-      <span class="badge b-open">open</span>
-    </div>
-    <div class="issue-row">
-      <span class="issue-num">#126</span>
-      <span class="issue-title">Consultants management panel</span>
-      <span class="issue-est">6–8h</span>
-      <span class="badge b-open">open</span>
-    </div>
   </div>
 
   <!-- V1 Stable Backlog -->
@@ -443,7 +393,7 @@
     <div class="log-list" id="log-list">
       <div class="log-entry">
         <span class="log-time" id="start-time">--:--</span>
-        <span class="log-msg">Session 16 <span class="hl">documented</span></span>
+        <span class="log-msg">Session 16 <span class="hl">started</span></span>
       </div>
     </div>
   </div>
@@ -451,7 +401,7 @@
 </div>
 
 <script>
-  const STORAGE_KEY = 'session16_state';
+  const STORAGE_KEY = 'session17_state';
 
   function tick() {
     const now = new Date();
