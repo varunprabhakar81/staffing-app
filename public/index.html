@@ -576,27 +576,8 @@
           </select>
         </div>
 
-        <!-- Delivery Method -->
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:10px;letter-spacing:.04em">DELIVERY METHOD</label>
-          <div id="deliveryMethod" style="display:flex;flex-direction:column;gap:8px">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#CBD5E0">
-              <input type="radio" name="deliveryMethod" value="invite" checked
-                onchange="updateDeliveryMethod(this.value)"
-                style="accent-color:#A8C7FA;width:15px;height:15px;cursor:pointer">
-              Send invite email
-            </label>
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#CBD5E0">
-              <input type="radio" name="deliveryMethod" value="password"
-                onchange="updateDeliveryMethod(this.value)"
-                style="accent-color:#A8C7FA;width:15px;height:15px;cursor:pointer">
-              Set temporary password
-            </label>
-          </div>
-        </div>
-
-        <!-- Temporary Password (conditional) -->
-        <div id="tempPasswordGroup" class="hidden" style="margin-bottom:16px">
+        <!-- Temporary Password -->
+        <div id="tempPasswordGroup" style="margin-bottom:16px">
           <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">TEMPORARY PASSWORD</label>
           <div style="position:relative">
             <input name="tempPassword" id="tempPasswordInput" type="password" placeholder="Temporary password…"
@@ -627,7 +608,7 @@
           <button type="submit" id="inviteSubmitBtn"
             style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:108px"
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-            Send Invite
+            Create User
           </button>
         </div>
 

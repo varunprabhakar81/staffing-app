@@ -995,35 +995,36 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
 // POST /api/admin/users/invite — create or invite a new user
 app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (req, res) => {
   const { email, role, name, deliveryMethod, tempPassword } = req.body || {};
-  if (!email || !role || !deliveryMethod) {
-    return res.status(400).json({ error: 'email, role, and deliveryMethod are required' });
+  if (!email || !role) {
+    return res.status(400).json({ error: 'email and role are required' });
   }
   if (!VALID_ROLES.includes(role)) {
     return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
   }
 
+  // Phase 2 SSO/SAML: provider-based invite flow (magic link / IdP provisioning)
+  // will hook in here when SSO is implemented. For now only temp-password creation
+  // is supported; reject magic-link requests explicitly.
+  if (deliveryMethod === 'invite') {
+    return res.status(400).json({ error: "Magic link invites are not supported. Use deliveryMethod 'password'." });
+  }
+
+  if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required' });
+  const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
+  if (!pwRe.test(tempPassword)) {
+    return res.status(400).json({ error: 'Password does not meet complexity requirements' });
+  }
+
   try {
     let createData, createError;
 
-    if (deliveryMethod === 'invite') {
-      ({ data: createData, error: createError } =
-        await serviceClient.auth.admin.inviteUserByEmail(email, { data: { name } }));
-    } else if (deliveryMethod === 'password') {
-      if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required for password delivery' });
-      const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
-      if (!pwRe.test(tempPassword)) {
-        return res.status(400).json({ error: 'Password does not meet complexity requirements' });
-      }
-      ({ data: createData, error: createError } =
-        await serviceClient.auth.admin.createUser({
-          email,
-          password:      tempPassword,
-          email_confirm: true,
-          user_metadata: { name },
-        }));
-    } else {
-      return res.status(400).json({ error: "deliveryMethod must be 'invite' or 'password'" });
-    }
+    ({ data: createData, error: createError } =
+      await serviceClient.auth.admin.createUser({
+        email,
+        password:      tempPassword,
+        email_confirm: true,
+        user_metadata: { name },
+      }));
 
     if (createError) return res.status(400).json({ error: createError.message });
 

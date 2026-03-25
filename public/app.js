@@ -3814,10 +3814,9 @@ function closeInviteModal() {
   const modal = document.getElementById('inviteModal');
   modal.classList.add('hidden');
   document.getElementById('inviteForm').reset();
-  document.getElementById('tempPasswordGroup').classList.add('hidden');
   document.getElementById('inviteError').classList.add('hidden');
   const btn = document.getElementById('inviteSubmitBtn');
-  btn.textContent = 'Send Invite';
+  btn.textContent = 'Create User';
   btn.disabled = false;
 }
 
@@ -3825,17 +3824,7 @@ function handleInviteOverlayClick(e) {
   if (e.target === document.getElementById('inviteModal')) closeInviteModal();
 }
 
-function updateDeliveryMethod(value) {
-  const group = document.getElementById('tempPasswordGroup');
-  const btn   = document.getElementById('inviteSubmitBtn');
-  if (value === 'password') {
-    group.classList.remove('hidden');
-    btn.textContent = 'Create User';
-  } else {
-    group.classList.add('hidden');
-    btn.textContent = 'Send Invite';
-  }
-}
+// Phase 2 SSO/SAML: delivery method toggle (magic link vs temp password) will be added here.
 
 async function submitInvite(e) {
   e.preventDefault();
@@ -3843,40 +3832,37 @@ async function submitInvite(e) {
   const errEl  = document.getElementById('inviteError');
   errEl.classList.add('hidden');
 
-  const name           = form.elements.name.value.trim();
-  const email          = form.elements.email.value.trim();
-  const role           = form.elements.role.value;
-  const deliveryMethod = form.elements.deliveryMethod.value;
-  const tempPassword   = form.elements.tempPassword?.value.trim() || '';
+  const name         = form.elements.name.value.trim();
+  const email        = form.elements.email.value.trim();
+  const role         = form.elements.role.value;
+  const tempPassword = form.elements.tempPassword?.value.trim() || '';
 
   if (!name || !email || !role) {
     errEl.textContent = 'Name, email, and role are required.';
     errEl.classList.remove('hidden');
     return;
   }
-  if (deliveryMethod === 'password' && !tempPassword) {
+  if (!tempPassword) {
     errEl.textContent = 'A temporary password is required.';
     errEl.classList.remove('hidden');
     return;
   }
-  if (deliveryMethod === 'password') {
-    const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
-    if (!pwRe.test(tempPassword)) {
-      errEl.textContent = 'Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character.';
-      errEl.classList.remove('hidden');
-      return;
-    }
+  const pwRe = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
+  if (!pwRe.test(tempPassword)) {
+    errEl.textContent = 'Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character.';
+    errEl.classList.remove('hidden');
+    return;
   }
 
   const btn = document.getElementById('inviteSubmitBtn');
   btn.disabled    = true;
-  btn.textContent = 'Sending…';
+  btn.textContent = 'Creating…';
 
   try {
     const res = await apiFetch('/api/admin/users/invite', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, email, role, deliveryMethod, tempPassword }),
+      body:    JSON.stringify({ name, email, role, tempPassword }),
     });
 
     if (!res.ok) {
@@ -3884,18 +3870,18 @@ async function submitInvite(e) {
       errEl.textContent = data.error || 'Failed to create user.';
       errEl.classList.remove('hidden');
       btn.disabled    = false;
-      btn.textContent = deliveryMethod === 'password' ? 'Create User' : 'Send Invite';
+      btn.textContent = 'Create User';
       return;
     }
 
     closeInviteModal();
-    showToast(`${email} ${deliveryMethod === 'invite' ? 'invited' : 'created'} successfully.`);
+    showToast(`${email} created successfully.`);
     loadUsers();
   } catch (err) {
     errEl.textContent = err.message || 'Network error.';
     errEl.classList.remove('hidden');
     btn.disabled    = false;
-    btn.textContent = deliveryMethod === 'password' ? 'Create User' : 'Send Invite';
+    btn.textContent = 'Create User';
   }
 }
 
