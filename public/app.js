@@ -67,7 +67,7 @@ function toggleSidebar() {
 // ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); return; }
+  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
@@ -3288,8 +3288,16 @@ async function openAddProjectModal(empName) {
   let allProjects = [];
   try {
     const res = await fetch('/api/projects');
-    if (res.ok) allProjects = await res.json();
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error('[addProject] /api/projects returned', res.status, body);
+      showToast(`Failed to load projects (${res.status})`, 'error');
+      return;
+    }
+    allProjects = await res.json();
+    console.log('[addProject] /api/projects returned', allProjects.length, 'projects', allProjects);
   } catch (e) {
+    console.error('[addProject] fetch error', e);
     showToast('Failed to load projects', 'error');
     return;
   }
@@ -3302,11 +3310,22 @@ async function openAddProjectModal(empName) {
       for (const p of wkProjs)
         if (p.project && p.project !== 'Unassigned') assignedProjects.add(p.project);
   }
+  console.log('[addProject] assigned projects for', empName, [...assignedProjects]);
 
   // Populate project dropdown (exclude already assigned)
   const projSel = document.getElementById('apProject');
   projSel.innerHTML = '<option value="">Select project…</option>';
   const available = allProjects.filter(p => !assignedProjects.has(p.name));
+  console.log('[addProject] available projects', available.length, available.map(p => p.name));
+  if (available.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.disabled = true;
+    opt.textContent = allProjects.length === 0
+      ? 'No active projects found'
+      : 'All active projects already assigned';
+    projSel.appendChild(opt);
+  }
   for (const p of available) {
     const opt = document.createElement('option');
     opt.value = p.name;
