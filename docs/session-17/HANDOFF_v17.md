@@ -310,10 +310,10 @@ Soon (start here):
 
 ### Session 16 carry-forward items
 
-1. **#119 vs #125** — compare on GitHub, close duplicate
+1. **#119 vs #125** — compare on GitHub, close duplicate ✅ #125 already closed, #119 is the live issue with merged scope
 2. **Heatmap inline filter** — new GitHub issue
 3. **#82 UAT cases** — formal test script before real users onboard
-4. **#66 vs #129** — close #66 as duplicate if #129 covers it
+4. **#66 vs #129** — close #66 as duplicate if #129 covers it ✅ #66 closed Session 15 — #129 is the live issue
 5. **Cache buster audit** — app.js v=44, styles.css v=36
 6. **Kill node in Git Bash** — pkill node not working, document workaround
 7. **Holistic UI/UX design pass** — new GitHub issue, include: project filter heatmap view when navigating from Overview card
