@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: Session 14 complete — #120 (search navigator), #121 (closed→#129), #104/#114/#115 (Settings polish). Next: #128, #61, #124.
+Last updated: Session 15 complete — #61 (drilldown audit + all 4 fixes). Next: #124, #119/#125, #126.
 
 ---
 
@@ -184,18 +184,12 @@ Key schema decisions:
 
 | Level | Cost/hr | Bill/hr | Target Billable % |
 |---|---|---|---|
-| Analyst | $150 | $450 | 80% |
-| Consultant | $200 | $550 | 80% |
-| Senior Consultant | $300 | $750 | 75% |
-| Manager | $350 | $788 | 70% |
-| Senior Manager | $400 | $800 | 60% |
-| Partner/Principal/Managing Director | $600 | $1,050 | 50% |
-
----
-
-## Non-Billable Projects (flagged at import)
-
-Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, Pre-Sales Support
+| Analyst | $45 | $125 | 80% |
+| Consultant | $65 | $175 | 80% |
+| Senior Consultant | $85 | $225 | 75% |
+| Manager | $110 | $275 | 70% |
+| Senior Manager | $140 | $325 | 60% |
+| PPMD | $175 | $400 | 50% |
 
 ---
 
@@ -227,7 +221,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 * Overview: KPI cards, utilization by level, overallocation warning with tooltip + drilldown, top projects, rolling off soon, needs attention
 * Staffing: full heatmap, 25 employees x 12 weeks, expandable rows, virtual scrolling, hybrid edit mode
 * Edit Mode: solid blue button top-right (admin + resource_manager only), Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner
-* Needs: donut chart + expandable rows with AI match panel. Shows pipeline status + coverage status
+* Needs: donut chart (partially_met + unmet only — fully_met removed) + expandable rows with AI match panel. Shows pipeline status + coverage status
 * Ask Claude: dynamic suggested questions, text input, markdown responses
 * Settings: User Management UI — invite users, change roles, deactivate/reactivate (admin only)
 * SSE auto-refresh: fires after successful DB writes (broadcastSSE), pushes data-updated event to all clients
@@ -235,12 +229,38 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 
 ---
 
+## Drilldown Inventory (#61 — complete, Session 15)
+
+All drilldowns audited and fixed. Current state:
+
+| Drilldown | Status | Notes |
+|---|---|---|
+| Utilization KPI card | ✅ | drillUtilizationKPI() |
+| Available Capacity KPI card | ✅ | drillHeadcount() |
+| Pipeline Coverage KPI card | ✅ | drillDemandKPI() + nested drillCoverage() |
+| On Bench KPI card | ✅ | drillBenchKPI() |
+| Utilization by Level — click row | ✅ | drillUtilization(level) |
+| Top Projects — click row | ✅ | navigateToProject() — switches to Staffing, expands + scrolls |
+| Rolling Off Soon — click employee | ✅ | drillHeatmapEmployee(name) |
+| Needs Attention — click item | ✅ | drillCoverage(roleIdx) — added Session 15 |
+| Heatmap total cell (non-edit) | ✅ | drillHeatmapCell() |
+| Heatmap employee ℹ icon | ✅ | drillHeatmapEmployee() |
+| Heatmap week header | ✅ | drillHeatmapWeek() |
+| Expanded sub-row ℹ icon | ✅ | drillHeatmapEmployee() — added Session 15 |
+| Needs table row | ✅ | toggleNeedExpansion() + AI recommendations |
+| Donut segment click | ✅ | drillNeedsByStatus() — added Session 15, fully_met removed |
+| Suggested question chips | ✅ | setQuestion() |
+
+Visual enhancement deferred: Top Projects → heatmap navigation could filter to only matching consultants. Logged for holistic UI/UX pass.
+
+---
+
 ## Cache Busters
 
 | File | Current version |
 |---|---|
-| app.js | v=32 |
-| styles.css | v=35 |
+| app.js | v=44 |
+| styles.css | v=36 |
 
 ---
 
@@ -249,7 +269,7 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | Milestone | Remaining issues |
 |---|---|
 | Active Sprint | — (cleared Session 13) |
-| Soon | #128, #61, #124, #119, #125, #126 |
+| Soon | #124, #119/#125, #126 |
 | V1 Stable | #123, #82, #83, #102, #103, #100, #116 |
 | Phase 2 | #129, #96, #99, #98, #97, #95, #66, #64, #43, #117, #118, #94 |
 
@@ -276,28 +296,27 @@ Unassigned, Assessment, Evaluation, ERP Evaluation, L2C Assessment, Secondment, 
 | #104 | Settings tab styling inconsistencies | 14 |
 | #114 | Deactivated section expand default logic | 14 |
 | #115 | Tooltip on disabled role select | 14 |
+| #128 | Total row expand + focus first cell | closed prior to Session 15 |
+| #61 | Comprehensive drilldown review + all fixes | 15 |
 
 ---
 
 ## Build Order — Next Session
 
 Soon (start here):
-1. **#128** — Total row expand + focus first cell (1–2h)
-2. **#61** — Comprehensive drilldown review (3–4h)
-3. **#124** — Add new project assignment from heatmap (3–4h)
-4. **#119/#125** — Review for duplicate, then consultant profile editor (4–6h)
-5. **#126** — Consultants management panel (6–8h)
+1. **#124** — Add new project assignment from heatmap (3–4h)
+2. **#119/#125** — Compare for duplicate, then consultant profile editor (4–6h)
+3. **#126** — Consultants management panel (6–8h)
 
-### Session 15 carry-forward items
+### Session 16 carry-forward items
 
 1. **#119 vs #125** — compare on GitHub, close duplicate
 2. **Heatmap inline filter** — new GitHub issue
 3. **#82 UAT cases** — formal test script before real users onboard
-4. **#61** — add row flash note from #120
-5. **#66 vs #129** — close #66 as duplicate if #129 covers it
-6. **Cache buster audit** — app.js v=32, styles.css v=35
-7. **Kill node in Git Bash** — pkill node not working, document workaround
-8. **Holistic UI/UX design pass** — new GitHub issue, V1 Stable candidate
+4. **#66 vs #129** — close #66 as duplicate if #129 covers it
+5. **Cache buster audit** — app.js v=44, styles.css v=36
+6. **Kill node in Git Bash** — pkill node not working, document workaround
+7. **Holistic UI/UX design pass** — new GitHub issue, include: project filter heatmap view when navigating from Overview card
 
 ---
 
@@ -311,7 +330,6 @@ Soon (start here):
 | #101 | User Management — Pending status + deactivated section | Pending = invited not yet logged in |
 | #102 | Email verification flow for invited users | Enforce magic link confirm |
 | #103 | Password strength — Supabase policy | Enable in Auth dashboard |
-| #104 | Settings tab styling inconsistent | Minor visual fix |
 | #99 | Multi-role support + role toggle UI | Depends on #63 stable |
 | #97 | Extended Roles — consultant, finance, recruiter | Depends on #62/#63 |
 | #98 | Finance and Ops Dashboard | Depends on #97 |
@@ -346,7 +364,12 @@ Soon (start here):
 * VALID_ROLES: ['admin', 'resource_manager', 'project_manager', 'executive']
 * Global search: typeahead navigator pattern (not heatmap filter) — consistent with Float/Runn. Selects employee → Staffing tab, scrolls+highlights row. Selects project → expands all consultants on that project, scrolls to first. / and Ctrl+K focus the input from anywhere.
 * Week selector removed Session 14 — code commented out in app.js. To be rebuilt as historical snapshots feature (#129, Phase 2).
-* Row flash on search: amber border-left + box-shadow on name cell. Subtle against dark theme — polish deferred to #61 UX pass.
+* Row flash on search: amber border-left + box-shadow on name cell. Subtle against dark theme — polish deferred to holistic UI/UX pass.
+* Needs donut: shows partially_met + unmet only. fully_met segment removed — not actionable in Needs Attention context.
+* drillNeedsByStatus(): filters rawData.coverageRoles by status, opens modal with project/level/skill/dates/badge. Each row clickable → drillCoverage(). statusMap: ['partially_met', 'unmet'].
+* Needs Attention items: onclick fires drillCoverage(roleIdx) — roleIdx looked up from rawData.coverageRoles by matching project+level+skillSet.
+* Sub-row ℹ icon: appears on hover, fires drillHeatmapEmployee(empName), stopPropagation prevents row expand/edit.
+* Top Projects rows: onclick fires navigateToProject(projName) — switches to Staffing tab, expands matching consultants, scrolls to first, amber flash. Project filter heatmap view deferred to holistic UI/UX pass.
 
 ---
 

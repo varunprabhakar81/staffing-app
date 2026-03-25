@@ -10,6 +10,7 @@ Live at: https://staffing-app-production.up.railway.app
 
 - **Availability heatmap** — Rolling 12-week view of consultant hours across all projects. Inline editing with instant save. No spreadsheets.
 - **Utilization dashboard** — KPI cards, utilization by seniority level, overallocation warnings, rolling-off alerts, top projects by utilization.
+- **Drilldowns** — Every KPI card, project row, need item, heatmap cell, and donut segment is clickable with contextual detail modals.
 - **Staffing needs pipeline** — Open demand roles matched against available consultants with AI-powered recommendations.
 - **Ask Claude** — Natural language Q&A against live staffing data powered by Claude Sonnet.
 - **Role-based access** — 4 roles (admin, resource_manager, project_manager, executive) with tab-level and API-level enforcement.
@@ -95,23 +96,22 @@ staffing-app/
 ├── claudeService.js       # Claude API integration
 ├── public/
 │   ├── index.html         # Main app shell
-│   ├── app.js             # Frontend SPA logic
-│   ├── styles.css         # Dark theme styles
+│   ├── app.js             # Frontend SPA logic (v=44)
+│   ├── styles.css         # Dark theme styles (v=36)
 │   └── login.html         # Login page
-├── business/
-│   ├── ExecutiveSummary_Source.md   # Executive deck content source
-│   └── build_deck.js               # pptxgenjs deck generator
-├── HANDOFF_7.md           # Full technical context for AI-assisted development
-├── NewChatPrompt_v2.md    # Starter prompt for new Claude Code sessions
-├── Roadmap_v2.md          # Prioritized issue roadmap with effort estimates
-└── session_tracker.md     # Session-by-session task checklist
+├── docs/
+│   └── session-17/
+│       ├── HANDOFF_v17.md          # Full technical context for AI-assisted development
+│       ├── README_v17.md           # This file
+│       ├── Roadmap_v17.md          # Prioritized issue roadmap with effort estimates
+│       └── session-dashboard_v17.html  # Session tracker
 ```
 
 ---
 
 ## Development workflow
 
-This project is built using Claude Code (CC) as a co-pilot. Start each session by pasting `NewChatPrompt_v2.md` into a new Claude chat. All technical context is in `HANDOFF_7.md`.
+This project is built using Claude Code (CC) as a co-pilot. Each session starts with a new Claude chat — upload HANDOFF_v17.md and session-dashboard_v17.html to load context.
 
 ```bash
 # Terminal 1 — Claude Code
@@ -128,10 +128,10 @@ Railway auto-deploys from GitHub on every push to `main`. Allow 1–3 min for bu
 
 ## Status
 
-- **Version:** v1 in progress (72% complete as of Session 13)
+- **Version:** v1 in progress
 - **Consultants:** 25 real employees, real project data
-- **Sessions:** 13 build sessions completed
-- **Issues closed:** 30
-- **Next milestone:** V1 stable — ~29h of build remaining
+- **Sessions:** 15 build sessions completed
+- **Issues closed:** 33
+- **Next milestone:** V1 stable — Soon milestone: #124, #119/#125, #126 remaining
 
-See `Roadmap_v2.md` for the full prioritized build queue.
+See `Roadmap_v17.md` for the full prioritized build queue.

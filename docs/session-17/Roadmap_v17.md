@@ -1,6 +1,6 @@
 # Staffing Intelligence — Product Roadmap
 
-Last updated: Session 14 · March 24 2026
+Last updated: Session 15 · March 24 2026
 Live app: https://staffing-app-production.up.railway.app
 GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase 2 (#20)
 
@@ -11,13 +11,12 @@ GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase
 | Phase | Issues | Est. effort |
 |---|---|---|
 | Active Sprint | — | ✅ Cleared (Session 13) |
-| Soon | 11 | ~35–40h |
+| Soon | 3 | ~13–18h |
 | V1 Stable | 7 | ~10h |
 | Phase 2 | 11 | ~72–85h |
-| Unmilesoned (needs triage) | 0 | Triage complete (Session 13) |
-| **Total** | **~29 open** | **~117–135h** |
+| **Total** | **~21 open** | **~95–113h** |
 
-30 issues closed · 72% complete
+33 issues closed · ~75% complete
 
 ---
 
@@ -44,14 +43,14 @@ All Active Sprint issues closed and browser-verified.
 | #104 | Settings tab styling inconsistencies | polish | 2h | ✅ Done Session 14 |
 | #114 | Deactivated section expand default | feat | 1h | ✅ Done Session 14 |
 | #115 | Tooltip on disabled role select | feat | 1h | ✅ Done Session 14 |
-| #128 | Clicking consultant total row expands + focuses first cell | feat | 1–2h | Start here |
-| #61 | Comprehensive drilldown review | feat | 3–4h | |
-| #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | |
+| #128 | Clicking consultant total row expands + focuses first cell | feat | 1–2h | ✅ Closed prior to Session 15 |
+| #61 | Comprehensive drilldown review | feat | 3–4h | ✅ Done Session 15 |
+| #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | Start here |
 | #119 | Consultant profile editor overlap | triage | — | Review vs #125 before starting |
 | #125 | Consultant profile editor — is_billable, capacity, rate overrides | feat | 4–6h | |
 | #126 | Consultants management panel in Settings tab | feat | 6–8h | |
 
-Soon subtotal: ~35–40h (5 closed, ~25–30h remaining)
+Soon subtotal: ~13–18h remaining (3 issues open)
 
 ---
 
@@ -59,7 +58,7 @@ Soon subtotal: ~35–40h (5 closed, ~25–30h remaining)
 
 | # | Title | Type | Est. | Note |
 |---|---|---|---|---|
-| #123 | Session role staleness — stale JWT after role change | security | 2h | Was D1. High priority — close before onboarding real users |
+| #123 | Session role staleness — stale JWT after role change | security | 2h | High priority — close before onboarding real users |
 | #82 | UAT completion | qa | 2h | |
 | #83 | Remove test toast button | chore | 0.5h | |
 | #102 | Email verification flow for invited users | auth | 2h | |
@@ -87,28 +86,6 @@ Soon subtotal: ~35–40h (5 closed, ~25–30h remaining)
 | #117 | Role switching UI | feat | — |
 | #118 | Audit log | feat | — |
 | #94 | UAT testing mode | qa | — |
-
----
-
-## Hygiene — Session 13 complete
-
-| Task | Issues | Status |
-|---|---|---|
-| Confirm and close duplicate issues | #110 → #120, #111 → #121 | ✅ Done (Session 13) |
-| Batch triage 29 unmilesoned issues | 18 issues actioned | ✅ Done (Session 13) |
-
----
-
-## Prioritization notes (Session 13 review)
-
-- **Active Sprint cleared** — #109, #122, #108, #106, #127 all closed and browser-verified
-- **18 issues triaged** — milestones assigned, 10 stale/completed issues closed, 2 duplicates (#110/#111) closed
-- **#122 moved up** from low priority into Active Sprint — executive role seeing broken data is a stakeholder credibility issue
-- **#108 moved up** — hardcoded badge count is visible to every user on every page load and signals unfinished work during demos
-- **#123 (was D1) elevated** from Phase 2 into V1 Stable — session role staleness is a security gap, not a nice-to-have
-- **#110 and #111 confirmed duplicates** — closed in favour of #120 and #121
-- **#119** assigned to Soon pending review vs #125 (consultant profile editor) — close as duplicate if confirmed
-- **New issues #124–#128 logged** — all assigned to Soon or created during session
 
 ---
 
@@ -151,16 +128,17 @@ Soon subtotal: ~35–40h (5 closed, ~25–30h remaining)
 | #104 | Settings tab styling inconsistencies | 14 |
 | #114 | Deactivated section expand default logic | 14 |
 | #115 | Tooltip on disabled role select | 14 |
+| #128 | Total row expand + focus first cell | pre-15 |
+| #61 | Comprehensive drilldown review + all 4 fixes | 15 |
 
 ---
 
-### Session 14 Follow-Ups (carry to Session 15)
+## Session 16 carry-forward items
 
-1. **#119 vs #125** — compare on GitHub, close #119 as duplicate if confirmed
-2. **Heatmap inline filter** — create new GitHub issue scoped to Staffing tab only
+1. **#119 vs #125** — compare on GitHub, close duplicate
+2. **Heatmap inline filter** — create new GitHub issue
 3. **#82 UAT cases** — write formal test script before #123 closes and real users onboard
-4. **#61 update** — add note about row flash polish from #120
-5. **#66 vs #129** — close #66 as duplicate if #129 covers it fully
-6. **Cache buster audit** — app.js v=32, styles.css v=35
-7. **Kill node in Git Bash** — pkill node not working, document workaround
-8. **Holistic UI/UX design pass** — create GitHub issue for full design review before V1, candidate for V1 Stable
+4. **#66 vs #129** — close #66 as duplicate if #129 covers it fully
+5. **Cache buster audit** — app.js v=44, styles.css v=36
+6. **Kill node in Git Bash** — pkill node not working, document workaround
+7. **Holistic UI/UX design pass** — create GitHub issue, include: project filter heatmap view when navigating from Overview card
