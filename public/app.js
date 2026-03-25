@@ -3282,14 +3282,14 @@ async function loadUsers() {
 function _renderActiveRow(u) {
   const roleColor  = UM_ROLE_COLORS[u.role] || '#8892B0';
   const roleLabel  = UM_ROLE_LABELS[u.role] || (u.role || '—');
-  const isInvited  = u.status === 'invited';
+  const isInvited  = u.status === 'pending';
 
   const roleOptions = Object.entries(UM_ROLE_LABELS)
     .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
     .join('');
 
   const statusPill = isInvited
-    ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#F59E0B;background:#451A03;border:1px solid rgba(245,158,11,0.3)">Invited</span>`
+    ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#F59E0B;background:#451A03;border:1px solid rgba(245,158,11,0.3)">Pending</span>`
     : `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)">Active</span>`;
 
   const lastLoginCell = isInvited

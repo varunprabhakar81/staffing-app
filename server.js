@@ -110,6 +110,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { data, error } = await supabaseAuth.auth.signInWithPassword({ email, password });
     if (error) return res.status(401).json({ error: error.message });
+    if (!data.user.email_confirmed_at) {
+      return res.status(401).json({ error: 'Email not verified. Please check your inbox for the verification link.' });
+    }
     req.session.token     = data.session.access_token;
     req.session.user      = data.user;
     req.session.tenant_id = data.user.app_metadata?.tenant_id;
@@ -977,9 +980,10 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
         email:          u.email,
         name:           u.user_metadata?.name || u.email.split('@')[0],
         role:           u.app_metadata?.role   || null,
-        status:         u.banned_until ? 'deactivated' : (!u.last_sign_in_at ? 'invited' : 'active'),
-        last_sign_in_at: u.last_sign_in_at,
-        created_at:     u.created_at,
+        status:             u.banned_until ? 'deactivated' : (!u.email_confirmed_at ? 'pending' : 'active'),
+        last_sign_in_at:    u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        created_at:         u.created_at,
       }));
 
     res.json(users);
