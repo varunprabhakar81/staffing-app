@@ -3140,7 +3140,7 @@ function _renderConsultantRow(c) {
          onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`
     : '';
 
-  return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+  return `<tr data-cid="${_esc(c.id)}" style="border-bottom:1px solid rgba(255,255,255,.05)">
     <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
     <td style="padding:13px 16px">${levelCell}</td>
     <td style="padding:13px 16px">${skillCell}</td>
@@ -3210,7 +3210,7 @@ function _renderInactiveConsultantRow(c) {
          onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>`
     : '';
 
-  return `<tr style="border-bottom:1px solid rgba(255,255,255,.04);opacity:0.5">
+  return `<tr data-cid="${_esc(c.id)}" style="border-bottom:1px solid rgba(255,255,255,.04);opacity:0.5">
     <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
     <td style="padding:13px 16px">${levelCell}</td>
     <td style="padding:13px 16px">${skillCell}</td>
@@ -3746,9 +3746,12 @@ async function toggleConsultantActiveFromModal() {
       showToast(`Failed to ${action} consultant: ${body.error || res.status}`, 'error');
       return;
     }
+    const savedId = _editConsultantId;
     showToast(`${name} ${action}d.`, 'success');
     closeConsultantProfileEditor();
     await loadConsultantsPanel();
+    const row = document.querySelector(`tr[data-cid="${savedId}"]`);
+    if (row) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); flashHeatmapRow(row); }
   } catch (e) {
     showToast(`Failed to ${action} consultant.`, 'error');
   } finally {
@@ -3795,10 +3798,15 @@ async function submitConsultantProfile(event) {
     if (!patchRes.ok)  throw new Error(patchData.error  || `Profile save failed (${patchRes.status})`);
     if (!skillsRes.ok) throw new Error(skillsData.error || `Skills save failed (${skillsRes.status})`);
 
+    const savedId = _editConsultantId;
     closeConsultantProfileEditor();
     showToast(`Profile updated for ${name}`, 'success');
     await loadDashboard();
-    if (document.getElementById('tab-settings')?.classList.contains('active')) loadConsultantsPanel();
+    if (document.getElementById('tab-settings')?.classList.contains('active')) {
+      await loadConsultantsPanel();
+      const row = document.querySelector(`tr[data-cid="${savedId}"]`);
+      if (row) { row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); flashHeatmapRow(row); }
+    }
   } catch (err) {
     showToast(`Failed: ${err.message}`, 'error');
   } finally {
