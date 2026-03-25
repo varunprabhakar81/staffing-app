@@ -1,5 +1,5 @@
 Staffing Intelligence App — Chat Handoff Document
-Last updated: Session 15 complete — #61 (drilldown audit + all 4 fixes). Next: #124, #119/#125, #126.
+Last updated: Session 16 complete — #124 (add new project assignment from heatmap). Next: #119, #126.
 
 ---
 
@@ -259,8 +259,8 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 
 | File | Current version |
 |---|---|
-| app.js | v=44 |
-| styles.css | v=36 |
+| app.js | v=45 |
+| styles.css | v=37 |
 
 ---
 
@@ -269,9 +269,9 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 | Milestone | Remaining issues |
 |---|---|
 | Active Sprint | — (cleared Session 13) |
-| Soon | #124, #119/#125, #126 |
+| Soon | #119, #126 |
 | V1 Stable | #123, #82, #83, #102, #103, #100, #116 |
-| Phase 2 | #129, #96, #99, #98, #97, #95, #66, #64, #43, #117, #118, #94 |
+| Phase 2 | #129, #96, #99, #98, #97, #95, #131, #132, #64, #43, #117, #118, #94 |
 
 ---
 
@@ -298,25 +298,24 @@ Visual enhancement deferred: Top Projects → heatmap navigation could filter to
 | #115 | Tooltip on disabled role select | 14 |
 | #128 | Total row expand + focus first cell | closed prior to Session 15 |
 | #61 | Comprehensive drilldown review + all fixes | 15 |
+| #124 | Add new project assignment to consultant from heatmap | 16 |
 
 ---
 
 ## Build Order — Next Session
 
 Soon (start here):
-1. **#124** — Add new project assignment from heatmap (3–4h)
-2. **#119/#125** — Compare for duplicate, then consultant profile editor (4–6h)
-3. **#126** — Consultants management panel (6–8h)
+1. **#119** — Consultant profile editor (skill sets, level, details) (4–6h)
+2. **#126** — Consultants management panel in Settings tab (6–8h)
 
-### Session 16 carry-forward items
+### Session 17 carry-forward items
 
-1. **#119 vs #125** — compare on GitHub, close duplicate ✅ #125 already closed, #119 is the live issue with merged scope
-2. **Heatmap inline filter** — new GitHub issue
-3. **#82 UAT cases** — formal test script before real users onboard
-4. **#66 vs #129** — close #66 as duplicate if #129 covers it ✅ #66 closed Session 15 — #129 is the live issue
-5. **Cache buster audit** — app.js v=44, styles.css v=36
-6. **Kill node in Git Bash** — pkill node not working, document workaround
-7. **Holistic UI/UX design pass** — new GitHub issue, include: project filter heatmap view when navigating from Overview card
+1. **#82 UAT test script** — write formal test script before real users onboard (pending)
+2. **#131** — Heatmap inline filter issue created (done)
+3. **#132** — Holistic UI/UX design pass issue created (done)
+4. **Cache busters: app.js v=45, styles.css v=37** — current, no bump needed (done)
+5. **GitHub housekeeping** — stale Epic milestones closed, all 27 issues labeled and milestoned (done)
+6. **Kill node workaround** — documented in HANDOFF (done)
 
 ---
 

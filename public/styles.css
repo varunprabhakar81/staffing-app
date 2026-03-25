@@ -2827,6 +2827,40 @@ td[data-cell-type="emp-total"]:hover {
 .hm-emp-row:hover .hm-add-proj-btn { opacity: 1; }
 .hm-add-proj-btn:hover { color: var(--accent) !important; opacity: 1 !important; }
 
+/* ── Consultant Profile Editor skill tags (#119) ─────────────────── */
+.cp-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: #8892B0;
+}
+.cp-skill-tag:hover {
+  border-color: rgba(168,199,250,0.4);
+  color: #A8C7FA;
+}
+.cp-skill-tag.selected {
+  background: rgba(168,199,250,0.15);
+  border-color: rgba(168,199,250,0.5);
+  color: #A8C7FA;
+}
+.cp-skill-tag.type-practice.selected {
+  background: rgba(168,230,207,0.15);
+  border-color: rgba(168,230,207,0.5);
+  color: #A8E6CF;
+}
+.cp-skill-tag[disabled] {
+  cursor: default;
+  pointer-events: none;
+}
+
 /* ── Project sub-rows ────────────────────────────────────────────── */
 .hm-sub-row {
   display: none;

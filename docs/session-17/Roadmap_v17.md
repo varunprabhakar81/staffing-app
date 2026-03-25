@@ -1,6 +1,6 @@
 # Staffing Intelligence — Product Roadmap
 
-Last updated: Session 15 · March 24 2026
+Last updated: Session 16 · March 24 2026
 Live app: https://staffing-app-production.up.railway.app
 GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase 2 (#20)
 
@@ -11,7 +11,7 @@ GitHub milestones: Active Sprint (#17) · Soon (#18) · V1 Stable (#19) · Phase
 | Phase | Issues | Est. effort |
 |---|---|---|
 | Active Sprint | — | ✅ Cleared (Session 13) |
-| Soon | 3 | ~13–18h |
+| Soon | 2 | ~9–14h |
 | V1 Stable | 7 | ~10h |
 | Phase 2 | 11 | ~72–85h |
 | **Total** | **~21 open** | **~95–113h** |
@@ -45,12 +45,11 @@ All Active Sprint issues closed and browser-verified.
 | #115 | Tooltip on disabled role select | feat | 1h | ✅ Done Session 14 |
 | #128 | Clicking consultant total row expands + focuses first cell | feat | 1–2h | ✅ Closed prior to Session 15 |
 | #61 | Comprehensive drilldown review | feat | 3–4h | ✅ Done Session 15 |
-| #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | Start here |
-| #119 | Consultant profile editor overlap | triage | — | Review vs #125 before starting |
-| #125 | Consultant profile editor — is_billable, capacity, rate overrides | feat | 4–6h | |
+| #124 | Add new project assignment to consultant from heatmap | feat | 3–4h | ✅ Done Session 16 |
+| #119 | Consultant profile editor — skill sets, level, details | feat | 4–6h | |
 | #126 | Consultants management panel in Settings tab | feat | 6–8h | |
 
-Soon subtotal: ~13–18h remaining (3 issues open)
+Soon subtotal: ~9–14h remaining (2 issues open: #119, #126)
 
 ---
 
@@ -80,7 +79,8 @@ Soon subtotal: ~13–18h remaining (3 issues open)
 | #97 | Extended roles — consultant, finance, recruiter | feat | 4h |
 | #95 | Light mode toggle | feat | 3–4h |
 | #129 | Historical staffing snapshots + time-travel view (supersedes #121) | feat | 8–12h |
-| #66 | Store weekly staffing snapshots | feat | 6–8h | Review vs #129 — close as duplicate if confirmed |
+| #131 | Heatmap inline filter — filter by project when navigating from Overview | feat | — |
+| #132 | Holistic UI/UX design pass | polish | — |
 | #64 | Export and import Excel for supply and needs | feat | 4–6h |
 | #43 | Toggl integration | integration | — |
 | #117 | Role switching UI | feat | — |
@@ -130,15 +130,4 @@ Soon subtotal: ~13–18h remaining (3 issues open)
 | #115 | Tooltip on disabled role select | 14 |
 | #128 | Total row expand + focus first cell | pre-15 |
 | #61 | Comprehensive drilldown review + all 4 fixes | 15 |
-
----
-
-## Session 16 carry-forward items
-
-1. **#119 vs #125** — compare on GitHub, close duplicate
-2. **Heatmap inline filter** — create new GitHub issue
-3. **#82 UAT cases** — write formal test script before #123 closes and real users onboard
-4. **#66 vs #129** — close #66 as duplicate if #129 covers it fully
-5. **Cache buster audit** — app.js v=44, styles.css v=36
-6. **Kill node in Git Bash** — pkill node not working, document workaround
-7. **Holistic UI/UX design pass** — create GitHub issue, include: project filter heatmap view when navigating from Overview card
+| #124 | Add new project assignment to consultant from heatmap | 16 |

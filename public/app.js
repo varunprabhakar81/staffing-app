@@ -9,6 +9,7 @@ let currentUserCanViewRates = false;
 // ── Inline edit state ─────────────────────────────────────────────
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
+let _editConsultantId = null; // consultant id open in the profile editor
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
 // ── Tracks which employee rows are expanded in the heatmap ────────
@@ -67,7 +68,7 @@ function toggleSidebar() {
 // ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); return; }
+  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
@@ -1535,11 +1536,19 @@ function drillHeatmapEmployee(empName) {
     </tr>`;
   }).join('');
 
+  const editBtn = _hmCanEdit() && emp.id
+    ? `<button type="button"
+         onclick="closeDrilldown();openConsultantProfileEditor('${emp.id}','${_esc(empName)}')"
+         style="margin-left:auto;padding:5px 14px;background:rgba(168,199,250,0.1);border:1px solid rgba(168,199,250,0.25);border-radius:7px;color:#A8C7FA;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0"
+         onmouseover="this.style.background='rgba(168,199,250,0.18)'" onmouseout="this.style.background='rgba(168,199,250,0.1)'">Edit Profile</button>`
+    : '';
+
   openDrilldown(`${empName} — Full Booking History`, `
-    <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
       <div class="dd-stat"><div class="dd-stat-value">${avg}h</div><div class="dd-stat-label">Avg / Week</div></div>
       <div class="dd-stat"><div class="dd-stat-value">${peak}h</div><div class="dd-stat-label">Peak (${peakWeek})</div></div>
       <div class="dd-stat"><div class="dd-stat-value">${benchWks}</div><div class="dd-stat-label">Bench Weeks</div></div>
+      ${editBtn}
     </div>
     <table class="dd-table">
       <thead><tr><th>Week</th><th>Projects</th><th>Hours</th><th>Status</th></tr></thead>
@@ -3405,6 +3414,170 @@ async function submitAddProject(event) {
     showToast(`Failed: ${err.message}`, 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Add Assignment'; }
+  }
+}
+
+// ── Consultant Profile Editor (#119) ─────────────────────────────
+
+async function openConsultantProfileEditor(consultantId, consultantName) {
+  if (!consultantId) return;
+  _editConsultantId = consultantId;
+
+  document.getElementById('cpTitle').textContent = consultantName || 'Consultant Profile';
+  document.getElementById('cpSubtitle').textContent = 'Loading…';
+  document.getElementById('cpSkillGrid').innerHTML = '';
+  document.getElementById('cpSkillEmpty').classList.add('hidden');
+  document.getElementById('consultantProfileModal').classList.remove('hidden');
+
+  let profile;
+  try {
+    const res = await fetch(`/api/consultants/${encodeURIComponent(consultantId)}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(`Failed to load profile (${res.status}): ${body.error || ''}`, 'error');
+      closeConsultantProfileEditor();
+      return;
+    }
+    profile = await res.json();
+  } catch (e) {
+    showToast('Failed to load profile', 'error');
+    closeConsultantProfileEditor();
+    return;
+  }
+
+  const { consultant, skillSetIds, levels, allSkillSets } = profile;
+  const readOnly = !_hmCanEdit();
+
+  // Subtitle
+  document.getElementById('cpSubtitle').textContent = consultant.levelName
+    ? `${consultant.levelName}${consultant.location ? ' · ' + consultant.location : ''}`
+    : (consultant.location || '');
+
+  // Name
+  const nameEl = document.getElementById('cpName');
+  nameEl.value = consultant.name || '';
+  nameEl.disabled = readOnly;
+
+  // Level dropdown
+  const levelSel = document.getElementById('cpLevel');
+  levelSel.innerHTML = '<option value="">— no level —</option>';
+  for (const l of levels) {
+    const opt = document.createElement('option');
+    opt.value = l.id;
+    opt.textContent = l.name;
+    if (l.id === consultant.level_id) opt.selected = true;
+    levelSel.appendChild(opt);
+  }
+  levelSel.disabled = readOnly;
+
+  // Location
+  const locEl = document.getElementById('cpLocation');
+  locEl.value = consultant.location || '';
+  locEl.disabled = readOnly;
+
+  // Rate overrides (only visible to admin/resource_manager — hidden entirely for others)
+  const billEl = document.getElementById('cpBillRate');
+  const costEl = document.getElementById('cpCostRate');
+  billEl.value = consultant.bill_rate_override != null ? consultant.bill_rate_override : '';
+  costEl.value = consultant.cost_rate_override != null ? consultant.cost_rate_override : '';
+  billEl.disabled = readOnly;
+  costEl.disabled = readOnly;
+  // Hide rate fields for non-editors
+  const rateFields = billEl.closest('div').parentElement;
+  if (readOnly) {
+    billEl.closest('div').style.display = 'none';
+    costEl.closest('div').style.display = 'none';
+  } else {
+    billEl.closest('div').style.display = '';
+    costEl.closest('div').style.display = '';
+  }
+
+  // Skill set tags
+  const selectedIds = new Set(skillSetIds);
+  const grid = document.getElementById('cpSkillGrid');
+  if (allSkillSets.length === 0) {
+    document.getElementById('cpSkillEmpty').classList.remove('hidden');
+  } else {
+    for (const ss of allSkillSets) {
+      const tag = document.createElement('span');
+      tag.className = 'cp-skill-tag' +
+        (ss.type === 'Practice Area' ? ' type-practice' : '') +
+        (selectedIds.has(ss.id) ? ' selected' : '');
+      tag.dataset.ssId = ss.id;
+      tag.textContent = ss.name;
+      if (readOnly) {
+        tag.setAttribute('disabled', '');
+      } else {
+        tag.addEventListener('click', () => tag.classList.toggle('selected'));
+      }
+      grid.appendChild(tag);
+    }
+  }
+
+  // Show/hide save button
+  const actions = document.getElementById('cpActions');
+  if (readOnly) {
+    document.getElementById('cpSubmitBtn').style.display = 'none';
+    document.querySelector('#cpActions button[type="button"]').textContent = 'Close';
+  } else {
+    document.getElementById('cpSubmitBtn').style.display = '';
+    document.querySelector('#cpActions button[type="button"]').textContent = 'Cancel';
+  }
+}
+
+function closeConsultantProfileEditor() {
+  const modal = document.getElementById('consultantProfileModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  _editConsultantId = null;
+}
+
+async function submitConsultantProfile(event) {
+  event.preventDefault();
+  if (!_editConsultantId) return;
+
+  const name     = document.getElementById('cpName').value.trim();
+  const level_id = document.getElementById('cpLevel').value || null;
+  const location = document.getElementById('cpLocation').value.trim() || null;
+  const billRaw  = document.getElementById('cpBillRate').value;
+  const costRaw  = document.getElementById('cpCostRate').value;
+  const bill_rate_override = billRaw !== '' ? parseFloat(billRaw) : null;
+  const cost_rate_override = costRaw !== '' ? parseFloat(costRaw) : null;
+
+  const selectedIds = [...document.querySelectorAll('#cpSkillGrid .cp-skill-tag.selected')]
+    .map(t => t.dataset.ssId);
+
+  if (!name) { showToast('Name is required.', 'error'); return; }
+
+  const btn = document.getElementById('cpSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  try {
+    const [patchRes, skillsRes] = await Promise.all([
+      fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, level_id, location, bill_rate_override, cost_rate_override }),
+      }),
+      fetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/skills`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skillSetIds: selectedIds }),
+      }),
+    ]);
+
+    const [patchData, skillsData] = await Promise.all([patchRes.json(), skillsRes.json()]);
+
+    if (!patchRes.ok)  throw new Error(patchData.error  || `Profile save failed (${patchRes.status})`);
+    if (!skillsRes.ok) throw new Error(skillsData.error || `Skills save failed (${skillsRes.status})`);
+
+    closeConsultantProfileEditor();
+    showToast(`Profile updated for ${name}`, 'success');
+    await loadDashboard();
+  } catch (err) {
+    showToast(`Failed: ${err.message}`, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
   }
 }
 

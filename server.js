@@ -438,7 +438,8 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
         .map(([project, hours]) => ({ project, hours }));
     });
     const meta = empMeta[name] || {};
-    return { name, level: levelMap[name] || meta.level || 'Unknown', skillSet: meta.skillSet || null, weeklyHours, weeklyProjects };
+    const consultantId = freshData._meta.consultantByName[name]?.id || null;
+    return { id: consultantId, name, level: levelMap[name] || meta.level || 'Unknown', skillSet: meta.skillSet || null, weeklyHours, weeklyProjects };
   });
 
   empList.sort((a, b) => {
@@ -556,6 +557,91 @@ app.get('/api/projects', requireRole('admin', 'resource_manager'), (req, res) =>
     .map(p => ({ id: p.projectId, name: p.projectName, status: p.status }))
     .sort((a, b) => a.name.localeCompare(b.name));
   res.json(active);
+});
+
+// GET /api/consultants/:id — consultant profile + skill sets + available levels/skill sets
+app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
+  const { id } = req.params;
+  const tenantId = process.env.TENANT_ID;
+  try {
+    const { data: consultant, error: cErr } = await serviceClient
+      .from('consultants')
+      .select('id, name, level_id, location, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable')
+      .eq('tenant_id', tenantId)
+      .eq('id', id)
+      .single();
+    if (cErr || !consultant) return res.status(404).json({ error: 'Consultant not found' });
+
+    const [{ data: cssData, error: cssErr }, { data: levelsData, error: lErr }, { data: skillSetsData, error: ssErr }] = await Promise.all([
+      serviceClient.from('consultant_skill_sets').select('skill_set_id').eq('tenant_id', tenantId).eq('consultant_id', id),
+      serviceClient.from('levels').select('id, name, sort_order').eq('tenant_id', tenantId).order('sort_order'),
+      serviceClient.from('skill_sets').select('id, name, type').eq('tenant_id', tenantId).order('name'),
+    ]);
+    if (cssErr) return res.status(500).json({ error: cssErr.message });
+    if (lErr)   return res.status(500).json({ error: lErr.message });
+    if (ssErr)  return res.status(500).json({ error: ssErr.message });
+
+    res.json({
+      consultant: { ...consultant, levelName: levelsData.find(l => l.id === consultant.level_id)?.name || null },
+      skillSetIds: cssData.map(c => c.skill_set_id),
+      levels: levelsData,
+      allSkillSets: skillSetsData,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/consultants/:id — update consultant profile fields
+app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const { id } = req.params;
+  const { name, level_id, location, bill_rate_override, cost_rate_override } = req.body || {};
+  const tenantId = process.env.TENANT_ID;
+
+  const updates = {};
+  if (name              !== undefined) updates.name               = name;
+  if (level_id          !== undefined) updates.level_id           = level_id;
+  if (location          !== undefined) updates.location           = location;
+  if (bill_rate_override !== undefined) updates.bill_rate_override = bill_rate_override === '' ? null : bill_rate_override;
+  if (cost_rate_override !== undefined) updates.cost_rate_override = cost_rate_override === '' ? null : cost_rate_override;
+
+  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+  try {
+    const { error } = await serviceClient.from('consultants').update(updates).eq('tenant_id', tenantId).eq('id', id);
+    if (error) return res.status(500).json({ error: error.message });
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'consultant-updated', id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/consultants/:id/skills — replace all skill set assignments for a consultant
+app.put('/api/consultants/:id/skills', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const { id } = req.params;
+  const { skillSetIds } = req.body || {};
+  const tenantId = process.env.TENANT_ID;
+
+  if (!Array.isArray(skillSetIds)) return res.status(400).json({ error: 'skillSetIds must be an array' });
+
+  try {
+    const { error: delErr } = await serviceClient.from('consultant_skill_sets').delete().eq('tenant_id', tenantId).eq('consultant_id', id);
+    if (delErr) return res.status(500).json({ error: delErr.message });
+
+    if (skillSetIds.length > 0) {
+      const rows = skillSetIds.map(ssId => ({ tenant_id: tenantId, consultant_id: id, skill_set_id: ssId }));
+      const { error: insErr } = await serviceClient.from('consultant_skill_sets').insert(rows);
+      if (insErr) return res.status(500).json({ error: insErr.message });
+    }
+
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'consultant-updated', id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/supply/update — apply add/update/delete changes to supply via Supabase

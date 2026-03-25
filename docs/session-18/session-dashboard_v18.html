@@ -275,18 +275,18 @@
   <div class="header">
     <div class="header-left">
       <h1>Session 17 — Staffing Intelligence App</h1>
-      <div class="sub">staffing-app · Soon milestone · active sprint</div>
+      <div class="sub">staffing-app · Soon milestone · in progress</div>
     </div>
     <div class="header-right">
       <span id="live-time"></span>
-      session opened
+      session in progress
     </div>
   </div>
 
   <div class="metrics">
     <div class="metric">
       <div class="metric-label">Planned</div>
-      <div class="metric-value" id="m-planned">3</div>
+      <div class="metric-value" id="m-planned">2</div>
     </div>
     <div class="metric">
       <div class="metric-label">Closed</div>
@@ -308,67 +308,93 @@
 
     <!-- Planned -->
     <div class="panel">
-      <div class="panel-header">Planned — Soon milestone <span class="cnt">3 issues</span></div>
-      <div class="issue-row" onclick="togglePlanned(this,'p1','#124','Add new project assignment from heatmap')">
-        <span class="issue-num">#124</span>
-        <span class="issue-title">Add new project assignment from heatmap</span>
-        <span class="issue-est">3–4h</span>
+      <div class="panel-header">Planned — Soon milestone <span class="cnt">2 issues</span></div>
+      <div class="issue-row" onclick="togglePlanned(this,'p1','#119','Consultant profile editor')">
+        <span class="issue-num">#119</span>
+        <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
+        <span class="issue-est">4–6h</span>
         <span class="badge b-open" id="p1">open</span>
       </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p2','#119/#125','Compare duplicate + consultant profile editor')">
-        <span class="issue-num">#119/#125</span>
-        <span class="issue-title">Compare for duplicate → consultant profile editor</span>
-        <span class="issue-est">4–6h</span>
-        <span class="badge b-open" id="p2">open</span>
-      </div>
-      <div class="issue-row" onclick="togglePlanned(this,'p3','#126','Consultants management panel')">
+      <div class="issue-row" onclick="togglePlanned(this,'p2','#126','Consultants management panel')">
         <span class="issue-num">#126</span>
-        <span class="issue-title">Consultants management panel</span>
+        <span class="issue-title">Consultants management panel in Settings</span>
         <span class="issue-est">6–8h</span>
-        <span class="badge b-open" id="p3">open</span>
+        <span class="badge b-open" id="p2">open</span>
       </div>
     </div>
 
     <!-- Carry-forwards -->
     <div class="panel">
-      <div class="panel-header">Carry-forward housekeeping <span class="cnt">7 items</span></div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c1','#119 vs #125 duplicate check')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">#119 vs #125 — compare &amp; close duplicate</span>
-        <span class="badge b-done" id="c1">done</span>
-      </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c2','Heatmap inline filter — new issue')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Heatmap inline filter — new GitHub issue</span>
-        <span class="badge b-carry" id="c2">pending</span>
-      </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c3','#82 UAT test script')">
+      <div class="panel-header">Carry-forward housekeeping <span class="cnt">6 items</span></div>
+      <div class="issue-row" onclick="toggleCarry(this,'c1','#82 UAT test script')">
         <span class="issue-num">#82</span>
-        <span class="issue-title">UAT test script before real users onboard</span>
-        <span class="badge b-carry" id="c3">pending</span>
+        <span class="issue-title">UAT test script — write before real users onboard</span>
+        <span class="badge b-carry" id="c1">pending</span>
       </div>
-      <div class="issue-row done" onclick="toggleCarry(this,'c4','#66 vs #129 duplicate check')">
-        <span class="issue-num">#66/#129</span>
-        <span class="issue-title">Close #66 as duplicate if #129 covers it</span>
+      <div class="issue-row done" onclick="toggleCarry(this,'c2','#131 heatmap inline filter issue created')">
+        <span class="issue-num">#131</span>
+        <span class="issue-title">Heatmap inline filter issue created</span>
+        <span class="badge b-done" id="c2">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c3','#132 holistic UI/UX design pass issue created')">
+        <span class="issue-num">#132</span>
+        <span class="issue-title">Holistic UI/UX design pass issue created</span>
+        <span class="badge b-done" id="c3">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c4','Cache busters current — app.js v=45, styles.css v=37')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Cache busters — app.js v=45, styles.css v=37 (no bump needed)</span>
         <span class="badge b-done" id="c4">done</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c5','Cache buster audit')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c5','GitHub housekeeping — milestones closed, issues labeled')">
         <span class="issue-num">—</span>
-        <span class="issue-title">Cache buster audit — app.js v=44, styles.css v=36</span>
-        <span class="badge b-carry" id="c5">pending</span>
+        <span class="issue-title">GitHub housekeeping — stale milestones closed, 27 issues labeled</span>
+        <span class="badge b-done" id="c5">done</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c6','Kill node workaround doc')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c6','Kill node workaround documented in HANDOFF')">
         <span class="issue-num">—</span>
-        <span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
-        <span class="badge b-carry" id="c6">pending</span>
-      </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c7','Holistic UI/UX design pass — new issue')">
-        <span class="issue-num">—</span>
-        <span class="issue-title">Holistic UI/UX pass — new issue (incl. project filter heatmap)</span>
-        <span class="badge b-carry" id="c7">pending</span>
+        <span class="issue-title">Kill node workaround documented in HANDOFF</span>
+        <span class="badge b-done" id="c6">done</span>
       </div>
     </div>
 
+  </div>
+
+  <!-- Session closed panels -->
+  <div class="columns" style="margin-bottom:10px;">
+    <div class="panel">
+      <div class="panel-header">Closed last session (S16) <span class="cnt">1 issue</span></div>
+      <div class="issue-row done">
+        <span class="issue-num">#124</span>
+        <span class="issue-title">Add new project assignment to consultant from heatmap</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+    </div>
+
+    <!-- Closed this session -->
+    <div class="panel">
+      <div class="panel-header">Closed this session (S17) <span class="cnt">0 issues</span></div>
+      <div class="issue-row" style="cursor:default;">
+        <span class="issue-title" style="color:var(--text-muted); font-size:12px; font-family:var(--mono);">none yet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Next session -->
+  <div class="panel" style="margin-bottom:10px;">
+    <div class="panel-header">Next session — Soon milestone <span class="cnt">2 issues</span></div>
+    <div class="issue-row">
+      <span class="issue-num">#119</span>
+      <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
+      <span class="issue-est">4–6h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#126</span>
+      <span class="issue-title">Consultants management panel in Settings</span>
+      <span class="issue-est">6–8h</span>
+      <span class="badge b-open">open</span>
+    </div>
   </div>
 
   <!-- V1 Stable Backlog -->
@@ -393,7 +419,7 @@
     <div class="log-list" id="log-list">
       <div class="log-entry">
         <span class="log-time" id="start-time">--:--</span>
-        <span class="log-msg">Session 16 <span class="hl">started</span></span>
+        <span class="log-msg">Session 17 <span class="hl">started</span></span>
       </div>
     </div>
   </div>
@@ -495,8 +521,8 @@
   }
 
   function updateMetrics() {
-    const plannedIds = ['p1','p2','p3'];
-    const carryIds   = ['c1','c2','c3','c4','c5','c6','c7'];
+    const plannedIds = ['p1','p2'];
+    const carryIds   = ['c1','c2','c3','c4','c5','c6'];
     const closedCount = plannedIds.filter(id => state.planned[id]).length;
     const carryDone   = carryIds.filter(id => state.carry[id]).length;
     const pct = Math.round((closedCount / plannedIds.length) * 100);

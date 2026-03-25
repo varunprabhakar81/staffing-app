@@ -309,11 +309,11 @@
     <!-- Planned -->
     <div class="panel">
       <div class="panel-header">Planned — Soon milestone <span class="cnt">3 issues</span></div>
-      <div class="issue-row" onclick="togglePlanned(this,'p1','#124','Add new project assignment from heatmap')">
+      <div class="issue-row done" onclick="togglePlanned(this,'p1','#124','Add new project assignment from heatmap')">
         <span class="issue-num">#124</span>
         <span class="issue-title">Add new project assignment from heatmap</span>
         <span class="issue-est">3–4h</span>
-        <span class="badge b-open" id="p1">open</span>
+        <span class="badge b-closed" id="p1">closed</span>
       </div>
       <div class="issue-row" onclick="togglePlanned(this,'p2','#119/#125','Compare duplicate + consultant profile editor')">
         <span class="issue-num">#119/#125</span>
@@ -352,15 +352,15 @@
         <span class="issue-title">Close #66 as duplicate if #129 covers it</span>
         <span class="badge b-done" id="c4">done</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c5','Cache buster audit')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c5','Cache buster audit')">
         <span class="issue-num">—</span>
-        <span class="issue-title">Cache buster audit — app.js v=44, styles.css v=36</span>
-        <span class="badge b-carry" id="c5">pending</span>
+        <span class="issue-title">Cache buster audit — app.js v=45, styles.css v=37</span>
+        <span class="badge b-done" id="c5">done</span>
       </div>
-      <div class="issue-row" onclick="toggleCarry(this,'c6','Kill node workaround doc')">
+      <div class="issue-row done" onclick="toggleCarry(this,'c6','Kill node workaround doc')">
         <span class="issue-num">—</span>
         <span class="issue-title">Kill node in Git Bash — document pkill workaround</span>
-        <span class="badge b-carry" id="c6">pending</span>
+        <span class="badge b-done" id="c6">done</span>
       </div>
       <div class="issue-row done" onclick="toggleCarry(this,'c7','Holistic UI/UX design pass — new issue')">
         <span class="issue-num">#132</span>
@@ -371,7 +371,7 @@
 
   </div>
 
-  <!-- Session 15 completed -->
+  <!-- Session closed panels -->
   <div class="columns" style="margin-bottom:10px;">
     <div class="panel">
       <div class="panel-header">Closed last session (S15) <span class="cnt">1 issue</span></div>
@@ -382,8 +382,20 @@
       </div>
     </div>
 
-    <!-- New issues created this session -->
+    <!-- Closed this session -->
     <div class="panel">
+      <div class="panel-header">Closed this session (S16) <span class="cnt">1 issue</span></div>
+      <div class="issue-row done">
+        <span class="issue-num">#124</span>
+        <span class="issue-title">Add new project assignment to consultant from heatmap</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- New issues created this session -->
+  <div class="columns" style="margin-bottom:10px;">
+    <div class="panel" style="grid-column:1/-1;">
       <div class="panel-header">New issues created this session <span class="cnt">2 issues · Phase 2</span></div>
       <div class="issue-row">
         <span class="issue-num">#131</span>
@@ -399,14 +411,9 @@
   </div>
 
   <!-- Next session -->
+
   <div class="panel" style="margin-bottom:10px;">
-    <div class="panel-header">Next session — Soon milestone <span class="cnt">3 issues</span></div>
-    <div class="issue-row">
-      <span class="issue-num">#124</span>
-      <span class="issue-title">Add new project assignment from heatmap</span>
-      <span class="issue-est">3–4h</span>
-      <span class="badge b-open">open</span>
-    </div>
+    <div class="panel-header">Next session — Soon milestone <span class="cnt">2 issues</span></div>
     <div class="issue-row">
       <span class="issue-num">#119</span>
       <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
