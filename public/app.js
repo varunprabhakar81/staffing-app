@@ -31,7 +31,8 @@ Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
 
 // ── Tab switching ─────────────────────────────────────────────────
 document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
+    await apiFetch('/api/auth/me');
     const tab = btn.dataset.tab;
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
