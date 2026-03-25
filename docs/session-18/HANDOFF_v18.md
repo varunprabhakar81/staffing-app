@@ -88,16 +88,25 @@ Tab visibility matrix:
 | Staffing | ✅ | ✅ | ❌ | ✅ (read-only) |
 | Needs | ✅ | ✅ | ✅ | ❌ |
 | Ask Claude | ✅ | ✅ | ✅ | ✅ |
-| Settings | ✅ | ❌ | ❌ | ❌ |
+| Settings | ✅ | ✅ (Consultants only) | ❌ | ❌ |
+
+Note: resource_manager sees the Settings tab (Consultants panel — #119/#126) but the User Management section is hidden from them. Only admin sees User Management.
 
 API route protection:
 | Route | Roles allowed |
 |---|---|
-| GET /api/demand | admin, resource_manager, project_manager |
-| GET /api/dashboard | admin, resource_manager, project_manager |
-| GET /api/heatmap | admin, resource_manager, project_manager |
+| GET /api/supply | admin, resource_manager, project_manager |
+| GET /api/employees | admin, resource_manager, project_manager |
+| GET /api/dashboard | admin, resource_manager, project_manager, executive |
+| GET /api/heatmap | admin, resource_manager, project_manager, executive |
 | GET /api/recommendations | admin, resource_manager, project_manager |
-| GET /api/manage | admin, resource_manager |
+| GET /api/projects | admin, resource_manager |
+| GET /api/consultants | admin, resource_manager |
+| GET /api/consultants/:id | admin, resource_manager, project_manager, executive |
+| PATCH /api/consultants/:id | admin, resource_manager |
+| PUT /api/consultants/:id/skills | admin, resource_manager |
+| PATCH /api/consultants/:id/deactivate | admin, resource_manager |
+| PATCH /api/consultants/:id/reactivate | admin, resource_manager |
 | POST /api/save-staffing | admin, resource_manager |
 | POST /api/supply/update | admin, resource_manager |
 | GET /api/admin/users | admin |
@@ -105,6 +114,10 @@ API route protection:
 | PATCH /api/admin/users/:id/role | admin |
 | PATCH /api/admin/users/:id/deactivate | admin |
 | PATCH /api/admin/users/:id/reactivate | admin |
+| POST /api/admin/users/:id/resend-invite | admin |
+| DELETE /api/admin/users/:id/invite | admin |
+
+Note: VALID_ROLES in server.js is `['admin', 'resource_manager', 'project_manager', 'executive', 'consultant', 'finance', 'recruiter']`. The last three (consultant, finance, recruiter) are placeholder entries for #97 — they are accepted by role validation but have no active tab access or route permissions yet.
 
 ---
 
