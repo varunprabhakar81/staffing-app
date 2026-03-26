@@ -665,7 +665,7 @@ function renderOverviewStats(data, heatmapData) {
     : 0;
   const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
 
-  // ── Card 1: Utilization ──────────────────────────────────────────
+  // ── Card 2: Utilization % ────────────────────────────────────────
   const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
   const utilCard  = document.getElementById('overviewUtilCard');
   if (utilCard) utilCard.style.setProperty('--ov-accent', utilColor);
@@ -694,15 +694,20 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
 
-  // ── Card 2: Available Hours ──────────────────────────────────────
+  // ── Card 1: Available Capacity % ────────────────────────────────
+  const wTotalHrs = data.windowTotalHours !== undefined ? Math.round(data.windowTotalHours) : null;
+  const wCap      = data.windowCapacity   !== undefined ? Math.round(data.windowCapacity)   : null;
+  const windowN   = (wCap !== null && headcount > 0) ? Math.round(wCap / (45 * headcount)) : null;
+  const unbooked  = (wCap !== null && wTotalHrs !== null) ? wCap - wTotalHrs : null;
+  const availPct  = (wCap !== null && wTotalHrs !== null && wCap > 0)
+    ? Math.round((wCap - wTotalHrs) / wCap * 100) : null;
+
   const availEl = document.getElementById('overviewAvailHours');
-  if (availEl) availEl.textContent = totalAvail ? String(totalAvail) : '—';
+  if (availEl) availEl.textContent = availPct !== null ? String(availPct) : '—';
 
   const availSecondary = document.getElementById('overviewAvailSecondary');
-  if (availSecondary && totalConsultants) {
-    const totalCap = totalConsultants * 45;
-    const capUsedPct = totalCap > 0 ? Math.round((totalCap - totalAvail) / totalCap * 100) : 0;
-    availSecondary.textContent = `${capUsedPct}% of total capacity booked`;
+  if (availSecondary && unbooked !== null && wCap !== null) {
+    availSecondary.textContent = `${unbooked}h unbooked of ${wCap}h available over ${windowN} weeks`;
   }
 
   const availTrendEl = document.getElementById('overviewAvailTrend');
@@ -718,14 +723,6 @@ function renderOverviewStats(data, heatmapData) {
       availTrendEl.className = 'ov-card-trend';
     }
   }
-
-  // ── Card 2: capacity bar ─────────────────────────────────────────
-  const totalCap  = totalConsultants * 45;
-  const bookedHrs = totalCap - totalAvail;
-  const capFill   = document.getElementById('ovCapBarFill');
-  const capLabel  = document.getElementById('ovCapBarLabel');
-  if (capFill) capFill.style.width = totalCap > 0 ? `${Math.round(bookedHrs / totalCap * 100)}%` : '0%';
-  if (capLabel && totalCap > 0) capLabel.textContent = `${bookedHrs}h booked · ${totalAvail}h available`;
 
   // ── Card 3: Pipeline Coverage ─────────────────────────────────────
   const summary    = (data.needsCoverage || {}).summary || {};

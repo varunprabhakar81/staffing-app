@@ -129,10 +129,26 @@
       <!-- Hero KPI Cards -->
       <div class="ov-kpi-row">
 
-        <!-- Card 1: Utilization -->
+        <!-- Card 1: Available Capacity % -->
+        <div class="ov-card" id="overviewAvailCard" style="--ov-accent:#A8C7FA"
+             onclick="drillHeadcount()" title="Click for headcount breakdown">
+          <div class="ov-card-label">Available Capacity %</div>
+          <div class="ov-card-main">
+            <div class="ov-card-left">
+              <div class="ov-num-row">
+                <span class="ov-num" id="overviewAvailHours">—</span>
+                <span class="ov-unit">%</span>
+              </div>
+              <p class="ov-secondary" id="overviewAvailSecondary">— unbooked</p>
+            </div>
+          </div>
+          <p class="ov-card-trend" id="overviewAvailTrend">Loading…</p>
+        </div>
+
+        <!-- Card 2: Utilization -->
         <div class="ov-card" id="overviewUtilCard" style="--ov-accent:#FFB3B3"
              onclick="drillUtilizationKPI()" title="Click for utilization breakdown">
-          <div class="ov-card-label">Utilization</div>
+          <div class="ov-card-label">Utilization %</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
               <div class="ov-num-row">
@@ -145,29 +161,23 @@
           <p class="ov-card-trend" id="overviewUtilTrend">Loading…</p>
         </div>
 
-        <!-- Card 2: Available Capacity -->
-        <div class="ov-card" id="overviewAvailCard" style="--ov-accent:#A8C7FA"
-             onclick="drillHeadcount()" title="Click for headcount breakdown">
-          <div class="ov-card-label">Available Capacity</div>
+        <!-- Card 3: On Bench -->
+        <div class="ov-card" id="overviewBenchCard" style="--ov-accent:#FFB3B3"
+             onclick="drillBenchKPI()" title="Click to see employees on bench this week">
+          <div class="ov-card-label">On Bench</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
               <div class="ov-num-row">
-                <span class="ov-num" id="overviewAvailHours">—</span>
-                <span class="ov-unit">h</span>
+                <span class="ov-num" id="overviewBench">—</span>
+                <span class="ov-unit">people</span>
               </div>
-              <p class="ov-secondary" id="overviewAvailSecondary">unbooked this week</p>
-              <div class="ov-cap-bar-wrap">
-                <div class="ov-cap-bar-track">
-                  <div class="ov-cap-bar-fill" id="ovCapBarFill"></div>
-                </div>
-                <p class="ov-cap-bar-label" id="ovCapBarLabel"></p>
-              </div>
+              <p class="ov-secondary" id="overviewBenchSecondary">of — consultants total</p>
             </div>
           </div>
-          <p class="ov-card-trend" id="overviewAvailTrend">Loading…</p>
+          <p class="ov-card-trend" id="overviewBenchTrend">Loading…</p>
         </div>
 
-        <!-- Card 3: Pipeline Coverage -->
+        <!-- Card 4: Pipeline Coverage -->
         <div class="ov-card" id="overviewNeedsCard" style="--ov-accent:#FFB3B3"
              onclick="drillDemandKPI()" title="Click for project detail">
           <div class="ov-card-label">Pipeline Coverage</div>
@@ -184,22 +194,6 @@
             </div>
           </div>
           <p class="ov-card-trend" id="overviewUnmetTrend">Loading…</p>
-        </div>
-
-        <!-- Card 4: On Bench -->
-        <div class="ov-card" id="overviewBenchCard" style="--ov-accent:#FFB3B3"
-             onclick="drillBenchKPI()" title="Click to see employees on bench this week">
-          <div class="ov-card-label">On Bench</div>
-          <div class="ov-card-main">
-            <div class="ov-card-left">
-              <div class="ov-num-row">
-                <span class="ov-num" id="overviewBench">—</span>
-                <span class="ov-unit">people</span>
-              </div>
-              <p class="ov-secondary" id="overviewBenchSecondary">of — consultants total</p>
-            </div>
-          </div>
-          <p class="ov-card-trend" id="overviewBenchTrend">Loading…</p>
         </div>
 
       </div>
@@ -776,6 +770,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=60"></script>
+  <script src="app.js?v=61"></script>
 </body>
 </html>
