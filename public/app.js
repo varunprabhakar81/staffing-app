@@ -804,102 +804,63 @@ function renderOverviewStats(data, heatmapData) {
   renderNeedsAttention(data);
 }
 
-// ── Level Breakdown (Row 2 left) ──────────────────────────────────
+// ── Upcoming Availability (Row 2 left) ────────────────────────────
 const LEVEL_ORDER_OV = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
 
 function renderLevelBreakdown(heatmapData) {
   const el = document.getElementById('ovLevelBreakdown');
   if (!el) return;
   const byLevel = {};
-  const weekLabels = (heatmapData && heatmapData.weeks) || [];
-  const numWeeks = (heatmapData && heatmapData.employees && heatmapData.employees[0])
-    ? (heatmapData.employees[0].weeklyHours || []).length
-    : 1;
+  const weekDates = (heatmapData && heatmapData.weeks) || [];
+
+  // Rolling window: same logic as KPI card — weeks where date >= today
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const windowIndices = weekDates.reduce((acc, d, i) => {
+    if (new Date(d) >= today) acc.push(i);
+    return acc;
+  }, []);
+  const windowWeekCount = windowIndices.length || 1;
+
   if (heatmapData && heatmapData.employees) {
     for (const emp of heatmapData.employees) {
-      if (!byLevel[emp.level]) byLevel[emp.level] = { totalHours: 0, count: 0, weeklyTotals: {} };
+      if (!byLevel[emp.level]) byLevel[emp.level] = { bookedHours: 0, count: 0 };
       const lvl = byLevel[emp.level];
       lvl.count++;
-      for (let w = 0; w < (emp.weeklyHours || []).length; w++) {
-        lvl.totalHours += emp.weeklyHours[w] || 0;
-        lvl.weeklyTotals[w] = (lvl.weeklyTotals[w] || 0) + (emp.weeklyHours[w] || 0);
+      for (const wi of windowIndices) {
+        lvl.bookedHours += emp.weeklyHours[wi] || 0;
       }
     }
   }
+
   // Only render levels that have employees in the current data
   const rows = LEVEL_ORDER_OV
     .filter(l => byLevel[l])
     .map(l => {
-      const { totalHours, count, weeklyTotals } = byLevel[l];
-      const weeks = Math.max(numWeeks, 1);
-      const utilPct = Math.round(totalHours / (count * 45 * weeks) * 100);
-      // Build per-week avg data
-      const weekAvgs = Object.keys(weeklyTotals).map(wi => {
-        const idx = parseInt(wi, 10);
-        const avg = Math.round(weeklyTotals[idx] / count * 10) / 10;
-        return { idx, label: weekLabels[idx] || `Week ${idx + 1}`, avg };
-      });
-      const overallocated = weekAvgs.some(w => w.avg > 45);
-      // Rich tooltip: only overallocated weeks
-      const tooltipLines = weekAvgs
-        .filter(w => w.avg > 45)
-        .map(w => `Week ${w.label}: ${w.avg}h avg (cap: 45h)`)
-        .join('\n');
-      return { level: l, count, utilPct, overallocated, weekAvgs, tooltipLines };
+      const { bookedHours, count } = byLevel[l];
+      const totalAvail = 45 * count * windowWeekCount;
+      const availPct = totalAvail > 0 ? Math.round((totalAvail - bookedHours) / totalAvail * 100) : 0;
+      return { level: l, count, availPct };
     });
 
-  const safeId = l => l.replace(/[^a-zA-Z0-9]/g, '_');
-
   el.innerHTML = rows.map((r, i) => {
-    const color = r.utilPct > 100 ? '#FFB3B3' : r.utilPct >= 90 ? '#A8E6CF' : r.utilPct >= 70 ? '#FFF3A3' : '#FFB3B3';
-    const barWidth = Math.min(r.utilPct, 100);
+    // High availability = green (good), moderate = yellow, low = red (concerning)
+    const color = r.availPct >= 50 ? '#A8E6CF' : r.availPct >= 20 ? '#FFF3A3' : '#FFB3B3';
+    const barWidth = Math.min(r.availPct, 100);
     const rowBg = i % 2 === 0 ? '#1A1D27' : '#16192A';
-    let warning = '';
-    let panel = '';
-    if (r.overallocated) {
-      const panelId = `overalloc-panel-${safeId(r.level)}`;
-      const tooltipAttr = r.tooltipLines.replace(/"/g, '&quot;');
-      warning = `<span class="ov-level-warn ov-level-warn--clickable" title="${tooltipAttr}" data-panel="${panelId}">⚠️<span class="ov-level-warn-hint">click for details</span></span>`;
-      const weekRows = r.weekAvgs.map(w => {
-        const over = w.avg > 45;
-        const statusCls = over ? 'ov-overalloc-status--over' : 'ov-overalloc-status--ok';
-        const statusLabel = over ? 'Over' : 'OK';
-        return `<tr>
-          <td>Week ${w.label}</td>
-          <td>${w.avg}h</td>
-          <td>45h</td>
-          <td><span class="ov-overalloc-status ${statusCls}">${statusLabel}</span></td>
-        </tr>`;
-      }).join('');
-      panel = `<div class="ov-overalloc-panel hidden" id="${panelId}">
-        <table class="ov-overalloc-table">
-          <thead><tr><th>Week</th><th>Avg Hours</th><th>Capacity</th><th>Status</th></tr></thead>
-          <tbody>${weekRows}</tbody>
-        </table>
-      </div>`;
-    }
     return `<div class="ov-level-row-wrap">
-      <div class="ov-level-row dd-clickable" data-level="${_esc(r.level)}" style="background:${rowBg}" title="Click for ${r.level} breakdown">
+      <div class="ov-level-row dd-clickable" data-level="${_esc(r.level)}" style="background:${rowBg}" title="Click for ${r.level} availability breakdown">
         <span class="ov-level-name">${r.level}</span>
         <span class="ov-level-count">(${r.count})</span>
         <div class="ov-level-bar-track">
           <div class="ov-level-bar-fill" style="width:${barWidth}%;background:${color}"></div>
         </div>
-        <span class="ov-level-pct" style="color:${color}">${r.utilPct}%</span>${warning}
-      </div>${panel}
+        <span class="ov-level-pct" style="color:${color}">${r.availPct}%</span>
+      </div>
     </div>`;
   }).join('');
 
-  // Toggle panel on ⚠️ click (remove previous listener to avoid stacking on re-render)
   if (el._overallocHandler) el.removeEventListener('click', el._overallocHandler);
   el._overallocHandler = function(e) {
-    const warn = e.target.closest('.ov-level-warn--clickable');
-    if (warn) {
-      e.stopPropagation();
-      const panel = document.getElementById(warn.dataset.panel);
-      if (panel) panel.classList.toggle('hidden');
-      return;
-    }
     const levelRow = e.target.closest('.ov-level-row[data-level]');
     if (levelRow) drillUtilization(levelRow.dataset.level);
   };
