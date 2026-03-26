@@ -811,25 +811,38 @@ function renderLevelBreakdown(heatmapData) {
   const el = document.getElementById('ovLevelBreakdown');
   if (!el) return;
   const byLevel = {};
-  const weekDates = (heatmapData && heatmapData.weeks) || [];
 
-  // Rolling window: same logic as KPI card — weeks where date >= today
+  // Rolling window: use rawData._meta.weekKeyToDate for correct ISO date parsing.
+  // heatmapData.weeks uses short "M/D" strings — new Date("3/28") returns Invalid Date,
+  // making windowIndices empty and bookedHours=0 → all bars show 100%.
+  const weekKeys = rawData.supply.length ? Object.keys(rawData.supply[0].weeklyHours) : [];
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const windowIndices = weekDates.reduce((acc, d, i) => {
-    if (new Date(d) >= today) acc.push(i);
-    return acc;
-  }, []);
-  const windowWeekCount = windowIndices.length || 1;
+  const windowWeeks = weekKeys.filter(wk => {
+    const d = rawData._meta.weekKeyToDate[wk];
+    return d && new Date(d) >= today;
+  }).slice(0, 12);
+  const windowWeekCount = windowWeeks.length || 1;
 
-  if (heatmapData && heatmapData.employees) {
-    for (const emp of heatmapData.employees) {
-      if (!byLevel[emp.level]) byLevel[emp.level] = { bookedHours: 0, count: 0 };
-      const lvl = byLevel[emp.level];
-      lvl.count++;
-      for (const wi of windowIndices) {
-        lvl.bookedHours += emp.weeklyHours[wi] || 0;
-      }
+  // Headcounts from Employee Master (one record per person)
+  for (const emp of rawData.employees) {
+    if (!byLevel[emp.level]) byLevel[emp.level] = { bookedHours: 0, count: 0 };
+    byLevel[emp.level].count++;
+  }
+  // Booked hours from supply rows using week key strings (not numeric indices)
+  for (const row of rawData.supply) {
+    const level = row.level || 'Unknown';
+    if (!byLevel[level]) byLevel[level] = { bookedHours: 0, count: 0 };
+    for (const wk of windowWeeks) {
+      byLevel[level].bookedHours += row.weeklyHours[wk] || 0;
     }
+  }
+
+  // Debug: log per-level availability metrics
+  for (const [levelName, d] of Object.entries(byLevel)) {
+    const totalAvailableHours = 45 * d.count * windowWeekCount;
+    const availabilityPct = totalAvailableHours > 0
+      ? Math.round((totalAvailableHours - d.bookedHours) / totalAvailableHours * 100)
+      : 0;
   }
 
   // Only render levels that have employees in the current data
@@ -2053,7 +2066,7 @@ function drillUtilization(level) {
 
   const empsAtLevel = rawData.employees.filter(e => e.level === level);
   if (!empsAtLevel.length) {
-    openDrilldown(`${level} — Utilization Detail`,
+    openDrilldown(`${level} — Availability Detail`,
       '<p class="dd-empty">No employees found at this level.</p>');
     return;
   }
@@ -2080,7 +2093,7 @@ function drillUtilization(level) {
     </tr>`;
   }).join('');
 
-  openDrilldown(`${level} — Utilization Detail`, `
+  openDrilldown(`${level} — Availability Detail`, `
     <table class="dd-table">
       <thead><tr>
         <th>Employee</th><th>Avg Hours</th><th>Status</th><th>Projects</th><th>Skill Set</th>
