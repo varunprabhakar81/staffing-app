@@ -14,11 +14,10 @@ Practice context:
 - Capacity: 45 hours/week per consultant = fully utilized target
 
 Utilization thresholds:
-- > 45 h/week  = overbooked (burnout risk, quality risk — flag immediately)
-- 45 h/week    = fully utilized (target)
-- 40–44 h/week = nominal (slightly under target, acceptable)
-- < 40 h/week  = underutilized (available for additional work)
-- 0 h/week     = on bench (fully available, no active project assignment)
+- > 45 h/week  = overallocated (exceeds capacity — flag immediately)
+- 35–45 h/week = utilized (0–10h available — fully staffed, no action needed)
+- 1–34 h/week  = available (has capacity for additional work)
+- 0 h/week     = bench (fully available, 45h free — urgent attention needed)
 
 Key concerns you help with:
 - Utilization vs target by level, practice area, and individual consultant
@@ -82,11 +81,10 @@ function formatContext(data) {
       .sort((a, b) => a.date - b.date)[0];
     const booked = currentEntry ? currentEntry.hrs : 0;
     const avail  = Math.max(0, 45 - booked);
-    const status = booked === 0   ? 'BENCH (45h available)'
-                 : booked > 45    ? 'OVERBOOKED'
-                 : booked === 45  ? 'FULLY UTILIZED (0h available)'
-                 : booked >= 40   ? `NOMINAL (${avail}h available)`
-                 : `UNDERUTILIZED (${avail}h available)`;
+    const status = booked === 0   ? 'BENCH — urgent, fully available (45h free)'
+                 : booked > 45    ? 'OVERALLOCATED — exceeds capacity'
+                 : booked >= 35   ? `UTILIZED — fully staffed (${avail}h available)`
+                 :                  `AVAILABLE — has capacity (${avail}h available)`;
     lines.push(`  ${name}: ${booked}h booked this week — ${status} — Projects: ${info.projects.join(', ') || 'none'}`);
   }
 

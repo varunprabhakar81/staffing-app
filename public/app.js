@@ -479,11 +479,10 @@ const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heat
 
 // ── Utilization status helper ─────────────────────────────────────
 function utilStatus(hours) {
-  if (hours > 45)  return { label: 'Overbooked',     cls: 'status-overbooked' };
-  if (hours === 45) return { label: 'Fully Utilized', cls: 'status-full' };
-  if (hours >= 40)  return { label: 'Nominal',        cls: 'status-nominal' };
-  if (hours > 0)    return { label: 'Underutilized',  cls: 'status-under' };
-  return             { label: 'Bench',                cls: 'status-bench' };
+  if (hours > 45)  return { label: 'Overallocated', cls: 'status-overbooked' };
+  if (hours >= 35) return { label: 'Utilized',      cls: 'status-full' };
+  if (hours > 0)   return { label: 'Available',     cls: 'status-under' };
+  return             { label: 'Bench',              cls: 'status-bench' };
 }
 
 // ── Per-employee average hours (built from rawData.supply) ────────
@@ -1029,27 +1028,22 @@ function heatmapCellBg(hours) {
 // weekDate: the Saturday end-date of the column (Date object). Beyond 8-week planning horizon,
 // 0h cells are neutral (unplanned is expected) rather than alarming red.
 function heatmapRowTint(hours, weekDate) {
-  if (hours === 0) {
-    return '#161820'; // bench — always neutral dark, never red
-  }
-  if (hours < 20)    return 'rgba(245,158,11,0.07)';  // at risk
-  if (hours < 40)    return 'rgba(99,102,241,0.08)';  // under — indigo, distinct from current-week blue
-  if (hours <= 45)   return 'rgba(16,185,129,0.07)';  // optimal
-  return 'rgba(239,68,68,0.05)';                       // over
+  if (hours === 0)   return 'rgba(239,68,68,0.08)';    // bench — red: urgent, fully available
+  if (hours <= 34)   return 'rgba(245,158,11,0.07)';   // available — amber: has capacity
+  if (hours <= 45)   return 'rgba(16,185,129,0.07)';   // utilized — green: fully staffed
+  return 'rgba(239,68,68,0.05)';                        // overallocated — red
 }
 
 function heatmapCellFg(hours, weekDate) {
-  if (hours === 0) return '#3A3D4A'; // bench — always muted, never red
+  if (hours === 0) return '#F87171'; // bench — red to draw attention
   return '#E2E8F0';
 }
 
 function heatmapCellBorder(hours) {
-  if (hours === 0)   return '#3A3D4A'; // bench
-  if (hours < 40)    return '#3B82F6'; // under (1–39h)
-  if (hours <= 44)   return '#10B981'; // nominal (40–44h)
-  if (hours === 45)  return '#F59E0B'; // full (45h)
-  if (hours <= 50)   return '#F59E0B'; // over (46–50h — amber)
-  return '#EF4444';                    // overallocated (51h+)
+  if (hours === 0)   return '#EF4444'; // bench (0h) — red: urgent, fully available
+  if (hours <= 34)   return '#F59E0B'; // available (1–34h) — amber: has capacity
+  if (hours <= 45)   return '#10B981'; // utilized (35–45h) — green: fully staffed
+  return '#DC2626';                    // overallocated (46h+) — bright red
 }
 
 function encodeAttr(s) {
@@ -1160,7 +1154,7 @@ function _vsRenderRow(row) {
     const emp = row.emp;
     const sn  = encodeAttr(emp.name);
     const h0  = emp.weeklyHours[0] || 0;
-    const st  = h0 === 0 ? 'On bench' : h0 < 40 ? 'Under-utilized' : h0 <= 45 ? 'Nominal' : 'Overbooked';
+    const st  = h0 === 0 ? 'BENCH — fully available' : h0 <= 34 ? 'AVAILABLE — has capacity' : h0 <= 45 ? 'UTILIZED — fully staffed' : 'OVERALLOCATED — exceeds capacity';
     const tip = encodeAttr(`${emp.name}\n${emp.level}  ·  ${emp.skillSet || '—'}\nThis week: ${h0}h — ${st}`);
     const chv = _hmExpanded.has(emp.name) ? '▼' : '▶';
     const cells = emp.weeklyHours.map((h, i) => {
@@ -1378,11 +1372,11 @@ function buildHeatmapTable(data) {
   _vsData = data;
 
   // Badge + legend stats for week 0
-  let bench = 0, under = 0, full = 0, over = 0, totalAvail = 0;
+  let bench = 0, avail = 0, utilized = 0, over = 0, totalAvail = 0;
   for (const emp of employees) {
     const h = emp.weeklyHours[0] || 0;
     totalAvail += Math.max(0, 45 - h);
-    if (h === 0) bench++; else if (h < 40) under++; else if (h <= 45) full++; else over++;
+    if (h === 0) bench++; else if (h <= 34) avail++; else if (h <= 45) utilized++; else over++;
   }
   const badge = document.getElementById('heatmapBadge');
   if (badge) { badge.textContent = `${totalAvail}h available this week`; badge.className = 'chart-badge'; }
@@ -1393,12 +1387,10 @@ function buildHeatmapTable(data) {
   ).join('');
 
   const swatches = [
-    { color: '#3A3D4A', label: '0h — Bench' },
-    { color: '#6366F1', label: '1–39h — Under' },
-    { color: '#10B981', label: '40–44h — Nominal' },
-    { color: '#F59E0B', label: '45h — Full' },
-    { color: '#EF4444', label: '46–50h — Over' },
-    { color: '#DC2626', label: '51h+ — Over+' },
+    { color: '#EF4444', label: '0h — Bench' },
+    { color: '#F59E0B', label: '1–34h — Available' },
+    { color: '#10B981', label: '35–45h — Utilized' },
+    { color: '#DC2626', label: '46h+ — Overallocated' },
   ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch-bar" style="background:${s.color}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
@@ -1417,7 +1409,7 @@ function buildHeatmapTable(data) {
       <div class="hm-legend-swatches">${swatches}</div>
       <div class="hm-legend-stats">
         <span style="color:#10B981;font-weight:600">${totalAvail}h available this week</span>
-        <span style="color:#6B6F76;margin-left:16px">Bench: ${bench} · Under: ${under} · Full/Nominal: ${full} · Overbooked: ${over}</span>
+        <span style="color:#6B6F76;margin-left:16px">Bench: ${bench} · Available: ${avail} · Utilized: ${utilized} · Overallocated: ${over}</span>
       </div>
       <div class="hm-legend-hint">Hover employee name for details · Click ▶ to expand project breakdown</div>
     </div>`;
