@@ -2771,7 +2771,7 @@ td[data-cell-type="emp-total"]:hover {
   gap: 4px;
   cursor: pointer;
   height: 48px;
-  padding-right: 18px; /* leave room for info icon */
+  padding-right: 44px; /* leave room for hm-row-actions buttons */
 }
 
 .hm-name-inner:hover .hm-emp-name { color: var(--accent); }
@@ -2793,12 +2793,19 @@ td[data-cell-type="emp-total"]:hover {
 
 .hm-name-text { flex: 1; min-width: 0; }
 
-/* ── Info icon (ℹ) — matches + button visibility treatment ─────── */
-.hm-info-icon {
+/* ── Row action buttons container (ℹ and +) ────────────────────── */
+.hm-row-actions {
   position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 4px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ── Info icon (ℹ) ──────────────────────────────────────────────── */
+.hm-info-icon {
   font-size: 11px;
   color: #6B7280;
   cursor: pointer;
@@ -2813,10 +2820,6 @@ td[data-cell-type="emp-total"]:hover {
 .hm-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
 
 .hm-add-proj-btn {
-  position: absolute;
-  right: 26px;
-  top: 50%;
-  transform: translateY(-50%);
   font-size: 15px;
   font-weight: 500;
   color: #6B7280;

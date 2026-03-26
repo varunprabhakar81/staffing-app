@@ -75,15 +75,19 @@ function formatContext(data) {
 
   lines.push('=== RESOURCES (Employee Bookings & Availability) ===');
   for (const [name, info] of Object.entries(empTotals)) {
-    const totals   = Object.values(info.weeklyTotals);
-    const avgBooked = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
-    const avgAvail  = Math.max(0, 45 - avgBooked);
-    const status   = avgBooked === 0   ? 'BENCH (45h available)'
-                   : avgBooked > 45    ? 'OVERBOOKED'
-                   : avgBooked === 45  ? 'FULLY UTILIZED (0h available)'
-                   : avgBooked >= 40   ? `NOMINAL (${avgAvail}h available)`
-                   : `UNDERUTILIZED (${avgAvail}h available)`;
-    lines.push(`  ${name}: ${avgBooked}h/week booked — ${status} — Projects: ${info.projects.join(', ') || 'none'}`);
+    // Use current week's hours: earliest week_ending on or after today
+    const currentEntry = Object.entries(info.weeklyTotals)
+      .map(([wk, hrs]) => ({ wk, hrs, date: parseWkLabel(wk) }))
+      .filter(x => x.date)
+      .sort((a, b) => a.date - b.date)[0];
+    const booked = currentEntry ? currentEntry.hrs : 0;
+    const avail  = Math.max(0, 45 - booked);
+    const status = booked === 0   ? 'BENCH (45h available)'
+                 : booked > 45    ? 'OVERBOOKED'
+                 : booked === 45  ? 'FULLY UTILIZED (0h available)'
+                 : booked >= 40   ? `NOMINAL (${avail}h available)`
+                 : `UNDERUTILIZED (${avail}h available)`;
+    lines.push(`  ${name}: ${booked}h booked this week — ${status} — Projects: ${info.projects.join(', ') || 'none'}`);
   }
 
   lines.push('\n=== PROJECTS (Open Roles) ===');

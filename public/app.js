@@ -1030,12 +1030,7 @@ function heatmapCellBg(hours) {
 // 0h cells are neutral (unplanned is expected) rather than alarming red.
 function heatmapRowTint(hours, weekDate) {
   if (hours === 0) {
-    if (weekDate) {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() + 56); // 8-week planning horizon
-      if (weekDate > cutoff) return '#161820'; // beyond horizon — neutral, not alarming
-    }
-    return 'rgba(239,68,68,0.08)';   // bench (within horizon)
+    return '#161820'; // bench — always neutral dark, never red
   }
   if (hours < 20)    return 'rgba(245,158,11,0.07)';  // at risk
   if (hours < 40)    return 'rgba(99,102,241,0.08)';  // under — indigo, distinct from current-week blue
@@ -1044,24 +1039,17 @@ function heatmapRowTint(hours, weekDate) {
 }
 
 function heatmapCellFg(hours, weekDate) {
-  if (hours === 0) {
-    if (weekDate) {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() + 56); // 8-week planning horizon
-      if (weekDate > cutoff) return '#3A3D4A'; // beyond horizon — neutral muted, not alarming red
-    }
-    return 'rgba(239,68,68,0.6)'; // bench within horizon
-  }
+  if (hours === 0) return '#3A3D4A'; // bench — always muted, never red
   return '#E2E8F0';
 }
 
 function heatmapCellBorder(hours) {
   if (hours === 0)   return '#3A3D4A'; // bench
-  if (hours < 40)    return '#3B82F6'; // under
-  if (hours < 45)    return '#10B981'; // nominal
-  if (hours === 45)  return '#F59E0B'; // full
-  if (hours <= 50)   return '#EF4444'; // over
-  return '#DC2626';                    // over+
+  if (hours < 40)    return '#3B82F6'; // under (1–39h)
+  if (hours <= 44)   return '#10B981'; // nominal (40–44h)
+  if (hours === 45)  return '#F59E0B'; // full (45h)
+  if (hours <= 50)   return '#F59E0B'; // over (46–50h — amber)
+  return '#EF4444';                    // overallocated (51h+)
 }
 
 function encodeAttr(s) {
@@ -1210,12 +1198,14 @@ function _vsRenderRow(row) {
           <span class="hm-chevron">${chv}</span>
           <div class="hm-name-text"><div class="hm-emp-name">${emp.name}</div></div>
         </div>
-        <span class="hm-info-icon"
-          onclick="event.stopPropagation();drillHeatmapEmployee(this.closest('td').dataset.emp)"
-          title="Full booking history">ℹ</span>
-        ${_hmCanEdit() ? `<span class="hm-add-proj-btn"
-          onclick="event.stopPropagation();openAddProjectModal(this.closest('td').dataset.emp)"
-          title="Add project assignment">+</span>` : ''}
+        <div class="hm-row-actions">
+          <span class="hm-info-icon"
+            onclick="event.stopPropagation();drillHeatmapEmployee(this.closest('td').dataset.emp)"
+            title="Full booking history">ℹ</span>
+          ${_hmCanEdit() ? `<span class="hm-add-proj-btn"
+            onclick="event.stopPropagation();openAddProjectModal(this.closest('td').dataset.emp)"
+            title="Add project assignment">+</span>` : ''}
+        </div>
       </td>${cells}</tr>`;
   }
 
