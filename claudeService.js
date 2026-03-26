@@ -35,6 +35,22 @@ Use "Projects" instead of "Demand" and "Consultants" or "Resources" instead of "
 function formatContext(data) {
   const lines = [];
 
+  // Rolling window: same filter the heatmap uses — current week through ~90 days out
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rawEnd = new Date(today); rawEnd.setDate(rawEnd.getDate() + 90);
+  const dow = rawEnd.getDay();
+  const windowEnd = new Date(rawEnd); windowEnd.setDate(windowEnd.getDate() + (dow === 6 ? 0 : 6 - dow));
+
+  function parseWkLabel(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+
+  function inWindow(wk) {
+    const d = parseWkLabel(wk);
+    return d && d >= today && d <= windowEnd;
+  }
+
   // Supply: sum booked hours per employee per week across all assignment rows
   const empTotals = {};
 
@@ -52,6 +68,7 @@ function formatContext(data) {
       empTotals[name].projects.push(row.projectAssigned);
     }
     for (const [week, hrs] of Object.entries(row.weeklyHours || {})) {
+      if (!inWindow(week)) continue; // exclude historical weeks outside the rolling window
       empTotals[name].weeklyTotals[week] = (empTotals[name].weeklyTotals[week] || 0) + (hrs || 0);
     }
   }

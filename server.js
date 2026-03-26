@@ -498,6 +498,7 @@ app.get('/api/ask', async (req, res) => {
 });
 
 
+
 // POST /api/save-staffing — inline edit / quick-fill save for Staffing heatmap
 app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (req, res) => {
   const { changes } = req.body || {};
