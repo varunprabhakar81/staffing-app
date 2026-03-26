@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session 20 — Staffing Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0F1117;
+    --bg-card: #1A1D27;
+    --bg-hover: #20242f;
+    --border: rgba(255,255,255,0.07);
+    --border-mid: rgba(255,255,255,0.12);
+    --text-primary: #E8EAF0;
+    --text-secondary: #8892B0;
+    --text-muted: #4A5168;
+    --blue: #A8C7FA;
+    --blue-bg: rgba(168,199,250,0.1);
+    --mint: #A8E6CF;
+    --mint-bg: rgba(168,230,207,0.1);
+    --amber: #FFF3A3;
+    --amber-bg: rgba(255,243,163,0.1);
+    --coral: #FFB3B3;
+    --coral-bg: rgba(255,179,179,0.1);
+    --purple: #C9B8FF;
+    --purple-bg: rgba(201,184,255,0.1);
+    --orange: #F97316;
+    --orange-bg: rgba(249,115,22,0.1);
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border-mid);
+  }
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+  }
+  .header-left .sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+  .header-right {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    text-align: right;
+  }
+  #live-time {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .metric {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .metric-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--text-primary);
+  }
+  .metric-value.green  { color: var(--mint); }
+  .metric-value.amber  { color: var(--amber); }
+  .metric-value.orange { color: var(--orange); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 4px;
+  }
+
+  .prog-wrap {
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+  .prog-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--mint);
+    transition: width 0.4s ease;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .panel {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-header .cnt {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .issue-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 0.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-row:hover { background: var(--bg-hover); }
+  .issue-row.done { opacity: 0.38; }
+  .issue-row.static { cursor: default; }
+  .issue-row.static:hover { background: transparent; }
+
+  .issue-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    min-width: 56px;
+  }
+  .issue-title {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.35;
+  }
+  .issue-est {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .b-open    { background: var(--blue-bg);   color: var(--blue);   border: 0.5px solid rgba(168,199,250,0.2); }
+  .b-closed  { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-carry   { background: var(--amber-bg);  color: var(--amber);  border: 0.5px solid rgba(255,243,163,0.2); }
+  .b-done    { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-tag     { background: var(--orange-bg); color: var(--orange); border: 0.5px solid rgba(249,115,22,0.2); }
+  .b-backlog { background: var(--purple-bg); color: var(--purple); border: 0.5px solid rgba(201,184,255,0.2); }
+  .b-uat     { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 10px;
+    padding-left: 2px;
+  }
+  .hint span { color: var(--blue); }
+
+  .log-section { margin-top: 20px; }
+  .log-header {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .log-list {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .log-entry {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text-muted); min-width: 54px; }
+  .log-msg { color: var(--text-secondary); }
+  .log-msg .hl { color: var(--mint); }
+  .log-msg .hl-amber { color: var(--amber); }
+  .log-msg .hl-orange { color: var(--orange); }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .color-tier {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .tier-pill {
+    font-size: 10px;
+    font-family: var(--mono);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .tier-red    { background: rgba(239,68,68,0.18);   color: #FF6B6B; }
+  .tier-yellow { background: rgba(255,243,163,0.18); color: #FFF3A3; }
+  .tier-green  { background: rgba(168,230,207,0.18); color: #A8E6CF; }
+  .tier-orange { background: rgba(249,115,22,0.18);  color: #F97316; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Session 20 — Staffing Intelligence App</h1>
+      <div class="sub">staffing-app · V1 Stable tagged · UAT 48/48 · Phase 2 begins</div>
+    </div>
+    <div class="header-right">
+      <span id="live-time"></span>
+      session complete
+    </div>
+  </div>
+
+  <!-- Top metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Closed this session</div>
+      <div class="metric-value green">14</div>
+      <div class="metric-sub">issues resolved</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total closed</div>
+      <div class="metric-value green">59</div>
+      <div class="metric-sub">across all sessions</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">UAT result</div>
+      <div class="metric-value green">48/48</div>
+      <div class="metric-sub">all tests passed</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Phase 2 open</div>
+      <div class="metric-value amber">27</div>
+      <div class="metric-sub">~150–180h est.</div>
+    </div>
+  </div>
+
+  <!-- Session highlights -->
+  <div class="columns">
+
+    <!-- Closed this session -->
+    <div class="panel">
+      <div class="panel-header">Closed this session (S20) <span class="cnt">14 issues</span></div>
+      <div class="issue-row done static">
+        <span class="issue-num">#82</span>
+        <span class="issue-title">Comprehensive UAT — 48/48 passed</span>
+        <span class="badge b-uat">48/48</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#137</span>
+        <span class="issue-title">Donut segment click filter</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#138</span>
+        <span class="issue-title">Ask Claude data accuracy (inWindow fix)</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#139</span>
+        <span class="issue-title">Delaney O'Neil modal (data-cid)</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#136</span>
+        <span class="issue-title">Polish — focus, flash, ℹ button visibility</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#142</span>
+        <span class="issue-title">4-tier heatmap color scheme</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#143</span>
+        <span class="issue-title">Rename Staffing → Resource Allocation</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#144</span>
+        <span class="issue-title">Consultant popup repositioned</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#145</span>
+        <span class="issue-title">On Bench modal count mismatch</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#149</span>
+        <span class="issue-title">Rename Needs → Open Needs</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#150</span>
+        <span class="issue-title">AI suggestion acceptance → persists to DB</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#151</span>
+        <span class="issue-title">Delaney Settings panel edit fixed</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+    </div>
+
+    <!-- Session milestones -->
+    <div class="panel">
+      <div class="panel-header">Session 20 milestones <span class="cnt">5 items</span></div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">v1-stable tag created and pushed to GitHub</span>
+        <span class="badge b-tag">tagged</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">UAT 48/48 — comprehensive full-app verification</span>
+        <span class="badge b-uat">passed</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">17 new Phase 2 issues logged (#137–#153)</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">4-tier heatmap: Red / Yellow / Green / Orange</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Session docs updated to v20</span>
+        <span class="badge b-done">done</span>
+      </div>
+
+      <!-- Color tier legend -->
+      <div style="padding: 12px 16px; border-top: 0.5px solid var(--border);">
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:6px;">HEATMAP COLOR SCHEME</div>
+        <div class="color-tier">
+          <span class="tier-pill tier-red">0–10h bench</span>
+          <span class="tier-pill tier-yellow">11–44h partial</span>
+          <span class="tier-pill tier-green">45h utilized</span>
+          <span class="tier-pill tier-orange">46h+ over</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- New Phase 2 issues logged -->
+  <div class="panel" style="margin-bottom:12px;">
+    <div class="panel-header">New Phase 2 issues logged this session <span class="cnt">#137–#153 · 17 issues</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;">
+      <div class="issue-row static">
+        <span class="issue-num">#137</span>
+        <span class="issue-title">On Bench modal count mismatch</span>
+        <span class="badge b-backlog">bug</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#138</span>
+        <span class="issue-title">KPI card rework — Available Capacity % first</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#139</span>
+        <span class="issue-title">KPI drilldown modals — group by level</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#140</span>
+        <span class="issue-title">Rename Utilization by Level → Upcoming Availability</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#141</span>
+        <span class="issue-title">Rolling Off Soon — focused drilldown</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#142</span>
+        <span class="issue-title">Rename Needs Attention → Overallocated Resources</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#143</span>
+        <span class="issue-title">Rename Staffing → Resource Allocation ✅</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#144</span>
+        <span class="issue-title">Consultant name popup covers name ✅</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#145</span>
+        <span class="issue-title">Week header modal — jump to row / inline edit</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#146</span>
+        <span class="issue-title">Enter key behavior in heatmap edit</span>
+        <span class="badge b-backlog">polish</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#147</span>
+        <span class="issue-title">Search bar visual enhancement</span>
+        <span class="badge b-backlog">polish</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#148</span>
+        <span class="issue-title">Consultant name → profile modal (not expand)</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#149</span>
+        <span class="issue-title">Rename Needs → Open Needs ✅</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#150</span>
+        <span class="issue-title">AI acceptance → persists to DB ✅</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#151</span>
+        <span class="issue-title">Delaney Settings edit button ✅</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#152</span>
+        <span class="issue-title">Skill set pill → consultants modal</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#153</span>
+        <span class="issue-title">Group panels by level / role</span>
+        <span class="badge b-backlog">enh</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Next session -->
+  <div class="panel" style="margin-bottom:10px;">
+    <div class="panel-header">Next session — Phase 2 milestone <span class="cnt">27 open</span></div>
+    <div class="issue-row static">
+      <span class="issue-num">#96</span>
+      <span class="issue-title">Tenant onboarding + signup flow</span>
+      <span class="issue-est">12–16h</span>
+      <span class="badge b-open">Phase 2 gate</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#138</span>
+      <span class="issue-title">KPI card rework — Available Capacity % primary</span>
+      <span class="issue-est">2–3h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#139</span>
+      <span class="issue-title">KPI drilldown modals — group by level</span>
+      <span class="issue-est">2–3h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#140</span>
+      <span class="issue-title">Rename Utilization by Level → Upcoming Availability</span>
+      <span class="issue-est">1–2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#141</span>
+      <span class="issue-title">Rolling Off Soon — focused drilldown (single row)</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#142</span>
+      <span class="issue-title">Rename Needs Attention → Overallocated Resources</span>
+      <span class="issue-est">2–3h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">#99</span>
+      <span class="issue-title">Multi-role support + role toggle UI</span>
+      <span class="issue-est">6–8h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row static">
+      <span class="issue-num">…</span>
+      <span class="issue-title" style="color:var(--text-muted);">+ 20 more Phase 2 issues — see Roadmap_v20.md</span>
+      <span class="badge b-backlog">backlog</span>
+    </div>
+  </div>
+
+  <div class="hint">Session 20 complete · v1-stable tagged · <span>Phase 2 starts next session</span></div>
+
+  <!-- Activity log -->
+  <div class="log-section">
+    <div class="log-header"><span class="log-dot"></span> Activity log</div>
+    <div class="log-list" id="log-list">
+      <div class="log-entry">
+        <span class="log-time" id="start-time">--:--</span>
+        <span class="log-msg">Session 20 <span class="hl">complete</span> — V1 Stable tagged, 48/48 UAT passed</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl-orange">v1-stable</span> tag pushed to GitHub — permanent V1 revert point</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg">4-tier heatmap: <span class="hl">Red</span> 0–10h · Yellow 11–44h · Green 45h · <span class="hl-orange">Orange</span> 46h+</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg">17 Phase 2 issues logged — <span class="hl">#137–#153</span> · 27 total open in Phase 2</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg">59 total issues closed · <span class="hl">Phase 2</span> begins next session with #96 tenant onboarding</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function tick() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('live-time').textContent = t;
+  }
+  tick(); setInterval(tick, 1000);
+
+  (function() {
+    const now = new Date();
+    document.getElementById('start-time').textContent =
+      now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  })();
+</script>
+</body>
+</html>
