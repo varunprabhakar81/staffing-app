@@ -1587,41 +1587,29 @@ function drillHeatmapWeek(weekIdx) {
   if (!hm) return;
   const week = hm.weeks[weekIdx];
 
-  const byLevel = {};
-  for (const emp of hm.employees) {
+  const allEmps = hm.employees.map(emp => {
     const h = emp.weeklyHours[weekIdx] || 0;
-    const avail = Math.max(0, 45 - h);
-    if (!byLevel[emp.level]) byLevel[emp.level] = [];
-    byLevel[emp.level].push({ name: emp.name, skillSet: emp.skillSet, hours: h, avail });
-  }
-  for (const level of Object.keys(byLevel))
-    byLevel[level].sort((a, b) => b.avail - a.avail);
+    return { name: emp.name, level: emp.level, skillSet: emp.skillSet, hours: h, avail: Math.max(0, 45 - h) };
+  });
+  const totalAvail = allEmps.reduce((s, e) => s + e.avail, 0);
 
-  const totalAvail = hm.employees.reduce((s, e) => s + Math.max(0, 45 - (e.weeklyHours[weekIdx] || 0)), 0);
+  const groupedRows = buildGroupedRows(allEmps, e => e.level, e => {
+    const stat = utilStatus(e.hours);
+    return `<tr>
+      <td>${e.name}</td>
+      <td style="font-size:12px;color:#8892B0">${e.skillSet || '—'}</td>
+      <td>${e.hours}h</td>
+      <td style="color:#A8E6CF;font-weight:600">${e.avail}h free</td>
+      <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
+    </tr>`;
+  }, 5);
 
-  let html = `<div style="margin-bottom:16px"><span style="color:#A8E6CF;font-weight:700;font-size:15px">${totalAvail}h</span> <span style="color:#8892B0">total available across ${hm.employees.length} employees</span></div>`;
-
-  for (const level of LEVEL_ORDER) {
-    const emps = byLevel[level];
-    if (!emps || !emps.length) continue;
-    const rows = emps.map(e => {
-      const stat = utilStatus(e.hours);
-      return `<tr>
-        <td>${e.name}</td>
-        <td style="font-size:12px;color:#8892B0">${e.skillSet || '—'}</td>
-        <td>${e.hours}h</td>
-        <td style="color:#A8E6CF;font-weight:600">${e.avail}h free</td>
-        <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
-      </tr>`;
-    }).join('');
-    html += `<h4 class="dd-section-title" style="margin-top:16px">${level}</h4>
-      <table class="dd-table">
-        <thead><tr><th>Employee</th><th>Skill Set</th><th>Booked</th><th>Available</th><th>Status</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-  }
-
-  openDrilldown(`Week of ${week} — Availability Summary`, html);
+  openDrilldown(`Week of ${week} — Availability Summary`, `
+    <div style="margin-bottom:16px"><span style="color:#A8E6CF;font-weight:700;font-size:15px">${totalAvail}h</span> <span style="color:#8892B0">total available across ${hm.employees.length} employees</span></div>
+    <table class="dd-table">
+      <thead><tr><th>Employee</th><th>Skill Set</th><th>Booked</th><th>Available</th><th>Status</th></tr></thead>
+      <tbody>${groupedRows}</tbody>
+    </table>`);
 }
 
 // ── Needs Tab AI Recommendations State ───────────────────────────
@@ -2335,6 +2323,44 @@ function drillCoverage(roleIdx) {
 
 const LEVEL_ORDER = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
 
+// ── Grouped rows helper for drilldown consultant lists ────────────
+// items: array of data objects
+// getLevelFn: item => level string
+// renderRowFn: item => '<tr>...</tr>' HTML string
+// colCount: number of <td> columns (for header colspan)
+// Returns tbody HTML with collapsible level groups (all collapsed by default).
+function buildGroupedRows(items, getLevelFn, renderRowFn, colCount) {
+  const groups = {};
+  for (const item of items) {
+    const lvl = getLevelFn(item);
+    const key = LEVEL_ORDER.indexOf(lvl) >= 0 ? lvl : '__other__';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  }
+  const pfx = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  let gi = 0, html = '';
+  for (const level of [...LEVEL_ORDER, '__other__']) {
+    const grp = groups[level];
+    if (!grp || !grp.length) continue;
+    const label = level === '__other__' ? 'Other' : level;
+    const gid = pfx + gi++;
+    html += `<tr onclick="(function(hdr){var rs=hdr.parentNode.querySelectorAll('[data-g=${gid}]');var open=rs[0]&&rs[0].style.display!='none';rs.forEach(function(r){r.style.display=open?'none':'';});hdr.querySelector('.gc').textContent=open?'\u25BA':'\u25BC';})(this)" style="background:#2E3250;color:#8892B0;font-size:11px;text-transform:uppercase;cursor:pointer"><td colspan="${colCount}" style="padding:6px 12px"><span class="gc">&#9658;</span>&nbsp;${label} (${grp.length})</td></tr>`;
+    for (const item of grp) {
+      let row = renderRowFn(item);
+      row = row.replace(/<tr(\s[^>]*)?>/, (m, attrs) => {
+        const a = attrs || '';
+        const sm = a.match(/style="([^"]*)"/);
+        const rest = a.replace(/\s*style="[^"]*"/, '').trim();
+        const existing = sm ? sm[1].trim() : '';
+        const s = existing ? existing + ';display:none' : 'display:none';
+        return `<tr${rest ? ' ' + rest : ''} data-g="${gid}" style="${s}">`;
+      });
+      html += row;
+    }
+  }
+  return html;
+}
+
 // ── KPI Drilldown 1: Total Headcount ──────────────────────────────
 function drillHeadcount() {
   if (!rawData.employees.length) {
@@ -2348,7 +2374,7 @@ function drillHeadcount() {
     (a, b) => LEVEL_ORDER.indexOf(a.level) - LEVEL_ORDER.indexOf(b.level)
   );
 
-  const rows = sorted.map(emp => {
+  const groupedRows = buildGroupedRows(sorted, e => e.level, emp => {
     const info = empAverages[emp.employeeName];
     const avg  = info ? info.avg : 0;
     const stat = utilStatus(avg);
@@ -2362,7 +2388,7 @@ function drillHeadcount() {
       <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
       <td style="font-size:12px;color:#8892B0">${projects}</td>
     </tr>`;
-  }).join('');
+  }, 6);
 
   openDrilldown(`All Employees — Headcount Detail (${sorted.length})`, `
     <table class="dd-table">
@@ -2370,7 +2396,7 @@ function drillHeadcount() {
         <th>Employee</th><th>Level</th><th>Skill Set</th>
         <th>Avg Hours</th><th>Status</th><th>Active Projects</th>
       </tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${groupedRows}</tbody>
     </table>`);
 }
 
@@ -2426,7 +2452,7 @@ function drillUtilizationKPI() {
     ? Math.round((totalWindowHrs / (45 * consultantCount * windowWeekCount)) * 100)
     : 0;
 
-  const rows = allEmps.map(e => {
+  const groupedRows = buildGroupedRows(allEmps, e => e.level, e => {
     let trend = '';
     if (e.prevWk !== null) {
       const delta = e.thisWk - e.prevWk;
@@ -2442,7 +2468,7 @@ function drillUtilizationKPI() {
       <td><span class="dd-badge ${e.stat.cls}">${e.stat.label}</span></td>
       <td>${trend}</td>
     </tr>`;
-  }).join('');
+  }, 6);
 
   const summary = `<tr style="border-top:1px solid #2E3250;font-weight:600">
     <td colspan="3" style="color:#8892B0;padding-top:12px">Overall Average</td>
@@ -2456,7 +2482,7 @@ function drillUtilizationKPI() {
         <th>Employee</th><th>Level</th><th>Avg Hours</th>
         <th>Util %</th><th>Status</th><th>Trend vs Last Wk</th>
       </tr></thead>
-      <tbody>${rows}${summary}</tbody>
+      <tbody>${groupedRows}${summary}</tbody>
     </table>`);
 }
 
@@ -2526,7 +2552,7 @@ function drillBenchKPI() {
     return;
   }
 
-  const rows = benched.map(e => {
+  const groupedRows = buildGroupedRows(benched, e => e.level, e => {
     const highlight = e.consecutive >= 2 ? 'style="background:rgba(255,179,179,0.08)"' : '';
     const warnIcon  = e.consecutive >= 2
       ? '<span style="color:#FFB3B3;margin-left:4px;font-size:11px">●</span>' : '';
@@ -2538,7 +2564,7 @@ function drillBenchKPI() {
       <td>${e.consecutive} wk${e.consecutive !== 1 ? 's' : ''}</td>
       <td style="font-size:12px;color:#8892B0">${e.lastProject}</td>
     </tr>`;
-  }).join('');
+  }, 6);
 
   const legend = benched.some(e => e.consecutive >= 2)
     ? '<p style="font-size:11px;color:#FFB3B3;margin-bottom:12px">● Benched 2+ consecutive weeks</p>'
@@ -2551,7 +2577,7 @@ function drillBenchKPI() {
         <th>Employee</th><th>Level</th><th>Skill Set</th>
         <th>This Week</th><th>Consecutive</th><th>Last Active Project</th>
       </tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${groupedRows}</tbody>
     </table>`);
 }
 
