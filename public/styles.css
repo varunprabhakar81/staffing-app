@@ -2444,6 +2444,12 @@ td[data-cell-type="emp-total"]:hover {
   white-space: nowrap;
 }
 
+/* ── Heatmap cell utilization classes ───────────────────────────── */
+.hm-bench    { background: rgba(255,100,100,0.25); color: #FF6B6B; }
+.hm-partial  { background: rgba(255,243,163,0.20); color: #FFF3A3; }
+.hm-utilized { background: rgba(168,230,207,0.20); color: #A8E6CF; }
+.hm-over     { background: rgba(249,115,22,0.20);  color: #F97316; }
+
 .status-overbooked { background: rgba(255,179,179,0.18); color: var(--coral);  border: 1px solid rgba(255,179,179,.3); }
 .status-overalloc  { background: rgba(245,158,11,0.18);  color: var(--amber);  border: 1px solid rgba(245,158,11,.3); }
 .status-full       { background: rgba(168,230,207,0.18); color: var(--mint);   border: 1px solid rgba(168,230,207,.3); }

@@ -1043,7 +1043,14 @@ function heatmapCellBorder(hours) {
   if (hours <= 10)   return '#EF4444'; // 0–10h — red: severely underutilized
   if (hours <= 44)   return '#FACC15'; // 11–44h — yellow: partially utilized
   if (hours === 45)  return '#10B981'; // 45h — green: perfectly utilized
-  return '#F59E0B';                    // 46h+ — amber: overallocated
+  return '#F97316';                    // 46h+ — orange: overallocated
+}
+
+function heatmapCellClass(hours) {
+  if (hours <= 10)   return 'hm-bench';
+  if (hours <= 44)   return 'hm-partial';
+  if (hours === 45)  return 'hm-utilized';
+  return 'hm-over';
 }
 
 function encodeAttr(s) {
@@ -1171,11 +1178,11 @@ function _vsRenderRow(row) {
       const _wkM    = _wkStr ? _wkStr.match(/(\d+)\/(\d+)/) : null;
       const _wkDate = _wkM ? new Date(new Date().getFullYear(), parseInt(_wkM[1]) - 1, parseInt(_wkM[2])) : null;
       const _empBl  = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
-      const _empBg  = heatmapRowTint(displayH, _wkDate);
-      const _empFg  = isPending ? '#F59E0B' : heatmapCellFg(displayH, _wkDate);
+      const _empFg  = isPending ? '#F59E0B' : '';
       const _curCls = i === _hmCurWeek ? ' hm-col-current' : '';
-      return `<td class="hm-cell${isPending ? ' hm-cell-pending' : ''}${_curCls}"
-        style="background:${_empBg};color:${_empFg};border-left:${_empBl}"
+      const _utilCls = isPending ? '' : ` ${heatmapCellClass(displayH)}`;
+      return `<td class="hm-cell${isPending ? ' hm-cell-pending' : ''}${_curCls}${_utilCls}"
+        style="${_empFg ? `color:${_empFg};` : ''}border-left:${_empBl}"
         data-emp="${sn}" data-idx="${i}" data-tip="${ct}" data-cell-type="emp-total"
         onmousedown="if(_editActiveCell)_editActiveCell=null;"
         onclick="empTotalCellClick(event,this)"
@@ -1229,17 +1236,16 @@ function _vsRenderRow(row) {
       const isPending = pending !== null;
 
       const _subBl = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
-      const bg = '#161820'; // pending handled by CSS outline; no amber flood fill
-      const fg = isPending ? '#F59E0B' : heatmapCellFg(h);
+      const _subUtilCls = isPending ? '' : ` ${heatmapCellClass(h)}`;
 
       if (_hmCanEdit()) {
-        return `<td class="hm-sub-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
-          style="background:${bg};color:${fg};border-left:${_subBl}"
+        return `<td class="hm-sub-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}${_subUtilCls}"
+          style="background:#161820;${isPending ? 'color:#F59E0B;' : ''}border-left:${_subBl}"
           data-emp="${sn}" data-idx="${i}" data-proj="${encodeAttr(projName)}"
           onclick="hmSubCellClick(this)">${h > 0 ? h : '—'}</td>`;
       }
       const _bl = `3px solid ${heatmapCellBorder(h)}`;
-      return `<td class="hm-sub-cell" style="background:#161820;color:${heatmapCellFg(h)};border-left:${_bl}">${h > 0 ? h : '—'}</td>`;
+      return `<td class="hm-sub-cell${_subUtilCls}" style="background:#161820;border-left:${_bl}">${h > 0 ? h : '—'}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-visible">
       <td class="hm-sub-name-cell" data-emp="${sn}">
@@ -1256,9 +1262,8 @@ function _vsRenderRow(row) {
       const displayH = pendingH !== null ? pendingH : h;
       const isPending = pendingH !== null;
       const _totBl = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
-      const bg = '#161820'; // pending handled by CSS outline; no amber flood fill
-      const fg = isPending ? '#F59E0B' : heatmapCellFg(h);
-      return `<td class="hm-sub-cell hm-sub-total-cell${isPending ? ' hm-cell-pending' : ''}" style="background:${bg};color:${fg};border-left:${_totBl}">${displayH}</td>`;
+      const _totUtilCls = isPending ? '' : ` ${heatmapCellClass(h)}`;
+      return `<td class="hm-sub-cell hm-sub-total-cell${isPending ? ' hm-cell-pending' : ''}${_totUtilCls}" style="background:#161820;${isPending ? 'color:#F59E0B;' : ''}border-left:${_totBl}">${displayH}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-total-row hm-sub-visible">
       <td class="hm-sub-name-cell"><span class="hm-sub-indent hm-sub-total-label">Total</span></td>${cells}</tr>`;
@@ -1390,7 +1395,7 @@ function buildHeatmapTable(data) {
     { color: '#EF4444', label: '0–10h — Underutilized' },
     { color: '#FACC15', label: '11–44h — Partial' },
     { color: '#10B981', label: '45h — Utilized' },
-    { color: '#F59E0B', label: '46h+ — Overbooked' },
+    { color: '#F97316', label: '46h+ — Overbooked' },
   ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch-bar" style="background:${s.color}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
