@@ -316,10 +316,24 @@ function navigateToEmployee(name) {
       if (!td) return;
       const tr = td.closest('tr');
       flashHeatmapRow(tr);
-      // For editors: focus the first editable cell in the row
+      // For editors: expand row and focus the first under-utilised week (<45h)
       if (_hmCanEdit()) {
-        const editableCell = tr.querySelector('td.hm-cell[contenteditable="true"], td.hm-cell[data-editable]');
-        if (editableCell) editableCell.focus();
+        const emp = _vsData && _vsData.employees.find(e => e.name === name);
+        if (emp) {
+          const underIdx = emp.weeklyHours.findIndex(h => h < 45);
+          const weekIdx  = underIdx !== -1 ? underIdx : 0;
+          if (!_hmExpanded.has(emp.name)) {
+            toggleHmExpand(emp.name, weekIdx);
+          } else {
+            const allProjs = [...new Set(emp.weeklyProjects.flat().map(p => p.project))];
+            if (allProjs.length) {
+              _editActiveCell = { empName: emp.name, weekIdx, project: allProjs[0] };
+              _buildVsAllRows();
+              _vsRenderVisible();
+              setTimeout(() => { const ni = document.querySelector('.hm-cell-editing input'); if (ni) { ni.focus(); ni.select(); } }, 0);
+            }
+          }
+        }
       }
     });
   }, 120);
@@ -1237,16 +1251,17 @@ function _vsRenderRow(row) {
       if (_hmCanEdit()) {
         return `<td class="hm-sub-cell hm-cell-editable${isPending ? ' hm-cell-pending' : ''}"
           style="background:${bg};color:${fg};border-left:${_subBl}"
-          onclick="hmSubCellClick('${sn}',${i},'${encodeAttr(projName)}')">${h > 0 ? h : '—'}</td>`;
+          data-emp="${sn}" data-idx="${i}" data-proj="${encodeAttr(projName)}"
+          onclick="hmSubCellClick(this)">${h > 0 ? h : '—'}</td>`;
       }
       const _bl = `3px solid ${heatmapCellBorder(h)}`;
       return `<td class="hm-sub-cell" style="background:#161820;color:${heatmapCellFg(h)};border-left:${_bl}">${h > 0 ? h : '—'}</td>`;
     }).join('');
     return `<tr class="hm-sub-row hm-sub-visible">
-      <td class="hm-sub-name-cell">
+      <td class="hm-sub-name-cell" data-emp="${sn}">
         <span class="hm-sub-indent">${encodeAttr(projName)}</span>
         <span class="hm-sub-info-icon"
-          onclick="event.stopPropagation();drillHeatmapEmployee('${_esc(emp.name)}')"
+          onclick="event.stopPropagation();drillHeatmapEmployee(this.closest('td').dataset.emp)"
           title="Full booking history">ℹ</span>
       </td>${cells}</tr>`;
   }
@@ -1669,7 +1684,6 @@ function renderCoverageChart(coverage) {
       devicePixelRatio: window.devicePixelRatio || 2,
       cutout: '62%',
       animation: { animateRotate: true, animateScale: false },
-      hover: { mode: null },
       onClick(evt, elements) {
         const statusMap = ['fully_met', 'partially_met', 'unmet'];
         const clicked = elements.length ? statusMap[elements[0].index] : null;
@@ -2811,9 +2825,11 @@ function hmCellClick(empName, weekIdx) {
   }, 0);
 }
 
-function hmSubCellClick(empName, weekIdx, project) {
-  if (event && event.target && event.target.closest('[data-cell-type="emp-total"]')) return;
+function hmSubCellClick(el) {
   if (!_hmCanEdit()) return;  // guard: only project-level sub-cells should call this
+  const empName = el.dataset.emp;
+  const weekIdx = parseInt(el.dataset.idx);
+  const project = el.dataset.proj;
   _editActiveCell = { empName, weekIdx, project };
   _buildVsAllRows();
   _vsRenderVisible();

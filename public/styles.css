@@ -2793,23 +2793,23 @@ td[data-cell-type="emp-total"]:hover {
 
 .hm-name-text { flex: 1; min-width: 0; }
 
-/* ── Info icon (ℹ) — appears on row hover ───────────────────────── */
+/* ── Info icon (ℹ) — matches + button visibility treatment ─────── */
 .hm-info-icon {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 11px;
-  color: #4A5568;
+  color: #6B7280;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.3;
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
   padding: 2px 3px;
   border-radius: 3px;
   user-select: none;
 }
-.hm-emp-row:hover .hm-info-icon { opacity: 1; }
+.hm-emp-row:hover .hm-info-icon { opacity: 0.8; }
 .hm-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
 
 .hm-add-proj-btn {
@@ -2888,23 +2888,23 @@ td[data-cell-type="emp-total"]:hover {
   position: relative;
 }
 
-/* ── Sub-row info icon (ℹ) — appears on row hover ───────────────── */
+/* ── Sub-row info icon (ℹ) — matches + button visibility treatment ─ */
 .hm-sub-info-icon {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 11px;
-  color: #4A5568;
+  color: #6B7280;
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.3;
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
   padding: 2px 3px;
   border-radius: 3px;
   user-select: none;
 }
-.hm-sub-row:hover .hm-sub-info-icon { opacity: 1; }
+.hm-sub-row:hover .hm-sub-info-icon { opacity: 0.8; }
 .hm-sub-info-icon:hover { color: var(--accent) !important; opacity: 1 !important; }
 
 .hm-sub-indent {
