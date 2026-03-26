@@ -182,9 +182,32 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 
   const { supply, demand, employees } = staffingData;
 
+  // ── Shared helpers (used across all sections) ────────────────────────────
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+
+  // Parse "Week ending M/D" → Date
+  function parseWkLabel(wk) {
+    const m = wk.match(/(\d+)\/(\d+)/);
+    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
+  }
+
+  // Rolling 12-week window: current week + next 11 (forward-looking only)
+  const windowWeeks = weekKeys.filter(wk => {
+    const d = parseWkLabel(wk);
+    return d && d >= today;
+  }).slice(0, 12);
+
+  // Current week for bench report
+  let currentWeek = weekKeys[0] || null;
+  for (const wk of weekKeys) {
+    const wkDate = parseWkLabel(wk);
+    if (wkDate && wkDate >= today) { currentWeek = wk; break; }
+  }
+  const recentWeek = currentWeek;
+
   // ── a. Utilization by Level ──────────────────────────────────────────────
-  // Use Level column from Supply to group employees by level
-  // For each level per week: utilization% = (total hours) / (employee count × 45) × 100
+  // Hours-based over rolling 12-week window: sum(booked hours) ÷ (45 × headcount × 12)
   const empAverages = employeeWeeklyAverages(supply);
 
   const levelWeekData = {}; // { level: { employees: Set, weekTotals: { week: hours } } }
@@ -201,32 +224,34 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
   const utilizationByLevel = levelOrder
     .filter(l => levelWeekData[l])
     .map(level => {
-      const { employees, weekTotals } = levelWeekData[level];
-      const headcount   = employees.size;
-      const weeks       = Object.keys(weekTotals);
-      const totalHours  = Object.values(weekTotals).reduce((a, b) => a + b, 0);
-      const avgHours    = weeks.length ? Math.round((totalHours / (headcount * weeks.length)) * 10) / 10 : 0;
+      const { employees: lvlEmps, weekTotals } = levelWeekData[level];
+      const headcount   = lvlEmps.size;
+      const windowHours = windowWeeks.reduce((sum, wk) => sum + (weekTotals[wk] || 0), 0);
+      const windowCount = windowWeeks.length;
+      const avgHours    = windowCount > 0 && headcount > 0
+        ? Math.round((windowHours / (headcount * windowCount)) * 10) / 10
+        : 0;
       const utilPct     = Math.round((avgHours / 45) * 100);
       return { level, avgHours, utilizationPct: utilPct, headcount };
     });
 
+  // ── Overall utilization KPI ───────────────────────────────────────────────
+  // True hours-based: total booked hours (all assignments) in 12-week window
+  //   ÷ (45h × active consultant count × 12 weeks) × 100
+  const activeCount = employees.length;
+  let windowTotalHours = 0;
+  for (const row of supply) {
+    for (const wk of windowWeeks) {
+      windowTotalHours += row.weeklyHours[wk] || 0;
+    }
+  }
+  const windowCapacity       = 45 * activeCount * (windowWeeks.length || 12);
+  const overallUtilizationPct = windowCapacity > 0
+    ? Math.round((windowTotalHours / windowCapacity) * 1000) / 10   // 1 decimal
+    : 0;
+
   // ── b. Bench Report ──────────────────────────────────────────────────────
-  // Use the current week: the first week-ending date on or after today.
-  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
-  const today    = new Date(); today.setHours(0, 0, 0, 0);
-
-  // Helper: parse a week key like "Week ending 3/21" into a Date
-  function parseWkLabel(wk) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
-  }
-
-  let currentWeek = weekKeys[0] || null;
-  for (const wk of weekKeys) {
-    const wkDate = parseWkLabel(wk);
-    if (wkDate && wkDate >= today) { currentWeek = wk; break; }
-  }
-  const recentWeek = currentWeek;
+  // Use the current week (recentWeek defined above).
 
   // Sum hours per employee for the current week (from supply rows)
   const recentTotals = {};
@@ -368,7 +393,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     roles: needsCoverageRoles,
   };
 
-  res.json({ utilizationByLevel, benchReport, cliffs, needsCoverage });
+  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, needsCoverage, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate } });
 });
 
 // GET /api/heatmap

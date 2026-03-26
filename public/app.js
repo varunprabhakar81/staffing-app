@@ -538,6 +538,7 @@ async function loadDashboard() {
     rawData.cliffs        = data.cliffs     || [];
     rawData.coverageRoles = (data.needsCoverage || {}).roles || [];
     rawData.heatmap       = heatmapRes.ok   ? JSON.parse(heatmapText)   : null;
+    rawData._meta         = data._meta      || {};
 
     // Week ending date (Saturday) + update time
     (function() {
@@ -646,10 +647,9 @@ function renderOverviewStats(data, heatmapData) {
       if (hrs === 0) benchThisWeek++;
     }
   }
-  // Use API's multi-week weighted average for utilization % (correct 65% figure)
-  const avgUtil = headcount
-    ? Math.round(levels.reduce((s, l) => s + l.utilizationPct * l.headcount, 0) / headcount)
-    : 0;
+  // True hours-based utilization: total booked hours ÷ (45 × consultants × 12 weeks)
+  // Computed server-side in /api/dashboard using rolling 12-week window
+  const avgUtil = data.overallUtilizationPct !== undefined ? data.overallUtilizationPct : 0;
   // Booked count: employees with client project hours > 0 this week (excludes Unassigned/bench rows)
   const currentWeekKey = heatmapData && heatmapData.weeks && heatmapData.weeks[0]
     ? `Week ending ${heatmapData.weeks[0]}` : null;
@@ -675,8 +675,12 @@ function renderOverviewStats(data, heatmapData) {
 
   const utilSecondary = document.getElementById('overviewUtilSecondary');
   if (utilSecondary && headcount) {
-    const avgHrs = headcount > 0 ? Math.round(currentWeekHours / headcount) : 0;
-    utilSecondary.textContent = `${bookedCount} of ${headcount} booked · avg ${avgHrs}h/wk`;
+    const wTotalHrs = data.windowTotalHours !== undefined ? Math.round(data.windowTotalHours) : null;
+    const wCap      = data.windowCapacity   !== undefined ? Math.round(data.windowCapacity)   : null;
+    const windowN = (wCap !== null && headcount > 0) ? Math.round(wCap / (45 * headcount)) : null;
+    utilSecondary.textContent = (wTotalHrs !== null && wCap !== null)
+      ? `${wTotalHrs}h booked of ${wCap}h available over ${windowN} weeks`
+      : `${bookedCount} of ${headcount} booked`;
   }
 
   const utilTrendEl = document.getElementById('overviewUtilTrend');
@@ -2410,8 +2414,19 @@ function drillUtilizationKPI() {
     }))
     .sort((a, b) => b.utilPct - a.utilPct);
 
-  const totalAvg = allEmps.length
-    ? Math.round(allEmps.reduce((s, e) => s + e.utilPct, 0) / allEmps.length)
+  // Build rolling window (current week forward, max 12) — use weekKeyToDate map from meta.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const windowWeeks = weekKeys.filter(wk => {
+    const d = rawData._meta.weekKeyToDate[wk];
+    return d && new Date(d) >= today;
+  }).slice(0, 12);
+  const windowWeekCount  = windowWeeks.length;
+  const consultantCount  = allEmps.length;
+  const weekCount        = windowWeeks.length;
+  const totalWindowHrs   = Object.values(empAverages).reduce((s, info) =>
+    s + windowWeeks.reduce((a, wk) => a + (info.weekTotals[wk] || 0), 0), 0);
+  const totalAvg = consultantCount
+    ? Math.round((totalWindowHrs / (45 * consultantCount * windowWeekCount)) * 100)
     : 0;
 
   const rows = allEmps.map(e => {
