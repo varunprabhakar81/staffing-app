@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session 19 — Staffing Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0F1117;
+    --bg-card: #1A1D27;
+    --bg-hover: #20242f;
+    --border: rgba(255,255,255,0.07);
+    --border-mid: rgba(255,255,255,0.12);
+    --text-primary: #E8EAF0;
+    --text-secondary: #8892B0;
+    --text-muted: #4A5168;
+    --blue: #A8C7FA;
+    --blue-bg: rgba(168,199,250,0.1);
+    --mint: #A8E6CF;
+    --mint-bg: rgba(168,230,207,0.1);
+    --amber: #FFF3A3;
+    --amber-bg: rgba(255,243,163,0.1);
+    --coral: #FFB3B3;
+    --coral-bg: rgba(255,179,179,0.1);
+    --purple: #C9B8FF;
+    --purple-bg: rgba(201,184,255,0.1);
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border-mid);
+  }
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+  }
+  .header-left .sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+  .header-right {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    text-align: right;
+  }
+  #live-time {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .metric {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .metric-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--text-primary);
+  }
+  .metric-value.green { color: var(--mint); }
+  .metric-value.amber { color: var(--amber); }
+
+  .prog-wrap {
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+  .prog-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--mint);
+    transition: width 0.4s ease;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .panel {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-header .cnt {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .issue-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 0.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-row:hover { background: var(--bg-hover); }
+  .issue-row.done { opacity: 0.38; }
+
+  .issue-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    min-width: 48px;
+  }
+  .issue-title {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.35;
+  }
+  .issue-est {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .b-open    { background: var(--blue-bg);   color: var(--blue);   border: 0.5px solid rgba(168,199,250,0.2); }
+  .b-closed  { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-carry   { background: var(--amber-bg);  color: var(--amber);  border: 0.5px solid rgba(255,243,163,0.2); }
+  .b-done    { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-backlog { background: var(--purple-bg); color: var(--purple); border: 0.5px solid rgba(201,184,255,0.2); }
+
+  .backlog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .backlog-grid .issue-row {
+    border-bottom: 0.5px solid var(--border);
+    cursor: default;
+  }
+  .backlog-grid .issue-row:hover { background: transparent; }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 10px;
+    padding-left: 2px;
+  }
+  .hint span { color: var(--blue); }
+
+  .log-section { margin-top: 20px; }
+  .log-header {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .log-list {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .log-entry {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text-muted); min-width: 54px; }
+  .log-msg { color: var(--text-secondary); }
+  .log-msg .hl { color: var(--mint); }
+  .log-msg .hl-amber { color: var(--amber); }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Session 19 — Staffing Intelligence App</h1>
+      <div class="sub">staffing-app · Soon milestone cleared · V1 Stable next</div>
+    </div>
+    <div class="header-right">
+      <span id="live-time"></span>
+      session in progress
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Planned</div>
+      <div class="metric-value" id="m-planned">2</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Closed</div>
+      <div class="metric-value green" id="m-closed">2</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Carry-fwds</div>
+      <div class="metric-value amber" id="m-carry-done">0</div>
+      <div class="prog-wrap"><div class="prog-fill" id="carry-bar" style="width:0%"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Progress</div>
+      <div class="metric-value" id="m-pct">0%</div>
+      <div class="prog-wrap"><div class="prog-fill" id="prog-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="columns">
+
+    <!-- Planned -->
+    <div class="panel">
+      <div class="panel-header">Planned — Soon milestone <span class="cnt">2 issues</span></div>
+      <div class="issue-row done" onclick="togglePlanned(this,'p1','#119','Consultant profile editor')">
+        <span class="issue-num">#119</span>
+        <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
+        <span class="issue-est">4–6h</span>
+        <span class="badge b-closed" id="p1">closed</span>
+      </div>
+      <div class="issue-row done" onclick="togglePlanned(this,'p2','#126','Consultants management panel')">
+        <span class="issue-num">#126</span>
+        <span class="issue-title">Consultants management panel in Settings</span>
+        <span class="issue-est">6–8h</span>
+        <span class="badge b-closed" id="p2">closed</span>
+      </div>
+    </div>
+
+    <!-- Carry-forwards -->
+    <div class="panel">
+      <div class="panel-header">Session 19 housekeeping <span class="cnt">5 items</span></div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c1','#133 #134 #135 logged as GitHub issues')">
+        <span class="issue-num">#133–135</span>
+        <span class="issue-title">#133, #134, #135 logged — neutral skill pills + polish</span>
+        <span class="badge b-done" id="c1">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c2','Cache busters bumped — app.js v=52, styles.css v=39, index.html v=50')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Cache busters — app.js v=52, styles.css v=39, index.html v=50</span>
+        <span class="badge b-done" id="c2">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c3','UAT widget added as standard testing pattern in HANDOFF')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Interactive UAT widget documented in HANDOFF as standard testing pattern</span>
+        <span class="badge b-done" id="c3">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c4','Session docs updated to v19')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Session docs updated to v19 — HANDOFF, README, Roadmap, dashboard</span>
+        <span class="badge b-done" id="c4">done</span>
+      </div>
+      <div class="issue-row done" onclick="toggleCarry(this,'c5','Soon milestone cleared — V1 Stable next')">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Soon milestone cleared — V1 Stable (10 issues) is next</span>
+        <span class="badge b-done" id="c5">done</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Session closed panels -->
+  <div class="columns" style="margin-bottom:10px;">
+    <div class="panel">
+      <div class="panel-header">Closed last session (S17) <span class="cnt">0 issues</span></div>
+      <div class="issue-row" style="cursor:default;">
+        <span class="issue-title" style="color:var(--text-muted); font-size:12px; font-family:var(--mono);">carry-forward session — no new issues closed</span>
+      </div>
+    </div>
+
+    <!-- Closed this session -->
+    <div class="panel">
+      <div class="panel-header">Closed this session (S18) <span class="cnt">2 issues</span></div>
+      <div class="issue-row done">
+        <span class="issue-num">#119</span>
+        <span class="issue-title">Consultant profile editor — skill sets, level, details</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+      <div class="issue-row done">
+        <span class="issue-num">#126</span>
+        <span class="issue-title">Consultants management panel in Settings</span>
+        <span class="badge b-closed">closed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Next session -->
+  <div class="panel" style="margin-bottom:10px;">
+    <div class="panel-header">Next session — V1 Stable milestone <span class="cnt">10 issues</span></div>
+    <div class="issue-row">
+      <span class="issue-num">#123</span>
+      <span class="issue-title">Session role staleness — stale JWT after role change</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#82</span>
+      <span class="issue-title">UAT completion — formal test script before onboarding real users</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#83</span>
+      <span class="issue-title">Remove test toast button</span>
+      <span class="issue-est">0.5h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#102</span>
+      <span class="issue-title">Email verification flow for invited users</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#103</span>
+      <span class="issue-title">Password strength enforcement for temp password</span>
+      <span class="issue-est">1h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#100</span>
+      <span class="issue-title">User Management access enhancements</span>
+      <span class="issue-est">2h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#116</span>
+      <span class="issue-title">Document tab access matrix in HANDOFF</span>
+      <span class="issue-est">0.5h</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#133</span>
+      <span class="issue-title">Neutral skill set pills</span>
+      <span class="issue-est">—</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#134</span>
+      <span class="issue-title">Skill set display fix (logged S18)</span>
+      <span class="issue-est">—</span>
+      <span class="badge b-open">open</span>
+    </div>
+    <div class="issue-row">
+      <span class="issue-num">#135</span>
+      <span class="issue-title">Consultant panel polish (logged S18)</span>
+      <span class="issue-est">—</span>
+      <span class="badge b-open">open</span>
+    </div>
+  </div>
+
+  <!-- UAT Widget note -->
+  <div class="panel" style="margin-bottom:10px;">
+    <div class="panel-header">Testing pattern — new this session</div>
+    <div class="issue-row" style="cursor:default;">
+      <span class="issue-title" style="font-size:12px;">Interactive UAT widget is now the standard for all feature verification. Say <span style="color:var(--blue); font-family:var(--mono);">"give me tests to verify X"</span> — Claude renders a clickable checklist with pass/fail/note buttons and a send-results action. No bullet points.</span>
+    </div>
+  </div>
+
+  <div class="hint">Click planned issues or carry-forwards to mark done · <span>state persists in localStorage</span></div>
+
+  <!-- Activity log -->
+  <div class="log-section">
+    <div class="log-header"><span class="log-dot"></span> Activity log</div>
+    <div class="log-list" id="log-list">
+      <div class="log-entry">
+        <span class="log-time" id="start-time">--:--</span>
+        <span class="log-msg">Session 19 <span class="hl">complete</span> — Soon milestone cleared</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'session18_state';
+
+  function tick() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('live-time').textContent = t;
+  }
+  tick(); setInterval(tick, 1000);
+
+  (function() {
+    const now = new Date();
+    document.getElementById('start-time').textContent =
+      now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  })();
+
+  const state = loadState();
+  applyState();
+
+  function loadState() {
+    try {
+      const s = localStorage.getItem(STORAGE_KEY);
+      return s ? JSON.parse(s) : { planned: {}, carry: {} };
+    } catch(e) { return { planned: {}, carry: {} }; }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function applyState() {
+    Object.entries(state.planned).forEach(([id, closed]) => {
+      if (closed) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.className = 'badge b-closed';
+          el.textContent = 'closed';
+          el.closest('.issue-row').classList.add('done');
+        }
+      }
+    });
+    Object.entries(state.carry).forEach(([id, done]) => {
+      if (done) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.className = 'badge b-done';
+          el.textContent = 'done';
+          el.closest('.issue-row').classList.add('done');
+        }
+      }
+    });
+    updateMetrics();
+  }
+
+  function togglePlanned(row, id, num, title) {
+    const badge = document.getElementById(id);
+    const isClosed = state.planned[id];
+    if (isClosed) {
+      state.planned[id] = false;
+      badge.className = 'badge b-open';
+      badge.textContent = 'open';
+      row.classList.remove('done');
+      addLog(`Reopened <span class="hl-amber">${num}</span> — ${title}`);
+    } else {
+      state.planned[id] = true;
+      badge.className = 'badge b-closed';
+      badge.textContent = 'closed';
+      row.classList.add('done');
+      addLog(`Closed <span class="hl">${num}</span> — ${title}`);
+    }
+    saveState();
+    updateMetrics();
+  }
+
+  function toggleCarry(row, id, label) {
+    const badge = document.getElementById(id);
+    const isDone = state.carry[id];
+    if (isDone) {
+      state.carry[id] = false;
+      badge.className = 'badge b-carry';
+      badge.textContent = 'pending';
+      row.classList.remove('done');
+      addLog(`Reopened carry-fwd: <span class="hl-amber">${label}</span>`);
+    } else {
+      state.carry[id] = true;
+      badge.className = 'badge b-done';
+      badge.textContent = 'done';
+      row.classList.add('done');
+      addLog(`Done: <span class="hl">${label}</span>`);
+    }
+    saveState();
+    updateMetrics();
+  }
+
+  function updateMetrics() {
+    const plannedIds = ['p1','p2'];
+    const carryIds   = ['c1','c2','c3','c4','c5'];
+    const closedCount = plannedIds.filter(id => state.planned[id]).length;
+    const carryDone   = carryIds.filter(id => state.carry[id]).length;
+    const pct = Math.round((closedCount / plannedIds.length) * 100);
+    const carryPct = Math.round((carryDone / carryIds.length) * 100);
+    document.getElementById('m-closed').textContent = closedCount;
+    document.getElementById('m-carry-done').textContent = carryDone;
+    document.getElementById('m-pct').textContent = pct + '%';
+    document.getElementById('prog-bar').style.width = pct + '%';
+    document.getElementById('carry-bar').style.width = carryPct + '%';
+  }
+
+  function addLog(msg) {
+    const list = document.getElementById('log-list');
+    const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">${now}</span><span class="log-msg">${msg}</span>`;
+    list.appendChild(entry);
+    list.scrollTop = list.scrollHeight;
+  }
+</script>
+</body>
+</html>

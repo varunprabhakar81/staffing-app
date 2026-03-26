@@ -729,61 +729,12 @@
           </div>
           <div>
             <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">LOCATION</label>
-            <input id="cpLocation" type="text" list="cpLocationList" placeholder="e.g. New York, NY"
-              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-            <datalist id="cpLocationList">
-              <option value="New York, NY">
-              <option value="Los Angeles, CA">
-              <option value="Chicago, IL">
-              <option value="Houston, TX">
-              <option value="Phoenix, AZ">
-              <option value="Philadelphia, PA">
-              <option value="San Antonio, TX">
-              <option value="San Diego, CA">
-              <option value="Dallas, TX">
-              <option value="San Jose, CA">
-              <option value="Austin, TX">
-              <option value="Jacksonville, FL">
-              <option value="Fort Worth, TX">
-              <option value="Columbus, OH">
-              <option value="Charlotte, NC">
-              <option value="Indianapolis, IN">
-              <option value="San Francisco, CA">
-              <option value="Seattle, WA">
-              <option value="Denver, CO">
-              <option value="Nashville, TN">
-              <option value="Oklahoma City, OK">
-              <option value="El Paso, TX">
-              <option value="Washington, DC">
-              <option value="Boston, MA">
-              <option value="Memphis, TN">
-              <option value="Louisville, KY">
-              <option value="Portland, OR">
-              <option value="Las Vegas, NV">
-              <option value="Milwaukee, WI">
-              <option value="Albuquerque, NM">
-              <option value="Tucson, AZ">
-              <option value="Fresno, CA">
-              <option value="Sacramento, CA">
-              <option value="Mesa, AZ">
-              <option value="Kansas City, MO">
-              <option value="Atlanta, GA">
-              <option value="Omaha, NE">
-              <option value="Colorado Springs, CO">
-              <option value="Raleigh, NC">
-              <option value="Long Beach, CA">
-              <option value="Virginia Beach, VA">
-              <option value="Minneapolis, MN">
-              <option value="Tampa, FL">
-              <option value="New Orleans, LA">
-              <option value="Arlington, TX">
-              <option value="Bakersfield, CA">
-              <option value="Honolulu, HI">
-              <option value="Anaheim, CA">
-              <option value="Aurora, CO">
-              <option value="Santa Ana, CA">
-            </datalist>
+            <div style="position:relative">
+              <input id="cpLocation" type="text" autocomplete="off" placeholder="e.g. New York, NY"
+                style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+                onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+              <ul id="cpLocationDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;margin:2px 0 0;padding:4px 0;list-style:none;background:#1A1D27;border:1px solid rgba(255,255,255,.15);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5)"></ul>
+            </div>
           </div>
           <div>
             <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">BILL RATE OVERRIDE <span style="font-weight:400;color:#4A5168">($/hr, blank = level default)</span></label>

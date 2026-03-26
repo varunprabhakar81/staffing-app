@@ -20,6 +20,7 @@ let currentUserCanViewRates = false;
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
+let _needsStatusFilter = null;    // active donut segment filter: 'fully_met' | 'partially_met' | 'unmet' | null
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -312,7 +313,14 @@ function navigateToEmployee(name) {
     requestAnimationFrame(() => {
       const td = Array.from(document.querySelectorAll('td.hm-name-cell'))
         .find(el => el.dataset.emp === name);
-      if (td) flashHeatmapRow(td.closest('tr'));
+      if (!td) return;
+      const tr = td.closest('tr');
+      flashHeatmapRow(tr);
+      // For editors: focus the first editable cell in the row
+      if (_hmCanEdit()) {
+        const editableCell = tr.querySelector('td.hm-cell[contenteditable="true"], td.hm-cell[data-editable]');
+        if (editableCell) editableCell.focus();
+      }
     });
   }, 120);
 }
@@ -1551,7 +1559,8 @@ function drillHeatmapEmployee(empName) {
 
   const editBtn = _hmCanEdit() && emp.id
     ? `<button type="button"
-         onclick="closeDrilldown();openConsultantProfileEditor('${emp.id}','${_esc(empName)}')"
+         data-cid="${_esc(emp.id)}"
+         onclick="closeDrilldown();openConsultantProfileEditor(this.dataset.cid)"
          style="margin-left:auto;padding:5px 14px;background:rgba(168,199,250,0.1);border:1px solid rgba(168,199,250,0.25);border-radius:7px;color:#A8C7FA;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;flex-shrink:0"
          onmouseover="this.style.background='rgba(168,199,250,0.18)'" onmouseout="this.style.background='rgba(168,199,250,0.1)'">Edit Profile</button>`
     : '';
@@ -1629,6 +1638,7 @@ function renderCoverageChart(coverage) {
   _needs.recommendations = null;
   _needs.loadState = 'idle';
   _needs.expanded.clear();
+  _needsStatusFilter = null;
 
   const summary      = coverage.summary || {};
   const fullyMet     = summary.fully_met    || 0;
@@ -1660,6 +1670,16 @@ function renderCoverageChart(coverage) {
       cutout: '62%',
       animation: { animateRotate: true, animateScale: false },
       hover: { mode: null },
+      onClick(evt, elements) {
+        const statusMap = ['fully_met', 'partially_met', 'unmet'];
+        const clicked = elements.length ? statusMap[elements[0].index] : null;
+        if (!clicked || _needsStatusFilter === clicked) {
+          _needsStatusFilter = null;
+        } else {
+          _needsStatusFilter = clicked;
+        }
+        applyNeedsFilter();
+      },
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
@@ -1693,13 +1713,21 @@ function renderCoverageChart(coverage) {
       { label: 'Partially Met', count: partiallyMet, color: colors[1] },
       { label: 'Unmet',         count: unmet,         color: colors[2] },
     ];
-    legendEl.innerHTML = items.map(it =>
-      `<div class="cov-legend-item">
+    const statusKeys = ['fully_met', 'partially_met', 'unmet'];
+    legendEl.innerHTML = items.map((it, i) =>
+      `<div class="cov-legend-item" data-filter-status="${statusKeys[i]}" style="cursor:pointer" title="Click to filter">
         <span class="cov-legend-dot" style="background:${it.color}"></span>
         <span class="cov-legend-label">${it.label}</span>
         <span class="cov-legend-count">${it.count}</span>
       </div>`
     ).join('');
+    legendEl.querySelectorAll('.cov-legend-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const s = el.dataset.filterStatus;
+        _needsStatusFilter = _needsStatusFilter === s ? null : s;
+        applyNeedsFilter();
+      });
+    });
   }
 
   const tableEl = document.getElementById('coverageTable');
@@ -1723,7 +1751,7 @@ function renderCoverageChart(coverage) {
   };
 
   const rows = coverage.roles.map((r, i) => `
-    <tr class="dd-clickable need-row" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+    <tr class="dd-clickable need-row" data-status="${r.status || 'unmet'}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
       <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
       <td class="col-skill">${r.skillSet || '—'}</td>
       <td>${r.level || '—'}</td>
@@ -1753,6 +1781,48 @@ function renderCoverageChart(coverage) {
       <tbody>${rows}</tbody>
     </table>
   `;
+}
+
+// ── Needs donut filter ────────────────────────────────────────────
+function applyNeedsFilter() {
+  const chart = charts.coverage;
+
+  // Show/hide table rows
+  document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
+    const match = !_needsStatusFilter || tr.dataset.status === _needsStatusFilter;
+    tr.style.display = match ? '' : 'none';
+    // Also hide the paired expansion row when filtered out
+    const exp = tr.nextElementSibling;
+    if (exp && exp.classList.contains('need-expansion-row') && !match) {
+      exp.classList.add('hidden');
+    }
+  });
+
+  // Update filter label on legend
+  const legendEl = document.getElementById('coverageLegend');
+  if (legendEl) {
+    legendEl.querySelectorAll('.cov-legend-item').forEach((el, i) => {
+      const statuses = ['fully_met', 'partially_met', 'unmet'];
+      const isActive = _needsStatusFilter === statuses[i];
+      el.style.opacity = _needsStatusFilter && !isActive ? '0.4' : '1';
+      el.style.fontWeight = isActive ? '600' : '';
+      el.style.cursor = 'pointer';
+    });
+  }
+
+  // Outline active chart segment
+  if (chart && chart.data && chart.data.datasets[0]) {
+    const ds = chart.data.datasets[0];
+    const count = ds.data.length;
+    const statuses = ['fully_met', 'partially_met', 'unmet'];
+    ds.borderColor = Array.from({ length: count }, (_, i) =>
+      _needsStatusFilter === statuses[i] ? '#FFFFFF' : 'transparent'
+    );
+    ds.borderWidth = Array.from({ length: count }, (_, i) =>
+      _needsStatusFilter === statuses[i] ? 3 : 0
+    );
+    chart.update('none');
+  }
 }
 
 // ── AI Recommendations: Expandable Row Logic ─────────────────────
@@ -3129,7 +3199,7 @@ function _renderConsultantRow(c) {
   const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)">Active</span>`;
 
   const editBtn = c.id
-    ? `<button onclick="openConsultantProfileEditor('${_esc(c.id)}','${_esc(c.name)}')"
+    ? `<button data-cid="${_esc(c.id)}" onclick="openConsultantProfileEditor(this.dataset.cid)"
          style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Edit</button>`
     : '';
@@ -3587,6 +3657,20 @@ async function submitAddProject(event) {
     closeAddProjectModal();
     showToast(`Added ${project} for ${empSaved} (${changes.length} week${changes.length === 1 ? '' : 's'})`, 'success');
     await loadDashboard();
+    // Scroll to and flash the consultant's heatmap row so the user can see where the change landed
+    setTimeout(() => {
+      if (!_vsAllRows) return;
+      const rowIdx = _vsAllRows.findIndex(r => r.type === 'emp' && r.emp.name === empSaved);
+      if (rowIdx === -1) return;
+      let y = 0;
+      for (let i = 0; i < rowIdx; i++) y += _vsAllRows[i].height;
+      const scrollWrap = document.querySelector('.hm-scroll-wrap');
+      if (scrollWrap) { scrollWrap.scrollLeft = 0; scrollWrap.scrollTop = y; _vsRenderVisible(); }
+      requestAnimationFrame(() => {
+        const td = Array.from(document.querySelectorAll('td.hm-name-cell')).find(el => el.dataset.emp === empSaved);
+        if (td) flashHeatmapRow(td.closest('tr'));
+      });
+    }, 120);
   } catch (err) {
     showToast(`Failed: ${err.message}`, 'error');
   } finally {
@@ -3624,6 +3708,9 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
 
   const { consultant, skillSetIds, levels, allSkillSets } = profile;
   const readOnly = !_hmCanEdit();
+
+  // Title (set from API — avoids special-character issues with onclick-embedded names)
+  document.getElementById('cpTitle').textContent = consultant.name || 'Consultant Profile';
 
   // Subtitle
   document.getElementById('cpSubtitle').textContent = consultant.levelName
@@ -3922,6 +4009,98 @@ async function logout() {
   window.location.replace('login.html');
 }
 
+// ── Location typeahead ────────────────────────────────────────────
+const CP_CITIES = [
+  'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
+  'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','San Jose, CA',
+  'Austin, TX','Jacksonville, FL','Fort Worth, TX','Columbus, OH','Charlotte, NC',
+  'Indianapolis, IN','San Francisco, CA','Seattle, WA','Denver, CO','Nashville, TN',
+  'Oklahoma City, OK','El Paso, TX','Washington, DC','Boston, MA','Memphis, TN',
+  'Louisville, KY','Portland, OR','Las Vegas, NV','Milwaukee, WI','Albuquerque, NM',
+  'Tucson, AZ','Fresno, CA','Sacramento, CA','Mesa, AZ','Kansas City, MO',
+  'Atlanta, GA','Omaha, NE','Colorado Springs, CO','Raleigh, NC','Long Beach, CA',
+  'Virginia Beach, VA','Minneapolis, MN','Tampa, FL','New Orleans, LA','Arlington, TX',
+  'Bakersfield, CA','Honolulu, HI','Anaheim, CA','Aurora, CO','Santa Ana, CA',
+];
+
+function initLocationTypeahead() {
+  const input = document.getElementById('cpLocation');
+  const list  = document.getElementById('cpLocationDropdown');
+  if (!input || !list) return;
+
+  let activeIdx = -1;
+
+  function closeDrop() {
+    list.style.display = 'none';
+    list.innerHTML = '';
+    activeIdx = -1;
+  }
+
+  function openDrop(matches) {
+    list.innerHTML = '';
+    activeIdx = -1;
+    if (!matches.length) { closeDrop(); return; }
+    matches.forEach((city, i) => {
+      const li = document.createElement('li');
+      li.textContent = city;
+      li.dataset.idx = i;
+      li.style.cssText = 'padding:8px 12px;cursor:pointer;color:#E2E8F0;font-size:13px;font-family:inherit;white-space:nowrap';
+      li.addEventListener('mouseenter', () => setActive(i));
+      li.addEventListener('mousedown', e => {
+        e.preventDefault(); // keep input focused
+        input.value = city;
+        closeDrop();
+      });
+      list.appendChild(li);
+    });
+    list.style.display = 'block';
+  }
+
+  function setActive(idx) {
+    const items = list.querySelectorAll('li');
+    items.forEach(el => el.style.background = '');
+    activeIdx = idx;
+    if (idx >= 0 && idx < items.length) {
+      items[idx].style.background = 'rgba(168,199,250,.12)';
+      items[idx].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { closeDrop(); return; }
+    const matches = CP_CITIES.filter(c => c.toLowerCase().includes(q));
+    openDrop(matches);
+  });
+
+  input.addEventListener('keydown', e => {
+    const items = list.querySelectorAll('li');
+    if (list.style.display === 'none' || !items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive(Math.min(activeIdx + 1, items.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive(Math.max(activeIdx - 1, 0));
+    } else if (e.key === 'Enter') {
+      if (activeIdx >= 0 && activeIdx < items.length) {
+        e.preventDefault();
+        input.value = items[activeIdx].textContent;
+        closeDrop();
+      } else {
+        closeDrop(); // free-text: keep whatever was typed
+      }
+    } else if (e.key === 'Escape') {
+      closeDrop();
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    // Small delay so mousedown on an item fires before blur hides the list
+    setTimeout(closeDrop, 150);
+  });
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -3951,6 +4130,7 @@ async function logout() {
   }
 
   loadDashboard();
+  initLocationTypeahead();
 
   // ── Background session poll — silently checks auth every 30s ──────
   setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);

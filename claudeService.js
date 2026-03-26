@@ -35,29 +35,38 @@ Use "Projects" instead of "Demand" and "Consultants" or "Resources" instead of "
 function formatContext(data) {
   const lines = [];
 
-  // Supply: summarise per employee (total hours per week)
+  // Supply: sum booked hours per employee per week across all assignment rows
   const empTotals = {};
+
+  // Seed every known employee so bench consultants are always included
+  for (const emp of data.employees) {
+    const name = emp.employeeName || emp.name;
+    if (name && !empTotals[name]) empTotals[name] = { projects: [], weeklyTotals: {} };
+  }
+
   for (const row of data.supply) {
     const name = row.employeeName;
-    if (!empTotals[name]) empTotals[name] = { project: [], weeklyTotals: {} };
-    if (row.projectAssigned && !empTotals[name].project.includes(row.projectAssigned)) {
-      empTotals[name].project.push(row.projectAssigned);
+    if (!name) continue;
+    if (!empTotals[name]) empTotals[name] = { projects: [], weeklyTotals: {} };
+    if (row.projectAssigned && !empTotals[name].projects.includes(row.projectAssigned)) {
+      empTotals[name].projects.push(row.projectAssigned);
     }
-    for (const [week, hrs] of Object.entries(row.weeklyHours)) {
+    for (const [week, hrs] of Object.entries(row.weeklyHours || {})) {
       empTotals[name].weeklyTotals[week] = (empTotals[name].weeklyTotals[week] || 0) + (hrs || 0);
     }
   }
 
-  lines.push('=== RESOURCES (Employee Bookings) ===');
+  lines.push('=== RESOURCES (Employee Bookings & Availability) ===');
   for (const [name, info] of Object.entries(empTotals)) {
     const totals   = Object.values(info.weeklyTotals);
-    const avgHours = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
-    const status   = avgHours === 0   ? 'BENCH'
-                   : avgHours > 45    ? 'OVERBOOKED'
-                   : avgHours === 45  ? 'FULLY UTILIZED'
-                   : avgHours >= 40   ? 'NOMINAL'
-                   : 'UNDERUTILIZED';
-    lines.push(`  ${name}: ${avgHours}h/week avg — ${status} — Projects: ${info.project.join(', ') || 'none'}`);
+    const avgBooked = totals.length ? Math.round(totals.reduce((a, b) => a + b, 0) / totals.length) : 0;
+    const avgAvail  = Math.max(0, 45 - avgBooked);
+    const status   = avgBooked === 0   ? 'BENCH (45h available)'
+                   : avgBooked > 45    ? 'OVERBOOKED'
+                   : avgBooked === 45  ? 'FULLY UTILIZED (0h available)'
+                   : avgBooked >= 40   ? `NOMINAL (${avgAvail}h available)`
+                   : `UNDERUTILIZED (${avgAvail}h available)`;
+    lines.push(`  ${name}: ${avgBooked}h/week booked — ${status} — Projects: ${info.projects.join(', ') || 'none'}`);
   }
 
   lines.push('\n=== PROJECTS (Open Roles) ===');
@@ -90,6 +99,7 @@ async function askClaude(question, staffingData) {
   }
 
   const context = formatContext(staffingData);
+  console.log('[askClaude] availability context being sent:\n' + context.split('\n').filter(l => l.includes('available') || l.includes('BENCH')).join('\n'));
   const userMessage = `Here is the current staffing data:\n\n${context}\n\nQuestion: ${question}`;
 
   try {
