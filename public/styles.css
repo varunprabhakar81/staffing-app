@@ -17,6 +17,7 @@ select:disabled { cursor: not-allowed; }
   --accent:       #A8C7FA;
   --mint:         #A8E6CF;
   --coral:        #FFB3B3;
+  --amber:        #F59E0B;
   --yellow:       #FFF3A3;
   --purple:       #C9B8FF;
   --peach:        #FFDAB9;
@@ -2444,6 +2445,7 @@ td[data-cell-type="emp-total"]:hover {
 }
 
 .status-overbooked { background: rgba(255,179,179,0.18); color: var(--coral);  border: 1px solid rgba(255,179,179,.3); }
+.status-overalloc  { background: rgba(245,158,11,0.18);  color: var(--amber);  border: 1px solid rgba(245,158,11,.3); }
 .status-full       { background: rgba(168,230,207,0.18); color: var(--mint);   border: 1px solid rgba(168,230,207,.3); }
 .status-nominal    { background: rgba(168,199,250,0.18); color: var(--accent); border: 1px solid rgba(168,199,250,.3); }
 .status-under      { background: rgba(255,243,163,0.18); color: var(--yellow); border: 1px solid rgba(255,243,163,.3); }
