@@ -3227,3 +3227,13 @@ td[data-cell-type="emp-total"]:hover {
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.1);
 }
+
+/* Rolling Off Soon — Change Assignment row flash (#141) */
+@keyframes hmRowFlashAmber {
+  0%   { border-left-color: #F59E0B; box-shadow: inset 3px 0 12px rgba(245,158,11,0.4); }
+  60%  { border-left-color: #F59E0B; box-shadow: inset 3px 0 12px rgba(245,158,11,0.4); }
+  100% { border-left-color: transparent; box-shadow: none; }
+}
+.hm-row-flash-amber td:first-child {
+  animation: hmRowFlashAmber 3s ease-out forwards;
+}

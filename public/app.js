@@ -801,7 +801,7 @@ function renderOverviewStats(data, heatmapData) {
   renderLevelBreakdown(heatmapData);
   renderTopProjects(heatmapData);
   renderRollingOff(heatmapData);
-  renderNeedsAttention(data);
+  renderOverallocated(rawData.heatmap);
 }
 
 // ── Upcoming Availability (Row 2 left) ────────────────────────────
@@ -941,7 +941,7 @@ function renderRollingOff(heatmapData) {
   }
   el.innerHTML = results.slice(0, 4).map(r => {
     const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
-    return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" onclick="drillHeatmapEmployee('${_esc(r.name)}')" title="Click for full booking history">
+    return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" onclick="drillRollingOff('${_esc(r.name)}')" title="Click for availability details">
       <div class="ov-cliff-name">${r.name}</div>
       <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
@@ -952,43 +952,228 @@ function renderRollingOff(heatmapData) {
   }).join('');
 }
 
-// ── Needs Attention (Row 2 right bottom) ─────────────────────────
-function renderNeedsAttention(data) {
+// ── Rolling Off Soon — action-oriented drilldown (#141) ───────────
+function drillRollingOff(empName) {
+  const hm = rawData.heatmap;
+  if (!hm) return;
+  const emp = hm.employees.find(e => e.name === empName);
+  if (!emp) return;
+
+  // Build rolling 12-week window.
+  // hm.weeks uses short "M/D" labels; weekKeyToDate keys are "Week ending M/D" — must prepend prefix.
+  const weeks = hm.weeks || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const windowIndices = weeks
+    .map((wk, i) => ({ wk, i }))
+    .filter(({ wk }) => {
+      const d = rawData._meta.weekKeyToDate['Week ending ' + wk];
+      return d && new Date(d) >= today;
+    })
+    .slice(0, 12);
+
+  // First available: first week in rolling window where total booked hours drop below 45h
+  windowIndices.forEach(({ wk, i }) => {
+    const hrs = emp.weeklyHours[i] || 0;
+    console.log('[drillRollingOff]', { weekKey: 'Week ending ' + wk, totalHours: hrs, isAvailable: hrs < 45 });
+  });
+  const firstAvailEntry = windowIndices.find(({ i }) => (emp.weeklyHours[i] || 0) < 45);
+  let firstAvailHtml;
+  if (firstAvailEntry) {
+    const isoDate = rawData._meta.weekKeyToDate['Week ending ' + firstAvailEntry.wk];
+    const d = new Date(isoDate + 'T00:00:00');
+    const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const hrs = emp.weeklyHours[firstAvailEntry.i] || 0;
+    firstAvailHtml = `
+      <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px">
+        <div style="font-size:11px;color:#8892B0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">First Available</div>
+        <div style="font-size:20px;font-weight:700;color:#4ADE80">Week of ${dateLabel}</div>
+        <div style="font-size:12px;color:#8892B0;margin-top:2px">${hrs}h booked that week</div>
+      </div>`;
+  } else {
+    firstAvailHtml = `
+      <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px">
+        <div style="font-size:12px;color:#F87171">Fully booked for the next 12 weeks</div>
+      </div>`;
+  }
+
+  // Current projects rolling off: present in week 0 with hours, compare to week 1
+  const w0Projs = (emp.weeklyProjects[0] || []).filter(p => p.hours > 0);
+  const w1Projs = emp.weeklyProjects[1] || [];
+  const projectRows = w0Projs.length
+    ? w0Projs.map(p => {
+        const nextHrs = (w1Projs.find(q => q.project === p.project) || {}).hours || 0;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <span style="color:#CDD9F5;font-size:13px">${_esc(p.project)}</span>
+          <span style="color:#8892B0;font-size:12px;font-weight:600">${p.hours}h → ${nextHrs}h</span>
+        </div>`;
+      }).join('')
+    : '<div style="color:#8892B0;font-size:13px;padding:8px 0">No active projects this week</div>';
+
+  // CTA: close modal → navigate to staffing tab → scroll + flash heatmap row
+  const ctaBtn = `<button
+    onclick="closeDrilldown();_rollingOffNavigate('${_esc(empName)}')"
+    style="margin-top:24px;width:100%;padding:11px 0;background:#3B82F6;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.01em"
+    onmouseover="this.style.background='#2563EB'"
+    onmouseout="this.style.background='#3B82F6'">Change Assignment</button>`;
+
+  const title = `${empName}${emp.level ? ' · ' + emp.level : ''}${emp.skillSet ? ' · ' + emp.skillSet : ''}`;
+  openDrilldown(title, `
+    ${firstAvailHtml}
+    <div>
+      <div style="font-size:11px;color:#8892B0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Current Projects Rolling Off</div>
+      ${projectRows}
+    </div>
+    ${ctaBtn}`);
+}
+
+// Navigate to staffing tab + scroll to employee row + CSS amber flash (#141)
+function _rollingOffNavigate(name) {
+  navigateToEmployee(name);
+  setTimeout(() => {
+    const td = Array.from(document.querySelectorAll('td.hm-name-cell'))
+      .find(el => el.dataset.emp === name);
+    if (!td) return;
+    const tr = td.closest('tr');
+    tr.classList.add('hm-row-flash-amber');
+    setTimeout(() => tr.classList.remove('hm-row-flash-amber'), 3000);
+  }, 500);
+}
+
+// Navigate to staffing tab + scroll to first overallocated week + amber flash (#142)
+function _overallocatedNavigate(name) {
+  closeDrilldown();
+  navigateToEmployee(name);
+  setTimeout(() => {
+    const td = Array.from(document.querySelectorAll('td.hm-name-cell'))
+      .find(el => el.dataset.emp === name);
+    if (!td) {
+      console.warn('[_overallocatedNavigate] row not found for:', name);
+      return;
+    }
+    const tr = td.closest('tr');
+    tr.classList.add('hm-row-flash-amber');
+    setTimeout(() => tr.classList.remove('hm-row-flash-amber'), 3000);
+
+    // Scroll horizontally to first overallocated cell
+    const idxCells = Array.from(tr.querySelectorAll('td[data-idx]'));
+    const firstOver = idxCells.find(td => parseInt(td.textContent, 10) > 45);
+    if (firstOver) {
+      firstOver.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+    }
+  }, 500);
+}
+
+// ── Overallocated Resources (Row 2 right bottom) ─────────────────────────
+function renderOverallocated(heatmapData) {
   const el = document.getElementById('ovNeedsAttention');
   if (!el) return;
-  const roles  = (data.needsCoverage || {}).roles || [];
-  const urgent = roles
-    .filter(r => r.status === 'unmet' || r.status === 'partially_met')
-    .sort((a, b) => {
-      const da = a.startDate ? new Date(a.startDate) : new Date('9999');
-      const db = b.startDate ? new Date(b.startDate) : new Date('9999');
-      return da - db;
-    });
-  if (!urgent.length) {
-    el.innerHTML = '<div class="ov-empty ok">✓ All current needs are covered</div>'; return;
+  if (!heatmapData || !heatmapData.employees) {
+    el.innerHTML = '<div class="ov-empty ok">✓ No overallocated consultants</div>'; return;
   }
-  const today = new Date();
-  el.innerHTML = urgent.slice(0, 4).map(r => {
-    const isUnmet   = r.status === 'unmet';
-    const bc        = isUnmet ? '#FFB3B3' : '#FFF3A3';
-    const startD    = r.startDate ? new Date(r.startDate) : null;
-    const dateCol   = startD && startD <= today ? '#FFB3B3' : '#FFF3A3';
-    // Look up roleIdx in rawData.coverageRoles by matching project + level + skillSet
-    const roleIdx = rawData.coverageRoles.findIndex(
-      cr => cr.project === r.project && cr.level === r.level && cr.skillSet === r.skillSet
-    );
-    const clickAttr = roleIdx >= 0
-      ? `onclick="drillCoverage(${roleIdx})" style="cursor:pointer" title="Click for matching resources"`
-      : '';
-    return `<div class="ov-needs-item dd-clickable" ${clickAttr}>
-      <div class="ov-needs-row">
-        <span class="ov-needs-project">${r.project || '—'}</span>
-        <span class="ov-needs-badge" style="background:${bc}22;color:${bc};border-color:${bc}">${isUnmet ? 'Unmet' : 'Partial'}</span>
+  const weeks = heatmapData.weeks || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const windowIndices = weeks
+    .map((wk, i) => ({ wk, i }))
+    .filter(({ wk }) => {
+      const d = rawData._meta.weekKeyToDate['Week ending ' + wk];
+      return d && new Date(d) >= today;
+    })
+    .slice(0, 12);
+
+  const overallocated = [];
+  for (const emp of heatmapData.employees) {
+    const overWeeks = windowIndices
+      .filter(({ i }) => (emp.weeklyHours[i] || 0) > 45)
+      .map(({ wk, i }) => ({ wk, hrs: emp.weeklyHours[i] }));
+    if (!overWeeks.length) continue;
+    const worstWeek = overWeeks.reduce((a, b) => b.hrs > a.hrs ? b : a);
+    overallocated.push({ name: emp.name, level: emp.level, skillSet: emp.skillSet, overWeeks, worstWeek });
+  }
+  overallocated.sort((a, b) => b.worstWeek.hrs - a.worstWeek.hrs);
+
+  if (!overallocated.length) {
+    el.innerHTML = '<div class="ov-empty ok">✓ No overallocated consultants</div>'; return;
+  }
+
+  // T2/T3: Update panel header count to always reflect true total
+  const panel = el.closest('.ov-panel');
+  if (panel) {
+    const titleSpan = panel.querySelector('.ov-panel-title');
+    if (titleSpan) titleSpan.textContent = `⚠ Overallocated Resources (${overallocated.length})`;
+  }
+
+  // T2/T3: Show up to 4 rows; append "View all (N)" link if more exist
+  const rowsHtml = overallocated.slice(0, 4).map(r =>
+    `<div class="ov-cliff-item dd-clickable" style="border-left-color:#F97316" onclick="drillOverallocated()" title="Click for overallocation details">
+      <div class="ov-cliff-name">${r.name}</div>
+      <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
+      <div class="ov-cliff-detail">
+        <span style="color:#F97316;font-size:11px">Peak: wk of ${r.worstWeek.wk}</span>
+        <span class="ov-cliff-hours">${r.worstWeek.hrs}h</span>
       </div>
-      <div class="ov-needs-meta">${r.level || ''}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
-      <div class="ov-needs-date" style="color:${dateCol}">From ${r.startDate || '—'}</div>
-    </div>`;
-  }).join('');
+    </div>`
+  ).join('');
+
+  const viewAllHtml = overallocated.length > 4
+    ? `<div style="text-align:center;padding:6px 0 2px"><a style="color:#F97316;font-size:12px;cursor:pointer;text-decoration:none;font-weight:500" onclick="drillOverallocated()">View all (${overallocated.length})</a></div>`
+    : '';
+
+  el.innerHTML = rowsHtml + viewAllHtml;
+}
+
+function drillOverallocated() {
+  const hm = rawData.heatmap;
+  if (!hm) {
+    openDrilldown('Overallocated Resources', '<p class="dd-empty">No heatmap data loaded yet.</p>');
+    return;
+  }
+  const weeks = hm.weeks || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const windowIndices = weeks
+    .map((wk, i) => ({ wk, i }))
+    .filter(({ wk }) => {
+      const d = rawData._meta.weekKeyToDate['Week ending ' + wk];
+      return d && new Date(d) >= today;
+    })
+    .slice(0, 12);
+
+  const overallocated = [];
+  for (const emp of hm.employees) {
+    const overWeeks = windowIndices
+      .filter(({ i }) => (emp.weeklyHours[i] || 0) > 45)
+      .map(({ wk, i }) => ({ wk, hrs: emp.weeklyHours[i] }));
+    if (!overWeeks.length) continue;
+    const worstWeek = overWeeks.reduce((a, b) => b.hrs > a.hrs ? b : a);
+    overallocated.push({ name: emp.name, level: emp.level || '—', skillSet: emp.skillSet || '', overWeeks, worstWeek });
+  }
+  overallocated.sort((a, b) => b.worstWeek.hrs - a.worstWeek.hrs);
+
+  if (!overallocated.length) {
+    openDrilldown('Overallocated Resources', '<p class="dd-empty">No overallocated consultants in the next 12 weeks.</p>');
+    return;
+  }
+
+  const groupedRows = buildGroupedRows(overallocated, e => e.level, e => {
+    const weeksStr = e.overWeeks.map(w => `${w.wk}: ${w.hrs}h`).join(' · ');
+    return `<tr>
+      <td>${_esc(e.name)}</td>
+      <td style="color:#8892B0;font-size:12px">${_esc(e.level)}</td>
+      <td style="background:rgba(249,115,22,0.12);color:#F97316;font-weight:600;border-left:2px solid #F97316">${e.worstWeek.hrs}h <span style="font-size:11px;color:#8892B0;font-weight:400">wk of ${_esc(e.worstWeek.wk)}</span></td>
+      <td style="font-size:11px;color:#8892B0">${_esc(weeksStr)}</td>
+      <td><button onclick="event.stopPropagation();closeDrilldown();_overallocatedNavigate('${_esc(e.name)}')" style="padding:4px 10px;background:#3B82F6;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-family:inherit">Change Assignment</button></td>
+    </tr>`;
+  }, 5, true);
+
+  openDrilldown(`Overallocated Resources (${overallocated.length})`, `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
+    <table class="dd-table">
+      <thead><tr>
+        <th>Employee</th><th>Level</th><th>Worst Week</th><th>Over-45h Weeks</th><th></th>
+      </tr></thead>
+      <tbody>${groupedRows}</tbody>
+    </table>`);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2057,6 +2242,16 @@ function handleOverlayClick(e) {
   if (e.target === document.getElementById('drilldownOverlay')) closeDrilldown();
 }
 
+// Toggle expand/collapse all grouped rows in a drilldown modal (#142 T5)
+function ddToggleExpandAll(btn) {
+  const body = document.getElementById('drilldownBody');
+  const rows = body.querySelectorAll('tr[data-g]');
+  const shouldExpand = Array.from(rows).some(r => r.style.display === 'none');
+  rows.forEach(r => { r.style.display = shouldExpand ? '' : 'none'; });
+  body.querySelectorAll('tr[onclick] .gc').forEach(gc => { gc.textContent = shouldExpand ? '\u25BC' : '\u25BA'; });
+  btn.textContent = shouldExpand ? '\u229F Collapse all' : '\u229E Expand all';
+}
+
 // ── Drilldown 1: Utilization by Level ─────────────────────────────
 function drillUtilization(level) {
   const levelMap = {};
@@ -2302,8 +2497,9 @@ const LEVEL_ORDER = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consulta
 // getLevelFn: item => level string
 // renderRowFn: item => '<tr>...</tr>' HTML string
 // colCount: number of <td> columns (for header colspan)
-// Returns tbody HTML with collapsible level groups (all collapsed by default).
-function buildGroupedRows(items, getLevelFn, renderRowFn, colCount) {
+// expanded: if true, groups start open (default false = collapsed)
+// Returns tbody HTML with collapsible level groups.
+function buildGroupedRows(items, getLevelFn, renderRowFn, colCount, expanded = false) {
   const groups = {};
   for (const item of items) {
     const lvl = getLevelFn(item);
@@ -2318,7 +2514,8 @@ function buildGroupedRows(items, getLevelFn, renderRowFn, colCount) {
     if (!grp || !grp.length) continue;
     const label = level === '__other__' ? 'Other' : level;
     const gid = pfx + gi++;
-    html += `<tr onclick="(function(hdr){var rs=hdr.parentNode.querySelectorAll('[data-g=${gid}]');var open=rs[0]&&rs[0].style.display!='none';rs.forEach(function(r){r.style.display=open?'none':'';});hdr.querySelector('.gc').textContent=open?'\u25BA':'\u25BC';})(this)" style="background:#2E3250;color:#8892B0;font-size:11px;text-transform:uppercase;cursor:pointer"><td colspan="${colCount}" style="padding:6px 12px"><span class="gc">&#9658;</span>&nbsp;${label} (${grp.length})</td></tr>`;
+    const arrow = expanded ? '\u25BC' : '\u25BA';
+    html += `<tr onclick="(function(hdr){var rs=hdr.parentNode.querySelectorAll('[data-g=${gid}]');var open=rs[0]&&rs[0].style.display!='none';rs.forEach(function(r){r.style.display=open?'none':'';});hdr.querySelector('.gc').textContent=open?'\u25BA':'\u25BC';})(this)" style="background:var(--surface2,#2E3250);cursor:pointer"><td colspan="${colCount}" style="padding:6px 12px;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-secondary,#8892B0)"><span class="gc">${arrow}</span>&nbsp;${label} (${grp.length})</td></tr>`;
     for (const item of grp) {
       let row = renderRowFn(item);
       row = row.replace(/<tr(\s[^>]*)?>/, (m, attrs) => {
@@ -2326,6 +2523,9 @@ function buildGroupedRows(items, getLevelFn, renderRowFn, colCount) {
         const sm = a.match(/style="([^"]*)"/);
         const rest = a.replace(/\s*style="[^"]*"/, '').trim();
         const existing = sm ? sm[1].trim() : '';
+        if (expanded) {
+          return `<tr${rest ? ' ' + rest : ''} data-g="${gid}"${existing ? ` style="${existing}"` : ''}>`;
+        }
         const s = existing ? existing + ';display:none' : 'display:none';
         return `<tr${rest ? ' ' + rest : ''} data-g="${gid}" style="${s}">`;
       });
