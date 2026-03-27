@@ -320,7 +320,7 @@ async function readStaffingData(userToken, _client = null) {
  * for the given week.
  */
 async function upsertAssignment(userToken, { consultantId, projectId, weekEnding, hours, isBillable }, _client = null) {
-  const supabase = _client || getClient(userToken);
+  const supabase = _client || serviceClient;
 
   const { error } = await supabase
     .from('resource_assignments')
@@ -343,7 +343,7 @@ async function upsertAssignment(userToken, { consultantId, projectId, weekEnding
  * Used by /api/supply/update delete operations.
  */
 async function deleteAssignments(userToken, { consultantId, projectId }) {
-  const supabase = getClient(userToken);
+  const supabase = serviceClient;
   const { error } = await supabase
     .from('resource_assignments')
     .delete()
@@ -355,9 +355,10 @@ async function deleteAssignments(userToken, { consultantId, projectId }) {
 
 /**
  * Resolve a consultant name → id. Returns null if not found.
+ * Uses serviceClient to bypass RLS — name resolution is a server-side op.
  */
 async function resolveConsultantId(userToken, name) {
-  const supabase = getClient(userToken);
+  const supabase = serviceClient;
   const { data, error } = await supabase
     .from('consultants')
     .select('id')
@@ -371,9 +372,10 @@ async function resolveConsultantId(userToken, name) {
 /**
  * Resolve a project name → id. Returns null if not found.
  * Creates the project if createIfMissing = true.
+ * Uses serviceClient to bypass RLS — name resolution and project creation are server-side ops.
  */
 async function resolveProjectId(userToken, name, createIfMissing = false) {
-  const supabase = getClient(userToken);
+  const supabase = serviceClient;
   const { data, error } = await supabase
     .from('projects')
     .select('id')

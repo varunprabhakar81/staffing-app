@@ -785,7 +785,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
     function parseDateStr(str) {
       if (!str) return null;
       const parts = String(str).split('/');
-      if (parts.length === 3) return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+      if (parts.length === 3) { let yr = parseInt(parts[2]); if (yr < 100) yr += 2000; return new Date(yr, parseInt(parts[0]) - 1, parseInt(parts[1])); }
       if (str.includes('-')) {
         const [y, mo, d] = str.split('-');
         return new Date(parseInt(y), parseInt(mo) - 1, parseInt(d));
@@ -824,12 +824,10 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
           const end   = parseDateStr(ch.endDate);
           const hrs   = Number(ch.hoursPerWeek);
           if (start && end) {
-            for (const wk of weekKeys) {
-              const wkDate = parseWkDate(wk);
-              if (wkDate && wkDate >= start && wkDate <= end) {
-                const weekEnding = weekKeyToDate[wk];
-                if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
-              }
+            const matchingWks = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return wkDate && wkDate >= start && wkDate <= end; });
+            for (const wk of matchingWks) {
+              const weekEnding = weekKeyToDate[wk];
+              if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
             }
           }
         }
@@ -841,12 +839,10 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
         const start = parseDateStr(ch.startDate);
         const end   = parseDateStr(ch.endDate);
         const hrs   = Number(ch.hoursPerWeek) || 0;
-        for (const wk of weekKeys) {
-          const wkDate = parseWkDate(wk);
-          if (start && end && wkDate && wkDate >= start && wkDate <= end) {
-            const weekEnding = weekKeyToDate[wk];
-            if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
-          }
+        const matchingWksAdd = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return start && end && wkDate && wkDate >= start && wkDate <= end; });
+        for (const wk of matchingWksAdd) {
+          const weekEnding = weekKeyToDate[wk];
+          if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
         }
       }
     }
