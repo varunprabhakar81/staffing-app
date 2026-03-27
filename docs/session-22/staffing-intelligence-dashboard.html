@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staffing Intelligence — Product Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --dl-green: #86BC25; --dl-neon-green: #86EB22; --dl-blue: #00A3E0;
+    --dl-dark-gray: #282728; --dl-gray: #E6E6E6; --dl-white: #FFFFFF;
+    --dl-text-primary: #282728; --dl-text-secondary: #555555;
+    --dl-bg-light: #F5F5F5; --dl-border: #E6E6E6;
+    --dl-amber: #E8A317; --dl-red: #DA291C;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Open Sans', sans-serif; background: var(--dl-bg-light); color: var(--dl-text-primary); line-height: 1.6; }
+
+  /* HEADER */
+  .header { background: var(--dl-dark-gray); border-top: 5px solid var(--dl-green); padding: 28px 48px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left h1 { font-size: 1.6rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+  .header-left h1 span { color: var(--dl-neon-green); font-style: italic; }
+  .header-left p { font-size: 0.85rem; color: #A0A0A0; margin-top: 4px; }
+  .header-right { display: flex; align-items: center; gap: 24px; }
+  .header-badge { background: rgba(134,188,37,0.15); border: 1px solid var(--dl-green); border-radius: 20px; padding: 6px 16px; font-size: 0.78rem; font-weight: 700; color: var(--dl-neon-green); text-transform: uppercase; letter-spacing: 0.06em; text-decoration: none; }
+  .header-meta { font-size: 0.8rem; color: #A0A0A0; text-align: right; }
+  .header-meta strong { color: #fff; display: block; }
+
+  /* PAGE TAB NAV */
+  .tab-nav { background: #fff; border-bottom: 1px solid var(--dl-border); padding: 0 48px; display: flex; }
+  .tab-btn { padding: 16px 28px; font-size: 0.85rem; font-weight: 700; color: var(--dl-text-secondary); border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; letter-spacing: 0.02em; }
+  .tab-btn.active { color: var(--dl-green); border-bottom-color: var(--dl-green); }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  /* MAIN */
+  .main { max-width: 1200px; margin: 0 auto; padding: 40px 48px; }
+  .section-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dl-text-secondary); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--dl-green); display: inline-block; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 40px; }
+  .stat-card { background: #fff; border-radius: 8px; padding: 20px; border: 1px solid var(--dl-border); border-top: 3px solid var(--dl-green); }
+  .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--dl-green); line-height: 1; margin-bottom: 4px; }
+  .stat-card .label { font-size: 0.75rem; color: var(--dl-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .sublabel { font-size: 0.7rem; color: #A0A0A0; margin-top: 4px; font-style: italic; text-transform: none; letter-spacing: 0; }
+  .stat-card.blue { border-top-color: var(--dl-blue); }
+  .stat-card.blue .value { color: var(--dl-blue); }
+  .stat-card.dark { border-top-color: var(--dl-dark-gray); }
+  .stat-card.dark .value { color: var(--dl-dark-gray); }
+
+  /* GRIDS */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+
+  /* CARD */
+  .card { background: #fff; border-radius: 8px; border: 1px solid var(--dl-border); padding: 24px; }
+  .card-title { font-size: 0.85rem; font-weight: 700; color: var(--dl-text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dl-green); flex-shrink: 0; }
+  .card-title .dot.blue { background: var(--dl-blue); }
+
+  /* FEATURE LIST */
+  .feature-list { list-style: none; }
+  .feature-list li { padding: 8px 0; border-bottom: 1px solid var(--dl-border); font-size: 0.85rem; display: flex; align-items: flex-start; gap: 10px; }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--dl-green); flex-shrink: 0; margin-top: 6px; }
+  .feature-list li span { color: var(--dl-text-secondary); font-size: 0.78rem; display: block; }
+
+  /* ISSUE ROWS */
+  .issue-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--dl-border); font-size: 0.82rem; }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-num { font-size: 0.72rem; font-weight: 700; color: var(--dl-text-secondary); min-width: 32px; }
+  .issue-title { flex: 1; }
+  .pill { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+  .pill.bug { background: #FEE2E2; color: #991B1B; }
+  .pill.enhancement { background: #DBEAFE; color: #1E40AF; }
+  .pill.polish { background: #F3E8FF; color: #6B21A8; }
+  .pill.v3 { background: #F1F5F9; color: #475569; }
+
+  /* PROGRESS */
+  .progress-wrap { margin-bottom: 12px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
+  .progress-label span:first-child { color: var(--dl-text-secondary); }
+  .progress-label span:last-child { font-weight: 700; }
+  .progress-bar { height: 6px; background: var(--dl-border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--dl-green); }
+  .progress-fill.blue { background: var(--dl-blue); }
+  .progress-fill.amber { background: var(--dl-amber); }
+
+  /* TECH */
+  .tech-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tech-item { background: var(--dl-bg-light); border-radius: 6px; padding: 10px 14px; font-size: 0.8rem; border-left: 3px solid var(--dl-green); }
+  .tech-item strong { display: block; font-size: 0.72rem; color: var(--dl-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .tech-item.blue { border-left-color: var(--dl-blue); }
+  .tech-item.dark { border-left-color: var(--dl-dark-gray); }
+
+  /* PHASE BANNERS */
+  .phase-banner { border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; border-left: 4px solid; }
+  .phase-banner.v2 { background: #F0FDF4; border-color: var(--dl-green); }
+  .phase-banner.v3 { background: #F8FAFC; border-color: #94A3B8; }
+  .phase-banner h3 { font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+  .phase-banner.v2 h3 { color: #166534; }
+  .phase-banner.v3 h3 { color: #475569; }
+  .phase-banner p { font-size: 0.78rem; color: var(--dl-text-secondary); }
+
+  /* METHOD */
+  .method-row { display: flex; gap: 16px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--dl-border); }
+  .method-row:last-child { border-bottom: none; }
+  .method-num { width: 24px; height: 24px; border-radius: 50%; background: var(--dl-green); color: #fff; font-size: 0.72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .method-text { font-size: 0.82rem; }
+  .method-text strong { display: block; margin-bottom: 2px; }
+  .method-text span { color: var(--dl-text-secondary); font-size: 0.78rem; }
+
+  /* ── DEMO PAGE ── */
+  .demo-hero { background: var(--dl-dark-gray); padding: 48px; position: relative; overflow: hidden; }
+  .demo-hero-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .demo-hero h2 { font-size: 2rem; font-weight: 300; color: #fff; margin-bottom: 10px; }
+  .demo-hero h2 em { font-style: italic; color: var(--dl-neon-green); font-weight: 700; }
+  .demo-hero p { font-size: 0.95rem; color: #A0A0A0; max-width: 600px; margin-bottom: 24px; }
+  .demo-hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cta-primary { background: var(--dl-green); color: #fff; padding: 10px 24px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; text-decoration: none; display: inline-block; }
+  .cta-secondary { border: 1px solid #444; color: #ccc; padding: 10px 24px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; text-decoration: none; display: inline-block; cursor: pointer; background: none; }
+  .demo-circle-1 { position: absolute; right: -60px; top: -60px; width: 300px; height: 300px; border-radius: 50%; border: 1px solid rgba(134,188,37,0.12); }
+  .demo-circle-2 { position: absolute; right: 60px; top: 20px; width: 180px; height: 180px; border-radius: 50%; border: 1px solid rgba(134,235,34,0.08); }
+
+  /* STEP NAV */
+  .demo-step-nav { background: #fff; border-bottom: 1px solid var(--dl-border); padding: 0 48px; display: flex; overflow-x: auto; }
+  .demo-step-btn { padding: 14px 20px; font-size: 0.8rem; font-weight: 700; color: var(--dl-text-secondary); border: none; background: transparent; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  .demo-step-btn.active { color: var(--dl-blue); border-bottom-color: var(--dl-blue); }
+  .demo-step-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; background: var(--dl-border); color: var(--dl-text-secondary); flex-shrink: 0; }
+  .demo-step-btn.active .demo-step-icon { background: var(--dl-blue); color: #fff; }
+
+  /* DEMO CONTENT */
+  .demo-content { max-width: 1200px; margin: 0 auto; padding: 40px 48px; }
+  .demo-step-page { display: none; }
+  .demo-step-page.active { display: block; }
+  .demo-split { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; margin-bottom: 32px; }
+
+  /* MOCK SCREEN */
+  .mock-screen { background: #1A1D27; border-radius: 10px; overflow: hidden; border: 1px solid #2a2d3a; }
+  .mock-titlebar { background: #0F1117; padding: 8px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #2a2d3a; }
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .mock-url { flex: 1; background: #1A1D27; border-radius: 4px; padding: 3px 10px; font-size: 0.68rem; color: #555; margin: 0 10px; font-family: monospace; }
+  .mock-body { padding: 16px; }
+
+  /* MOCK KPI */
+  .mock-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .mock-kpi { background: #23263a; border-radius: 6px; padding: 10px; border-top: 2px solid; }
+  .mock-kpi.green { border-top-color: #86BC25; }
+  .mock-kpi.blue { border-top-color: #00A3E0; }
+  .mock-kpi.amber { border-top-color: #E8A317; }
+  .mock-kpi.red { border-top-color: #DA291C; }
+  .mock-kpi-val { font-size: 1.1rem; font-weight: 700; color: #fff; }
+  .mock-kpi-label { font-size: 0.6rem; color: #666; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* MOCK HEATMAP */
+  .mock-hm-header { display: grid; grid-template-columns: 90px repeat(6, 1fr); gap: 2px; margin-bottom: 2px; }
+  .mock-hm-wk { font-size: 0.56rem; color: #555; text-align: center; }
+  .mock-hm-row { display: grid; grid-template-columns: 90px repeat(6, 1fr); gap: 2px; margin-bottom: 2px; align-items: center; }
+  .mock-hm-name { font-size: 0.62rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mock-cell { height: 20px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 0.58rem; font-weight: 700; }
+  .mock-cell.red { background: rgba(226,75,74,0.25); color: #E24B4A; }
+  .mock-cell.yellow { background: rgba(234,179,8,0.2); color: #CA8A04; }
+  .mock-cell.green { background: rgba(134,188,37,0.2); color: #86BC25; }
+  .mock-cell.orange { background: rgba(249,115,22,0.25); color: #F97316; }
+
+  /* MOCK NEEDS */
+  .mock-need-row { background: #23263a; border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .mock-need-project { color: #e0e0e0; font-weight: 700; font-size: 0.7rem; margin-bottom: 2px; }
+  .mock-need-detail { color: #666; font-size: 0.62rem; }
+  .mock-need-status { font-size: 0.6rem; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+  .mock-need-status.unmet { background: rgba(218,41,28,0.2); color: #DA291C; }
+  .mock-need-status.met { background: rgba(134,188,37,0.2); color: #86BC25; }
+  .mock-match { background: #1e2235; border: 1px solid #2a2d3a; border-left: 3px solid #00A3E0; border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .mock-match-name { font-size: 0.7rem; font-weight: 700; color: #e0e0e0; }
+  .mock-match-detail { font-size: 0.6rem; color: #666; }
+  .mock-match-reason { font-size: 0.6rem; color: #00A3E0; font-style: italic; margin-top: 2px; }
+  .mock-accept-btn { font-size: 0.62rem; font-weight: 700; padding: 5px 10px; border-radius: 4px; background: #86BC25; color: #fff; border: none; cursor: default; flex-shrink: 0; }
+
+  /* MOCK CHAT */
+  .mock-chat { display: flex; flex-direction: column; gap: 8px; }
+  .mock-msg { border-radius: 8px; padding: 10px 12px; font-size: 0.7rem; max-width: 92%; line-height: 1.5; }
+  .mock-msg.user { background: #23263a; color: #e0e0e0; align-self: flex-end; }
+  .mock-msg.ai { background: #1e2235; border: 1px solid #2a2d3a; color: #ccc; align-self: flex-start; }
+  .mock-msg.ai .ai-label { color: #86BC25; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+
+  /* MOCK SETTINGS */
+  .mock-settings { display: grid; grid-template-columns: 110px 1fr; min-height: 180px; }
+  .mock-sidebar { background: #0F1117; padding: 12px; border-right: 1px solid #2a2d3a; }
+  .mock-nav-item { font-size: 0.62rem; padding: 6px 8px; border-radius: 4px; color: #555; margin-bottom: 2px; }
+  .mock-nav-item.active { background: rgba(134,188,37,0.1); color: #86BC25; border-left: 2px solid #86BC25; padding-left: 6px; }
+  .mock-panel { padding: 12px; }
+  .mock-user-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #2a2d3a; font-size: 0.62rem; }
+  .mock-user-row:last-child { border-bottom: none; }
+  .mock-avatar { width: 20px; height: 20px; border-radius: 50%; background: #23263a; display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 700; color: #86BC25; flex-shrink: 0; }
+  .mock-user-name { color: #e0e0e0; flex: 1; }
+  .mock-role-pill { font-size: 0.52rem; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
+  .mock-role-pill.admin { background: rgba(134,188,37,0.15); color: #86BC25; }
+  .mock-role-pill.rm { background: rgba(0,163,224,0.15); color: #00A3E0; }
+  .mock-role-pill.pm { background: rgba(168,85,247,0.15); color: #A855F7; }
+  .mock-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .mock-status-dot.on { background: #86BC25; }
+  .mock-status-dot.off { background: #444; }
+
+  /* DEMO TEXT */
+  .demo-text { padding-top: 8px; }
+  .demo-eyebrow { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dl-blue); margin-bottom: 8px; }
+  .demo-text h3 { font-size: 1.3rem; font-weight: 700; color: var(--dl-text-primary); margin-bottom: 8px; line-height: 1.3; }
+  .demo-text h3 em { font-style: italic; color: var(--dl-green); }
+  .demo-text p { font-size: 0.88rem; color: var(--dl-text-secondary); margin-bottom: 16px; line-height: 1.7; }
+  .audience-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .audience-tag { font-size: 0.68rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; background: var(--dl-bg-light); border: 1px solid var(--dl-border); color: var(--dl-text-secondary); }
+  .audience-tag.exec { background: #FFF7ED; border-color: #FED7AA; color: #C2410C; }
+  .audience-tag.rm { background: #EFF6FF; border-color: #BFDBFE; color: #1D4ED8; }
+  .audience-tag.ext { background: #F0FDF4; border-color: #BBF7D0; color: #166534; }
+  .demo-point { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .demo-point-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--dl-bg-light); border: 1px solid var(--dl-border); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: var(--dl-green); flex-shrink: 0; }
+  .demo-point-text { font-size: 0.83rem; }
+  .demo-point-text strong { display: block; margin-bottom: 2px; }
+  .demo-point-text span { color: var(--dl-text-secondary); }
+
+  /* DEMO NAV */
+  .demo-nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--dl-border); }
+  .demo-nav-btn { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 700; color: var(--dl-text-secondary); background: none; border: 1px solid var(--dl-border); border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+  .demo-nav-btn.next { color: var(--dl-green); border-color: var(--dl-green); }
+  .demo-step-indicator { font-size: 0.78rem; color: var(--dl-text-secondary); }
+
+  /* FOOTER */
+  .footer { background: var(--dl-dark-gray); padding: 20px 48px; display: flex; justify-content: space-between; align-items: center; }
+  .footer p { font-size: 0.75rem; color: #A0A0A0; }
+
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .two-col, .three-col, .demo-split { grid-template-columns: 1fr; }
+    .main, .demo-content { padding: 24px; }
+    .header { padding: 20px 24px; flex-direction: column; gap: 16px; align-items: flex-start; }
+    .tab-nav, .demo-step-nav { padding: 0 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Staffing <span>Intelligence</span></h1>
+    <p>Real-time staffing management platform · Deloitte NetSuite Practice · Built with Claude AI</p>
+  </div>
+  <div class="header-right">
+    <div>
+      <div class="header-meta"><strong>Session 22</strong>March 27, 2026</div>
+      <div class="header-meta"><strong>v1-stable</strong>Phase 2 in progress</div>
+    </div>
+    <a class="header-badge" href="https://staffing-app-production.up.railway.app" target="_blank">⬡ Live App ↗</a>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('product', this)">Product Dashboard</button>
+  <button class="tab-btn" onclick="showTab('demo', this)">Feature Walkthrough</button>
+</div>
+
+<!-- PAGE 1: PRODUCT DASHBOARD -->
+<div id="tab-product" class="tab-page active">
+<div class="main">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value">200+</div>
+      <div class="label">Consultants supported</div>
+      <div class="sublabel">Multi-tenant — each firm gets its own isolated workspace</div>
+    </div>
+    <div class="stat-card"><div class="value">67</div><div class="label">Issues closed</div></div>
+    <div class="stat-card blue"><div class="value">22</div><div class="label">Build sessions</div></div>
+    <div class="stat-card blue"><div class="value">48/48</div><div class="label">UAT tests passing</div></div>
+    <div class="stat-card dark"><div class="value">100%</div><div class="label">Real production data</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">What is Staffing Intelligence</div>
+      <p style="font-size:0.88rem;margin-bottom:16px;color:var(--dl-text-secondary);">A real-time staffing management platform replacing spreadsheets with a live, AI-powered web app for professional services consulting teams.</p>
+      <ul class="feature-list">
+        <li>Full-team availability across a rolling 12-week window at a glance<span>No more chasing Excel files or asking around for availability</span></li>
+        <li>AI-powered staffing recommendations match open project needs to available consultants<span>Claude analyzes skills, level, availability, and utilization to suggest best fits</span></li>
+        <li>Real-time KPI dashboard — utilization, bench, overallocation, pipeline coverage<span>Overview tab gives practice leadership an instant pulse on the team</span></li>
+        <li>Role-based access: admin, resource manager, project manager, executive<span>Each role sees exactly what they need — enforced at UI and API level</span></li>
+        <li>Ask Claude — natural language Q&A against live staffing data<span>"Who's available for a 40h/wk R2R engagement starting in April?"</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="section-title">How It's Being Built</div>
+      <div class="method-row"><div class="method-num">1</div><div class="method-text"><strong>Claude Code as co-pilot</strong><span>Every feature built via structured CC prompts — no manual coding. Sessions start with a handoff doc, end with committed deployed code.</span></div></div>
+      <div class="method-row"><div class="method-num">2</div><div class="method-text"><strong>Issue-driven development</strong><span>All work tracked as GitHub issues. Nothing ships without a UAT checklist. 67 issues closed across 22 sessions.</span></div></div>
+      <div class="method-row"><div class="method-num">3</div><div class="method-text"><strong>Continuous deployment</strong><span>Railway auto-deploys on every GitHub push. Changes are live in production within minutes of being written.</span></div></div>
+      <div class="method-row"><div class="method-num">4</div><div class="method-text"><strong>Real data from day one</strong><span>Real consultants and live project data — never a demo environment. UAT is always against production data.</span></div></div>
+      <div class="method-row"><div class="method-num">5</div><div class="method-text"><strong>Research-backed UX</strong><span>UI patterns benchmarked against Float, Linear, Runn, and Airtable before implementation.</span></div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Features Built — V1 Stable + Phase 2 In Progress</div>
+  <div class="three-col" style="margin-top:16px;">
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Resource Allocation (Heatmap)</div>
+      <ul class="feature-list">
+        <li>Rolling 12-week availability grid for all consultants</li>
+        <li>Always-on inline cell editing — click any cell to update hours<span>Airtable/Float model — no Edit Mode toggle</span></li>
+        <li>4-tier color scheme: Red 0–10h / Yellow 11–44h / Green 45h / Orange 46h+</li>
+        <li>Virtual scroll for performance with large teams</li>
+        <li>Global search — Ctrl+K / slash to find anyone instantly</li>
+        <li>Add project assignments directly from heatmap cells</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Overview Dashboard</div>
+      <ul class="feature-list">
+        <li>Available Capacity % — primary hours-based KPI</li>
+        <li>Utilization % — total booked / total available hours</li>
+        <li>On Bench — consultants with zero bookings this period</li>
+        <li>Overallocated Resources — anyone above 45h/wk with drilldown</li>
+        <li>Rolling Off Soon — upcoming availability alerts + Change Assignment CTA</li>
+        <li>All KPIs clickable — grouped by seniority with expand/collapse</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot blue"></div>AI Features</div>
+      <ul class="feature-list">
+        <li>Open Needs pipeline — demand roles matched against supply</li>
+        <li>AI acceptance writes assignments to Supabase for full engagement date range</li>
+        <li>Ask Claude — natural language Q&A against live data</li>
+        <li>Skill + level + availability matching for recommendations</li>
+        <li>Rolling 90-day context window for accurate answers</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Settings & Admin</div>
+      <ul class="feature-list">
+        <li>User management — invite, activate, deactivate, change roles</li>
+        <li>Consultant profiles — skills, level, location, billability</li>
+        <li>Password strength enforcement for new invites</li>
+        <li>Role changes take effect in 30 seconds — no re-login needed</li>
+        <li>Soft deactivation — records preserved, fully reversible</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Auth & Security</div>
+      <ul class="feature-list">
+        <li>Supabase Auth with email/password + server-side sessions</li>
+        <li>Row-Level Security on all database tables</li>
+        <li>Tab-level and API-level RBAC enforcement</li>
+        <li>Auto-logout on role change or deactivation</li>
+        <li>8-hour session expiry with background 30s poll</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot blue"></div>Infrastructure</div>
+      <ul class="feature-list">
+        <li><a href="https://staffing-app-production.up.railway.app" target="_blank" style="color:var(--dl-blue);text-decoration:none;">Live on Railway ↗</a> — auto-deploy from GitHub main</li>
+        <li>Supabase Postgres with RLS — Excel fully retired</li>
+        <li>Node.js / Express backend · Vanilla JS SPA frontend</li>
+        <li>Server-sent events for real-time refresh</li>
+        <li>Private GitHub repo with full issue + milestone tracking</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="section-title">Build Progress</div>
+      <div style="margin-top:16px;">
+        <div class="progress-wrap"><div class="progress-label"><span>Core staffing management</span><span>85%</span></div><div class="progress-bar"><div class="progress-fill" style="width:85%"></div></div></div>
+        <div class="progress-wrap"><div class="progress-label"><span>Analytics & insights</span><span>65%</span></div><div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div></div>
+        <div class="progress-wrap"><div class="progress-label"><span>AI recommendations</span><span>60%</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:60%"></div></div></div>
+        <div class="progress-wrap"><div class="progress-label"><span>UI/UX polish</span><span>55%</span></div><div class="progress-bar"><div class="progress-fill" style="width:55%"></div></div></div>
+        <div class="progress-wrap"><div class="progress-label"><span>Multi-tenant / SaaS readiness</span><span>10%</span></div><div class="progress-bar"><div class="progress-fill amber" style="width:10%"></div></div></div>
+      </div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--dl-border);">
+        <div style="font-size:0.78rem;color:var(--dl-text-secondary);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Milestones</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;"><span>✅ V1 Stable</span><span style="color:#166534;font-weight:700;">Complete — tagged</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;"><span>🔄 Phase 2</span><span style="color:var(--dl-blue);font-weight:700;">21 issues open</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;"><span>📋 V3</span><span style="color:var(--dl-text-secondary);font-weight:700;">13 deferred</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Roadmap</div>
+      <div style="margin-top:16px;">
+        <div class="phase-banner v2"><h3>Phase 2 — Core Quality (next 3–4 sessions)</h3><p>Bug fixes, UX polish, AI recommendation improvements. Making the app excellent before scaling.</p></div>
+        <div style="margin-bottom:6px;">
+          <div class="issue-row"><span class="issue-num">#161</span><span class="issue-title">Rolling Off Soon apostrophe bug</span><span class="pill bug">Bug</span></div>
+          <div class="issue-row"><span class="issue-num">#160</span><span class="issue-title">KPI drilldown modals — open expanded</span><span class="pill enhancement">Enhancement</span></div>
+          <div class="issue-row"><span class="issue-num">#158</span><span class="issue-title">Recommendations engine missing matches</span><span class="pill bug">Bug</span></div>
+          <div class="issue-row"><span class="issue-num">#154</span><span class="issue-title">Holistic UI/UX design pass</span><span class="pill polish">Polish</span></div>
+          <div class="issue-row"><span class="issue-num">#129</span><span class="issue-title">Historical staffing snapshots</span><span class="pill enhancement">Enhancement</span></div>
+        </div>
+        <div class="phase-banner v3" style="margin-top:12px;"><h3>V3 — Scale & SaaS (future)</h3><p>Tenant onboarding, Finance dashboard, extended roles. Deferred until Phase 2 is complete.</p></div>
+        <div>
+          <div class="issue-row"><span class="issue-num">#96</span><span class="issue-title">Tenant onboarding + signup flow</span><span class="pill v3">V3</span></div>
+          <div class="issue-row"><span class="issue-num">#98</span><span class="issue-title">Finance and Ops Dashboard</span><span class="pill v3">V3</span></div>
+          <div class="issue-row"><span class="issue-num">#99</span><span class="issue-title">Multi-role support</span><span class="pill v3">V3</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:40px;">
+    <div class="section-title">Tech Stack</div>
+    <div class="tech-grid" style="margin-top:16px;">
+      <div class="tech-item"><strong>Backend</strong>Node.js + Express</div>
+      <div class="tech-item"><strong>Database</strong>Supabase (Postgres + RLS)</div>
+      <div class="tech-item"><strong>Auth</strong>Supabase Auth + express-session</div>
+      <div class="tech-item blue"><strong>AI</strong>Anthropic Claude API (claude-sonnet-4)</div>
+      <div class="tech-item blue"><strong>Builder</strong>Claude Code — all implementation</div>
+      <div class="tech-item blue"><strong>Frontend</strong>Vanilla JS SPA + Chart.js</div>
+      <div class="tech-item dark"><strong>Deployment</strong>Railway · <a href="https://staffing-app-production.up.railway.app" target="_blank" style="color:var(--dl-blue);text-decoration:none;font-weight:700;">View live ↗</a></div>
+      <div class="tech-item dark"><strong>Version Control</strong>GitHub (private repo)</div>
+      <div class="tech-item dark"><strong>Issue Tracking</strong>GitHub Issues + Milestones</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- PAGE 2: FEATURE WALKTHROUGH -->
+<div id="tab-demo" class="tab-page">
+
+  <div class="demo-hero">
+    <div class="demo-circle-1"></div>
+    <div class="demo-circle-2"></div>
+    <div class="demo-hero-inner">
+      <h2>See <em>Staffing Intelligence</em> in action</h2>
+      <p>A guided walkthrough of the five core areas of the platform — built for practice leadership, resource managers, project managers, and potential users alike.</p>
+      <div class="demo-hero-cta">
+        <a class="cta-primary" href="https://staffing-app-production.up.railway.app" target="_blank">Open Live App ↗</a>
+        <button class="cta-secondary" onclick="showDemoStep(0)">Start Walkthrough →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-step-nav">
+    <button class="demo-step-btn active" onclick="showDemoStep(0)"><div class="demo-step-icon">1</div>Overview & KPIs</button>
+    <button class="demo-step-btn" onclick="showDemoStep(1)"><div class="demo-step-icon">2</div>Resource Allocation</button>
+    <button class="demo-step-btn" onclick="showDemoStep(2)"><div class="demo-step-icon">3</div>Open Needs & AI Matching</button>
+    <button class="demo-step-btn" onclick="showDemoStep(3)"><div class="demo-step-icon">4</div>Ask Claude</button>
+    <button class="demo-step-btn" onclick="showDemoStep(4)"><div class="demo-step-icon">5</div>Settings & Admin</button>
+  </div>
+
+  <div class="demo-content">
+
+    <!-- STEP 1: OVERVIEW -->
+    <div class="demo-step-page active" id="demo-step-0">
+      <div class="demo-split">
+        <div class="demo-text">
+          <div class="demo-eyebrow">Step 1 of 5</div>
+          <h3>Your practice's <em>vital signs</em>, at a glance</h3>
+          <div class="audience-tags">
+            <span class="audience-tag exec">Practice Leadership</span>
+            <span class="audience-tag rm">Resource Managers</span>
+            <span class="audience-tag ext">External Firms</span>
+          </div>
+          <p>The Overview tab is the first thing you see on login. Four KPI cards give you an instant read on team health — no digging, no spreadsheets.</p>
+          <div class="demo-point"><div class="demo-point-icon">%</div><div class="demo-point-text"><strong>Available Capacity %</strong><span>What percentage of your team's total available hours are currently unbooked. Hours-based, not headcount.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">↑</div><div class="demo-point-text"><strong>Utilization %</strong><span>Total booked hours divided by total available hours across the rolling 12-week window.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">⚠</div><div class="demo-point-text"><strong>Overallocated Resources</strong><span>Any consultant booked above 45h in any week. Drill in to see who, when, and by how much — with direct Change Assignment navigation.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">→</div><div class="demo-point-text"><strong>Rolling Off Soon</strong><span>Consultants whose projects end in the next 4 weeks — so you can act before they go on bench.</span></div></div>
+        </div>
+        <div>
+          <div class="mock-screen">
+            <div class="mock-titlebar">
+              <div class="mock-dot" style="background:#FF5F57"></div><div class="mock-dot" style="background:#FFBD2E"></div><div class="mock-dot" style="background:#28C840"></div>
+              <div class="mock-url">staffing-app-production.up.railway.app</div>
+            </div>
+            <div class="mock-body">
+              <div style="font-size:0.62rem;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Overview</div>
+              <div class="mock-kpi-row">
+                <div class="mock-kpi green"><div class="mock-kpi-val">62%</div><div class="mock-kpi-label">Available Capacity</div></div>
+                <div class="mock-kpi blue"><div class="mock-kpi-val">38%</div><div class="mock-kpi-label">Utilization</div></div>
+                <div class="mock-kpi amber"><div class="mock-kpi-val">3</div><div class="mock-kpi-label">On Bench</div></div>
+                <div class="mock-kpi red"><div class="mock-kpi-val">7</div><div class="mock-kpi-label">Overallocated</div></div>
+              </div>
+              <div style="background:#23263a;border-radius:6px;padding:10px;margin-top:8px;">
+                <div style="font-size:0.6rem;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Upcoming Availability by Level</div>
+                <div style="display:flex;flex-direction:column;gap:5px;">
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.58rem;color:#aaa;width:85px;">Senior Manager</span><div style="flex:1;height:7px;background:#1A1D27;border-radius:4px;"><div style="width:30%;height:100%;background:#86BC25;border-radius:4px;"></div></div><span style="font-size:0.58rem;color:#86BC25;">245h</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.58rem;color:#aaa;width:85px;">Manager</span><div style="flex:1;height:7px;background:#1A1D27;border-radius:4px;"><div style="width:55%;height:100%;background:#00A3E0;border-radius:4px;"></div></div><span style="font-size:0.58rem;color:#00A3E0;">410h</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.58rem;color:#aaa;width:85px;">Sr. Consultant</span><div style="flex:1;height:7px;background:#1A1D27;border-radius:4px;"><div style="width:70%;height:100%;background:#E8A317;border-radius:4px;"></div></div><span style="font-size:0.58rem;color:#E8A317;">520h</span></div>
+                  <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:0.58rem;color:#aaa;width:85px;">Consultant</span><div style="flex:1;height:7px;background:#1A1D27;border-radius:4px;"><div style="width:85%;height:100%;background:#A855F7;border-radius:4px;"></div></div><span style="font-size:0.58rem;color:#A855F7;">630h</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-nav-row">
+        <div></div>
+        <div class="demo-step-indicator">1 of 5</div>
+        <button class="demo-nav-btn next" onclick="showDemoStep(1)">Resource Allocation →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: HEATMAP -->
+    <div class="demo-step-page" id="demo-step-1">
+      <div class="demo-split">
+        <div>
+          <div class="mock-screen">
+            <div class="mock-titlebar">
+              <div class="mock-dot" style="background:#FF5F57"></div><div class="mock-dot" style="background:#FFBD2E"></div><div class="mock-dot" style="background:#28C840"></div>
+              <div class="mock-url">staffing-app-production.up.railway.app</div>
+            </div>
+            <div class="mock-body">
+              <div style="font-size:0.62rem;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Resource Allocation</div>
+              <div class="mock-hm-header"><div></div><div class="mock-hm-wk">3/28</div><div class="mock-hm-wk">4/4</div><div class="mock-hm-wk">4/11</div><div class="mock-hm-wk">4/18</div><div class="mock-hm-wk">4/25</div><div class="mock-hm-wk">5/2</div></div>
+              <div class="mock-hm-row"><div class="mock-hm-name">Benjamin Liu</div><div class="mock-cell orange">52</div><div class="mock-cell orange">48</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div></div>
+              <div class="mock-hm-row"><div class="mock-hm-name">Katharine Yu</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div></div>
+              <div class="mock-hm-row"><div class="mock-hm-name">Mario DeFelice</div><div class="mock-cell yellow">25</div><div class="mock-cell yellow">17</div><div class="mock-cell red">9</div><div class="mock-cell red">9</div><div class="mock-cell red">9</div><div class="mock-cell red">1</div></div>
+              <div class="mock-hm-row"><div class="mock-hm-name">Marcy Minnerl...</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell orange">46</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div><div class="mock-cell green">45</div></div>
+              <div class="mock-hm-row"><div class="mock-hm-name">Julie Loiben</div><div class="mock-cell orange">47</div><div class="mock-cell yellow">22</div><div class="mock-cell yellow">11</div><div class="mock-cell red">0</div><div class="mock-cell red">0</div><div class="mock-cell red">0</div></div>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:4px;font-size:0.58rem;color:#666;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(226,75,74,0.25);"></div>0–10h bench</div>
+                <div style="display:flex;align-items:center;gap:4px;font-size:0.58rem;color:#666;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(234,179,8,0.2);"></div>11–44h partial</div>
+                <div style="display:flex;align-items:center;gap:4px;font-size:0.58rem;color:#666;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(134,188,37,0.2);"></div>45h target</div>
+                <div style="display:flex;align-items:center;gap:4px;font-size:0.58rem;color:#666;"><div style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.25);"></div>46h+ over</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-text">
+          <div class="demo-eyebrow">Step 2 of 5</div>
+          <h3>Every consultant. Every week. <em>One view.</em></h3>
+          <div class="audience-tags">
+            <span class="audience-tag rm">Resource Managers</span>
+            <span class="audience-tag ext">External Firms</span>
+          </div>
+          <p>The Resource Allocation tab is the operational core. A color-coded 12-week heatmap shows every consultant's hours across every active project — all in one place, instantly editable.</p>
+          <div class="demo-point"><div class="demo-point-icon" style="background:#FEF9C3;color:#CA8A04;border-color:#FEF08A;">~</div><div class="demo-point-text"><strong>Yellow (11–44h) — Partially booked</strong><span>Available for additional work. Capacity to absorb new assignments immediately visible.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon" style="background:#DCFCE7;color:#166534;border-color:#BBF7D0;">45</div><div class="demo-point-text"><strong>Green (45h) — Fully utilized</strong><span>The target. At capacity, billable, no wasted bench time.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon" style="background:#FEF3C7;color:#C2410C;border-color:#FDE68A;">!</div><div class="demo-point-text"><strong>Orange (46h+) — Overallocated</strong><span>Action required. Click any cell to edit hours inline — no forms, no save dialogs, no page reload.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">⌕</div><div class="demo-point-text"><strong>Global search</strong><span>Press Ctrl+K or / to instantly find any consultant or project. Jump directly to their heatmap row.</span></div></div>
+        </div>
+      </div>
+      <div class="demo-nav-row">
+        <button class="demo-nav-btn" onclick="showDemoStep(0)">← Overview & KPIs</button>
+        <div class="demo-step-indicator">2 of 5</div>
+        <button class="demo-nav-btn next" onclick="showDemoStep(2)">Open Needs & AI Matching →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: OPEN NEEDS -->
+    <div class="demo-step-page" id="demo-step-2">
+      <div class="demo-split">
+        <div class="demo-text">
+          <div class="demo-eyebrow">Step 3 of 5</div>
+          <h3>AI matches open roles to <em>available consultants</em></h3>
+          <div class="audience-tags">
+            <span class="audience-tag rm">Resource Managers</span>
+            <span class="audience-tag exec">Practice Leadership</span>
+            <span class="audience-tag ext">External Firms</span>
+          </div>
+          <p>The Open Needs tab shows every unfilled staffing demand across active projects. Claude analyzes each role against your full consultant bench and recommends the best available matches — ranked by fit.</p>
+          <div class="demo-point"><div class="demo-point-icon">🔍</div><div class="demo-point-text"><strong>Skill + level + availability matching</strong><span>Claude checks practice area, seniority level, and hours per week across the full engagement date range — not just "is this person free today."</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">✓</div><div class="demo-point-text"><strong>One-click acceptance → database</strong><span>Hit Accept and the assignment is immediately written for every week of the engagement. No manual heatmap edits needed.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">◉</div><div class="demo-point-text"><strong>Live status tracking</strong><span>Each need shows Fully Met / Partially Met / Unmet based on current assignments — updated in real time.</span></div></div>
+        </div>
+        <div>
+          <div class="mock-screen">
+            <div class="mock-titlebar">
+              <div class="mock-dot" style="background:#FF5F57"></div><div class="mock-dot" style="background:#FFBD2E"></div><div class="mock-dot" style="background:#28C840"></div>
+              <div class="mock-url">staffing-app-production.up.railway.app</div>
+            </div>
+            <div class="mock-body">
+              <div style="font-size:0.62rem;color:#666;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Open Needs</div>
+              <div class="mock-need-row">
+                <div><div class="mock-need-project">R2R Consolidation</div><div class="mock-need-detail">Manager · Record to Report · 30h/wk · 5/1–7/31</div></div>
+                <span class="mock-need-status unmet">Unmet</span>
+              </div>
+              <div style="padding:6px 0 10px 10px;">
+                <div style="font-size:0.58rem;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">AI-matched consultants</div>
+                <div class="mock-match">
+                  <div><div class="mock-match-name">Benjamin Liu</div><div class="mock-match-detail">Manager · Record to Report · 45h avail</div><div class="mock-match-reason">Fully available for the full engagement period</div></div>
+                  <button class="mock-accept-btn">Accept</button>
+                </div>
+                <div class="mock-match">
+                  <div><div class="mock-match-name">Sarah Kim</div><div class="mock-match-detail">Manager · Record to Report · 30h avail</div><div class="mock-match-reason">Partial availability — 30h from 5/1 onward</div></div>
+                  <button class="mock-accept-btn">Accept</button>
+                </div>
+              </div>
+              <div class="mock-need-row">
+                <div><div class="mock-need-project">NetSuite ERP Implementation</div><div class="mock-need-detail">Senior Consultant · Record to Report · 40h/wk</div></div>
+                <span class="mock-need-status met">Fully Met</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-nav-row">
+        <button class="demo-nav-btn" onclick="showDemoStep(1)">← Resource Allocation</button>
+        <div class="demo-step-indicator">3 of 5</div>
+        <button class="demo-nav-btn next" onclick="showDemoStep(3)">Ask Claude →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: ASK CLAUDE -->
+    <div class="demo-step-page" id="demo-step-3">
+      <div class="demo-split">
+        <div>
+          <div class="mock-screen">
+            <div class="mock-titlebar">
+              <div class="mock-dot" style="background:#FF5F57"></div><div class="mock-dot" style="background:#FFBD2E"></div><div class="mock-dot" style="background:#28C840"></div>
+              <div class="mock-url">staffing-app-production.up.railway.app</div>
+            </div>
+            <div class="mock-body">
+              <div style="font-size:0.62rem;color:#666;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">Ask Claude</div>
+              <div class="mock-chat">
+                <div class="mock-msg user">Who has capacity for a new 30h/wk R2R engagement starting in May?</div>
+                <div class="mock-msg ai">
+                  <span class="ai-label">Staffing Intelligence</span>
+                  Based on current assignments, 3 consultants have sufficient availability for a 30h/wk Record to Report engagement starting May 1st:<br><br>
+                  <strong style="color:#86BC25;">Benjamin Liu</strong> (Manager) — 45h available from May onward, R2R certified.<br>
+                  <strong style="color:#86BC25;">Sarah Kim</strong> (Manager) — 30h available from May 15th.<br>
+                  <strong style="color:#86BC25;">Priya Nair</strong> (Sr. Consultant) — 40h available throughout May.
+                </div>
+                <div class="mock-msg user">Which projects are understaffed right now?</div>
+                <div class="mock-msg ai">
+                  <span class="ai-label">Staffing Intelligence</span>
+                  3 projects currently show unmet demand: R2R Consolidation (Manager, R2R, 30h/wk), Full Suite Implementation (Consultant, R2R, 30h/wk), and Netsuite Assessment (Senior Manager, Supply Chain, 20h/wk).
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="demo-text">
+          <div class="demo-eyebrow">Step 4 of 5</div>
+          <h3>Ask a question. Get a <em>real answer.</em></h3>
+          <div class="audience-tags">
+            <span class="audience-tag exec">Practice Leadership</span>
+            <span class="audience-tag rm">Resource Managers</span>
+            <span class="audience-tag ext">External Firms</span>
+          </div>
+          <p>Ask Claude is a natural language interface to your live staffing data. Instead of building pivot tables or running queries, you just ask — in plain English.</p>
+          <div class="demo-point"><div class="demo-point-icon">?</div><div class="demo-point-text"><strong>Plain English questions</strong><span>"Who has more than 20 hours available in April?" or "Which projects are understaffed right now?" — no query language needed.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">⟳</div><div class="demo-point-text"><strong>Live data, not stale reports</strong><span>Claude reads your current resource assignments, consultant profiles, and project needs — not a cached export from last week.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">🎯</div><div class="demo-point-text"><strong>90-day rolling context window</strong><span>Answers reflect what's happening in the current staffing period — not historical averages that distort the picture.</span></div></div>
+        </div>
+      </div>
+      <div class="demo-nav-row">
+        <button class="demo-nav-btn" onclick="showDemoStep(2)">← Open Needs & AI Matching</button>
+        <div class="demo-step-indicator">4 of 5</div>
+        <button class="demo-nav-btn next" onclick="showDemoStep(4)">Settings & Admin →</button>
+      </div>
+    </div>
+
+    <!-- STEP 5: SETTINGS -->
+    <div class="demo-step-page" id="demo-step-4">
+      <div class="demo-split">
+        <div class="demo-text">
+          <div class="demo-eyebrow">Step 5 of 5</div>
+          <h3>Full control over <em>who sees what</em></h3>
+          <div class="audience-tags">
+            <span class="audience-tag exec">Practice Leadership</span>
+            <span class="audience-tag rm">Admins</span>
+          </div>
+          <p>The Settings tab gives admins full control over users, roles, and consultant profiles — without touching any code or database.</p>
+          <div class="demo-point"><div class="demo-point-icon">👤</div><div class="demo-point-text"><strong>4 distinct roles</strong><span>Admin, Resource Manager, Project Manager, and Executive. Each role sees exactly the tabs and actions they need — enforced at both UI and API level.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">+</div><div class="demo-point-text"><strong>Invite users instantly</strong><span>Enter an email and set a temporary password. The user logs in and gets access immediately — no IT tickets, no waiting.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">⚡</div><div class="demo-point-text"><strong>Role changes take effect in 30 seconds</strong><span>Change someone's role or deactivate them — their session is invalidated server-side within 30 seconds. No re-login required on your end.</span></div></div>
+          <div class="demo-point"><div class="demo-point-icon">✎</div><div class="demo-point-text"><strong>Consultant profile management</strong><span>Edit skill sets, seniority level, location, and billability — all changes reflected in recommendations and the heatmap immediately.</span></div></div>
+        </div>
+        <div>
+          <div class="mock-screen">
+            <div class="mock-titlebar">
+              <div class="mock-dot" style="background:#FF5F57"></div><div class="mock-dot" style="background:#FFBD2E"></div><div class="mock-dot" style="background:#28C840"></div>
+              <div class="mock-url">staffing-app-production.up.railway.app</div>
+            </div>
+            <div class="mock-body" style="padding:0;">
+              <div class="mock-settings">
+                <div class="mock-sidebar">
+                  <div style="font-size:0.58rem;color:#444;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Settings</div>
+                  <div class="mock-nav-item active">User Mgmt</div>
+                  <div class="mock-nav-item">Consultants</div>
+                </div>
+                <div class="mock-panel">
+                  <div style="font-size:0.6rem;color:#555;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">Users</div>
+                  <div class="mock-user-row"><div class="mock-avatar">VP</div><div class="mock-user-name">Varun P.</div><span class="mock-role-pill admin">Admin</span><div class="mock-status-dot on"></div></div>
+                  <div class="mock-user-row"><div class="mock-avatar">SL</div><div class="mock-user-name">Sarah L.</div><span class="mock-role-pill rm">Res. Mgr</span><div class="mock-status-dot on"></div></div>
+                  <div class="mock-user-row"><div class="mock-avatar">MK</div><div class="mock-user-name">Mike K.</div><span class="mock-role-pill pm">Proj. Mgr</span><div class="mock-status-dot on"></div></div>
+                  <div class="mock-user-row"><div class="mock-avatar">JD</div><div class="mock-user-name">Jane D.</div><span class="mock-role-pill" style="background:rgba(100,100,100,0.15);color:#555;">Exec</span><div class="mock-status-dot off"></div></div>
+                  <div style="margin-top:10px;border-top:1px solid #2a2d3a;padding-top:8px;">
+                    <button style="font-size:0.6rem;padding:5px 10px;background:#86BC25;color:#fff;border:none;border-radius:4px;cursor:default;font-weight:700;">+ Invite User</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#fff);border-color:#86BC25;margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-size:1rem;font-weight:700;color:var(--dl-text-primary);margin-bottom:4px;">Ready to see it live?</div>
+            <div style="font-size:0.85rem;color:var(--dl-text-secondary);">The app is running in production with real data. Log in and explore any of the features covered in this walkthrough.</div>
+          </div>
+          <a class="cta-primary" href="https://staffing-app-production.up.railway.app" target="_blank" style="white-space:nowrap;">Open Live App ↗</a>
+        </div>
+      </div>
+
+      <div class="demo-nav-row">
+        <button class="demo-nav-btn" onclick="showDemoStep(3)">← Ask Claude</button>
+        <div class="demo-step-indicator">5 of 5</div>
+        <button class="demo-nav-btn next" onclick="showDemoStep(0)">↺ Start Over</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="footer">
+  <p>Staffing Intelligence · Built by <strong style="color:var(--dl-neon-green);">Varun Prabhakar</strong> · Deloitte NetSuite Practice</p>
+  <p>Session 22 · March 27, 2026 · <a href="https://staffing-app-production.up.railway.app" target="_blank" style="color:var(--dl-neon-green);text-decoration:none;font-weight:700;">staffing-app-production.up.railway.app ↗</a></p>
+</div>
+
+<script>
+function showTab(tab, btn) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+function showDemoStep(idx) {
+  document.querySelectorAll('.demo-step-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.demo-step-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('demo-step-' + idx).classList.add('active');
+  document.querySelectorAll('.demo-step-btn')[idx].classList.add('active');
+  document.querySelector('.demo-step-nav').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+</body>
+</html>
