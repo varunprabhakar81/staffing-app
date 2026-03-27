@@ -941,7 +941,7 @@ function renderRollingOff(heatmapData) {
   }
   el.innerHTML = results.slice(0, 4).map(r => {
     const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
-    return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" onclick="drillRollingOff('${_esc(r.name)}')" title="Click for availability details">
+    return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" data-name="${_esc(r.name)}" onclick="drillRollingOff(this.dataset.name)" title="Click for availability details">
       <div class="ov-cliff-name">${r.name}</div>
       <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
@@ -1011,7 +1011,7 @@ function drillRollingOff(empName) {
 
   // CTA: close modal → navigate to staffing tab → scroll + flash heatmap row
   const ctaBtn = `<button
-    onclick="closeDrilldown();_rollingOffNavigate('${_esc(empName)}')"
+    data-name="${_esc(empName)}" onclick="closeDrilldown();_rollingOffNavigate(this.dataset.name)"
     style="margin-top:24px;width:100%;padding:11px 0;background:#3B82F6;border:none;border-radius:9px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.01em"
     onmouseover="this.style.background='#2563EB'"
     onmouseout="this.style.background='#3B82F6'">Change Assignment</button>`;
