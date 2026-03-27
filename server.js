@@ -822,13 +822,16 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
         if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
           const start = parseDateStr(ch.startDate);
           const end   = parseDateStr(ch.endDate);
-          const hrs   = Number(ch.hoursPerWeek);
-          if (start && end) {
-            const matchingWks = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return wkDate && wkDate >= start && wkDate <= end; });
-            for (const wk of matchingWks) {
-              const weekEnding = weekKeyToDate[wk];
-              if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
-            }
+          if (!start || !end) {
+            console.warn(`[supply/update] update: unparseable date range for ${ch.project} — startDate=${ch.startDate} endDate=${ch.endDate}`);
+            continue;
+          }
+          const hrs = Number(ch.hoursPerWeek);
+          const matchingWks = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return wkDate && wkDate >= start && wkDate <= end; });
+          if (!matchingWks.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
+          for (const wk of matchingWks) {
+            const weekEnding = weekKeyToDate[wk];
+            if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
           }
         }
 
@@ -838,8 +841,13 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 
         const start = parseDateStr(ch.startDate);
         const end   = parseDateStr(ch.endDate);
-        const hrs   = Number(ch.hoursPerWeek) || 0;
-        const matchingWksAdd = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return start && end && wkDate && wkDate >= start && wkDate <= end; });
+        if (!start || !end) {
+          console.warn(`[supply/update] add: unparseable date range for ${ch.project} — startDate=${ch.startDate} endDate=${ch.endDate}`);
+          continue;
+        }
+        const hrs = Number(ch.hoursPerWeek) || 0;
+        const matchingWksAdd = weekKeys.filter(wk => { const wkDate = parseWkDate(wk); return wkDate && wkDate >= start && wkDate <= end; });
+        if (!matchingWksAdd.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
         for (const wk of matchingWksAdd) {
           const weekEnding = weekKeyToDate[wk];
           if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
@@ -891,7 +899,7 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
   for (const row of supply) {
     const name = row.employeeName;
     if (!empWeekMap[name]) {
-      empWeekMap[name] = { skillSet: row.skillSet || '', level: levelMap[name] || row.level || '', weekTotals: {} };
+      empWeekMap[name] = { skillSet: row.skillSet || '', allSkillSets: row.allSkillSets || [], level: levelMap[name] || row.level || '', weekTotals: {} };
     }
     for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
       empWeekMap[name].weekTotals[wk] = (empWeekMap[name].weekTotals[wk] || 0) + (hrs || 0);
@@ -923,7 +931,7 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
     const matches = [];
     for (const [name, info] of Object.entries(empWeekMap)) {
       if (info.level !== need.resourceLevel) continue;
-      if (info.skillSet !== need.skillSet) continue;
+      if (!info.allSkillSets || !info.allSkillSets.includes(need.skillSet)) continue;
 
       // Consultant qualifies only if they have capacity every week in the range
       let qualifies  = true;
