@@ -939,7 +939,16 @@ function renderRollingOff(heatmapData) {
   if (!results.length) {
     el.innerHTML = '<div class="ov-empty ok">✓ No major roll-offs in next 2 weeks</div>'; return;
   }
-  el.innerHTML = results.slice(0, 4).map(r => {
+
+  // Update panel header to show true total count
+  const panel = el.closest('.ov-panel');
+  if (panel) {
+    const titleSpan = panel.querySelector('.ov-panel-title');
+    if (titleSpan) titleSpan.textContent = `⏰ Rolling Off Soon (${results.length})`;
+  }
+
+  // Show up to 4 rows; append "View all (N)" link if more exist
+  const rowsHtml = results.slice(0, 4).map(r => {
     const bc = r.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
     return `<div class="ov-cliff-item dd-clickable" style="border-left-color:${bc}" data-name="${_esc(r.name)}" onclick="drillRollingOff(this.dataset.name)" title="Click for availability details">
       <div class="ov-cliff-name">${r.name}</div>
@@ -950,6 +959,12 @@ function renderRollingOff(heatmapData) {
       </div>
     </div>`;
   }).join('');
+
+  const viewAllHtml = results.length > 4
+    ? `<div style="text-align:center;padding:6px 0 2px"><a style="color:#F97316;font-size:12px;cursor:pointer;text-decoration:none;font-weight:500" onclick="drillAllRollingOff()">View all (${results.length}) →</a></div>`
+    : '';
+
+  el.innerHTML = rowsHtml + viewAllHtml;
 }
 
 // ── Rolling Off Soon — action-oriented drilldown (#141) ───────────
@@ -1024,6 +1039,59 @@ function drillRollingOff(empName) {
       ${projectRows}
     </div>
     ${ctaBtn}`);
+}
+
+// ── Rolling Off Soon — view-all grouped drilldown (#155) ──────────
+function drillAllRollingOff() {
+  const hm = rawData.heatmap;
+  if (!hm) {
+    openDrilldown('Rolling Off Soon', '<p class="dd-empty">No heatmap data loaded yet.</p>');
+    return;
+  }
+  const weeks = hm.weeks || [];
+  const results = [];
+  for (const emp of hm.employees) {
+    const w0 = emp.weeklyHours[0] || 0;
+    const w1 = emp.weeklyHours[1] || 0;
+    const w2 = emp.weeklyHours[2] || 0;
+    if (w0 < 20) continue;
+    if (w0 - w1 >= 20) {
+      results.push({ name: emp.name, level: emp.level || '—', skillSet: emp.skillSet || '',
+        fromH: w0, toH: w1, weekLabel: weeks[1] || 'next week', urgency: 'coral', drop: w0 - w1 });
+    } else if (w0 - w2 >= 20) {
+      results.push({ name: emp.name, level: emp.level || '—', skillSet: emp.skillSet || '',
+        fromH: w0, toH: w2, weekLabel: weeks[2] || 'week 3', urgency: 'yellow', drop: w0 - w2 });
+    }
+  }
+  results.sort((a, b) => a.urgency === b.urgency ? b.drop - a.drop : a.urgency === 'coral' ? -1 : 1);
+
+  if (!results.length) {
+    openDrilldown('Rolling Off Soon', '<p class="dd-empty">No major roll-offs in the next 2 weeks.</p>');
+    return;
+  }
+
+  const groupedRows = buildGroupedRows(results, e => e.level, e => {
+    const urgencyColor = e.urgency === 'coral' ? '#FFB3B3' : '#FFF3A3';
+    return `<tr>
+      <td><a style="color:#CDD9F5;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2)" onclick="closeDrilldown();drillRollingOff('${_esc(e.name)}')">${_esc(e.name)}</a></td>
+      <td style="color:#8892B0;font-size:12px">${_esc(e.level)}</td>
+      <td style="color:#8892B0;font-size:12px">${_esc(e.skillSet) || '—'}</td>
+      <td style="color:${urgencyColor};font-size:12px">${_esc(e.weekLabel)}</td>
+      <td style="background:rgba(255,179,179,0.08);color:${urgencyColor};font-weight:600;border-left:2px solid ${urgencyColor}">${e.fromH}h → ${e.toH}h</td>
+      <td><button onclick="event.stopPropagation();closeDrilldown();_rollingOffNavigate('${_esc(e.name)}')" style="padding:4px 10px;background:#3B82F6;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-family:inherit">Change Assignment</button></td>
+    </tr>`;
+  }, 6, true);
+
+  openDrilldown(`Rolling Off Soon (${results.length})`, `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
+    <table class="dd-table">
+      <thead><tr>
+        <th>Employee</th><th>Level</th><th>Skill Set</th><th>Roll-off Week</th><th>Hours Change</th><th></th>
+      </tr></thead>
+      <tbody>${groupedRows}</tbody>
+    </table>`);
 }
 
 // Navigate to staffing tab + scroll to employee row + CSS amber flash (#141)
