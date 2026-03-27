@@ -2563,9 +2563,12 @@ function drillHeadcount() {
       <td><span class="dd-badge ${stat.cls}">${stat.label}</span></td>
       <td style="font-size:12px;color:#8892B0">${projects}</td>
     </tr>`;
-  }, 6);
+  }, 6, true);
 
   openDrilldown(`All Employees — Headcount Detail (${sorted.length})`, `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
     <table class="dd-table">
       <thead><tr>
         <th>Employee</th><th>Level</th><th>Skill Set</th>
@@ -2643,7 +2646,7 @@ function drillUtilizationKPI() {
       <td><span class="dd-badge ${e.stat.cls}">${e.stat.label}</span></td>
       <td>${trend}</td>
     </tr>`;
-  }, 6);
+  }, 6, true);
 
   const summary = `<tr style="border-top:1px solid #2E3250;font-weight:600">
     <td colspan="3" style="color:#8892B0;padding-top:12px">Overall Average</td>
@@ -2652,6 +2655,9 @@ function drillUtilizationKPI() {
   </tr>`;
 
   openDrilldown('Utilization Breakdown — All Employees', `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
     <table class="dd-table">
       <thead><tr>
         <th>Employee</th><th>Level</th><th>Avg Hours</th>
@@ -2739,7 +2745,7 @@ function drillBenchKPI() {
       <td>${e.consecutive} wk${e.consecutive !== 1 ? 's' : ''}</td>
       <td style="font-size:12px;color:#8892B0">${e.lastProject}</td>
     </tr>`;
-  }, 6);
+  }, 6, true);
 
   const legend = benched.some(e => e.consecutive >= 2)
     ? '<p style="font-size:11px;color:#FFB3B3;margin-bottom:12px">● Benched 2+ consecutive weeks</p>'
@@ -2747,6 +2753,9 @@ function drillBenchKPI() {
 
   openDrilldown(`Bench Report — Available Resources (${benched.length})`,
     legend + `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
     <table class="dd-table">
       <thead><tr>
         <th>Employee</th><th>Level</th><th>Skill Set</th>
