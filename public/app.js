@@ -2065,7 +2065,7 @@ function renderNeedMatchPanel(roleIdx) {
   panel.innerHTML = `<div class="match-cards-container">${cards}</div>`;
 }
 
-function acceptMatch(needIdx, matchIdx, event) {
+async function acceptMatch(needIdx, matchIdx, event) {
   if (event) event.stopPropagation();
   if (!_needs.recommendations) return;
   const needData = _needs.recommendations[needIdx];
@@ -2081,6 +2081,7 @@ function acceptMatch(needIdx, matchIdx, event) {
   _needs.pending.push({ needIdx, need: needData.need, consultant: match });
   updateNeedsPendingBar();
   renderNeedMatchPanel(needIdx);
+  await saveAllAssignments();
 }
 
 function removeFromNeedsPending(idx, event) {
@@ -3420,7 +3421,7 @@ function _renderConsultantRow(c) {
     : '';
 
   const deactBtn = c.id
-    ? `<button onclick="deactivateConsultant('${_esc(c.id)}','${_esc(c.name)}')"
+    ? `<button data-cid="${_esc(c.id)}" data-name="${_esc(c.name)}" onclick="deactivateConsultant(this.dataset.cid,this.dataset.name)"
          style="height:32px;padding:0 12px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`
     : '';
@@ -3490,7 +3491,7 @@ function _renderInactiveConsultantRow(c) {
   const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#6B6F76;background:#1A1D27;border:1px solid rgba(255,255,255,0.1)">Inactive</span>`;
 
   const reactBtn = c.id
-    ? `<button onclick="reactivateConsultant('${_esc(c.id)}','${_esc(c.name)}')"
+    ? `<button data-cid="${_esc(c.id)}" data-name="${_esc(c.name)}" onclick="reactivateConsultant(this.dataset.cid,this.dataset.name)"
          style="height:32px;padding:0 12px;background:rgba(168,230,207,.12);border:1px solid rgba(168,230,207,.25);border-radius:6px;color:#A8E6CF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(168,230,207,.22)'" onmouseout="this.style.background='rgba(168,230,207,.12)'">Reactivate</button>`
     : '';
