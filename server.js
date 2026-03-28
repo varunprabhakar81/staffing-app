@@ -568,7 +568,6 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
       if (!projectId)    projectId    = projectByName[ch.project]?.id ?? null;
       if (!consultantId || !projectId) continue;
 
-      console.log('[#109 row check]', { consultantId, projectId, weekEnding, rowFound: !!row, rowIsBillable: row?.isBillable });
       // isBillable: prefer explicit value from request → existing assignment row → consultant default → true
       let isBillable = ch.isBillable !== undefined ? ch.isBillable : row?.isBillable;
       if (isBillable === undefined || isBillable === null) {
