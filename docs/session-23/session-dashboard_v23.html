@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session 23 — Staffing Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0F1117;
+    --bg-card: #1A1D27;
+    --bg-hover: #20242f;
+    --border: rgba(255,255,255,0.07);
+    --border-mid: rgba(255,255,255,0.12);
+    --text-primary: #E8EAF0;
+    --text-secondary: #8892B0;
+    --text-muted: #4A5168;
+    --blue: #A8C7FA;
+    --blue-bg: rgba(168,199,250,0.1);
+    --mint: #A8E6CF;
+    --mint-bg: rgba(168,230,207,0.1);
+    --amber: #FFF3A3;
+    --amber-bg: rgba(255,243,163,0.1);
+    --coral: #FFB3B3;
+    --coral-bg: rgba(255,179,179,0.1);
+    --purple: #C9B8FF;
+    --purple-bg: rgba(201,184,255,0.1);
+    --orange: #F97316;
+    --orange-bg: rgba(249,115,22,0.1);
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .shell {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 0.5px solid var(--border-mid);
+  }
+  .header-left h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+  }
+  .header-left .sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+  .header-right {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    text-align: right;
+  }
+  #live-time {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .metric {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .metric-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    color: var(--text-primary);
+  }
+  .metric-value.green  { color: var(--mint); }
+  .metric-value.amber  { color: var(--amber); }
+  .metric-value.orange { color: var(--orange); }
+  .metric-value.blue   { color: var(--blue); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 4px;
+  }
+
+  .prog-wrap {
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+  .prog-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--mint);
+    transition: width 0.4s ease;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .panel {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-header .cnt {
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .issue-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    border-bottom: 0.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+    user-select: none;
+  }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-row:hover { background: var(--bg-hover); }
+  .issue-row.done { opacity: 0.38; }
+  .issue-row.static { cursor: default; }
+  .issue-row.static:hover { background: transparent; }
+
+  .issue-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    min-width: 56px;
+  }
+  .issue-title {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.35;
+  }
+  .issue-est {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .b-open    { background: var(--blue-bg);   color: var(--blue);   border: 0.5px solid rgba(168,199,250,0.2); }
+  .b-closed  { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-carry   { background: var(--amber-bg);  color: var(--amber);  border: 0.5px solid rgba(255,243,163,0.2); }
+  .b-done    { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-tag     { background: var(--orange-bg); color: var(--orange); border: 0.5px solid rgba(249,115,22,0.2); }
+  .b-backlog { background: var(--purple-bg); color: var(--purple); border: 0.5px solid rgba(201,184,255,0.2); }
+  .b-uat     { background: var(--mint-bg);   color: var(--mint);   border: 0.5px solid rgba(168,230,207,0.2); }
+  .b-bug     { background: var(--coral-bg);  color: var(--coral);  border: 0.5px solid rgba(255,179,179,0.2); }
+  .b-v3      { background: var(--purple-bg); color: var(--purple); border: 0.5px solid rgba(201,184,255,0.2); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 10px;
+    padding-left: 2px;
+  }
+  .hint span { color: var(--blue); }
+
+  .log-section { margin-top: 20px; }
+  .log-header {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .log-list {
+    background: var(--bg-card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .log-entry {
+    padding: 7px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--text-muted); min-width: 54px; }
+  .log-msg { color: var(--text-secondary); }
+  .log-msg .hl { color: var(--mint); }
+  .log-msg .hl-amber { color: var(--amber); }
+  .log-msg .hl-orange { color: var(--orange); }
+  .log-msg .hl-blue { color: var(--blue); }
+  .log-msg .hl-purple { color: var(--purple); }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: transparent; }
+  .log-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .milestone-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+  }
+  .milestone-row:last-child { border-bottom: none; }
+  .milestone-name { color: var(--text-primary); font-weight: 500; }
+  .milestone-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .milestone-count .num { color: var(--text-primary); font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="header-left">
+      <h1>Session 23 — Staffing Intelligence App</h1>
+      <div class="sub">staffing-app · 9 closed · any-skill matching · Enter nav · name→profile modal · data cleanup</div>
+    </div>
+    <div class="header-right">
+      <span id="live-time"></span>
+      session complete
+    </div>
+  </div>
+
+  <!-- Top metrics -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Closed this session</div>
+      <div class="metric-value green">9</div>
+      <div class="metric-sub">issues resolved</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total closed</div>
+      <div class="metric-value green">76</div>
+      <div class="metric-sub">across all sessions</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Phase 2 remaining</div>
+      <div class="metric-value amber">5</div>
+      <div class="metric-sub">#152, #153, #156, #154, #129</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">V3 backlog</div>
+      <div class="metric-value blue">13</div>
+      <div class="metric-sub">scale + integrations</div>
+    </div>
+  </div>
+
+  <!-- Two columns -->
+  <div class="columns">
+
+    <!-- Closed this session -->
+    <div class="panel">
+      <div class="panel-header">Closed this session (S23) <span class="cnt">9 issues</span></div>
+      <div class="issue-row done static">
+        <span class="issue-num">#161</span>
+        <span class="issue-title">Rolling Off Soon apostrophe fix (data-name)</span>
+        <span class="badge b-closed">bug</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#160</span>
+        <span class="issue-title">KPI drilldowns open expanded + Expand/Collapse All</span>
+        <span class="badge b-closed">enh</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#155</span>
+        <span class="issue-title">Rolling Off Soon cap at 4 + View all (N)</span>
+        <span class="badge b-closed">enh</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#157</span>
+        <span class="issue-title">AI acceptance date range guard — no 0h rows</span>
+        <span class="badge b-closed">bug</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#158</span>
+        <span class="issue-title">Recommendations any-skill matching — allSkillSets</span>
+        <span class="badge b-closed">bug</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#159</span>
+        <span class="issue-title">Skill set schema consistency (closed with #158)</span>
+        <span class="badge b-closed">bug</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#146</span>
+        <span class="issue-title">Enter key navigation in heatmap cells</span>
+        <span class="badge b-closed">polish</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#147</span>
+        <span class="issue-title">Search bar visual enhancement</span>
+        <span class="badge b-closed">polish</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">#148</span>
+        <span class="issue-title">Consultant name → profile modal (chevron toggles)</span>
+        <span class="badge b-closed">enh</span>
+      </div>
+    </div>
+
+    <!-- Session highlights -->
+    <div class="panel">
+      <div class="panel-header">Session 23 highlights <span class="cnt">6 items</span></div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Recommendations fixed: allSkillSets.includes() — Benjamin Liu now surfaces for R2R Consolidation</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">AI acceptance guard: no 0h rows written outside engagement date range</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Heatmap Enter nav: while loop skips empty rows, polling for post-render DOM</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">Consultant name click in heatmap → openConsultantProfileEditor(data-cid)</span>
+        <span class="badge b-done">done</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">75 zero-hour resource_assignment rows deleted — demo data clean</span>
+        <span class="badge b-tag">cleanup</span>
+      </div>
+      <div class="issue-row done static">
+        <span class="issue-num">—</span>
+        <span class="issue-title">[#109 row check] debug log removed from server.js</span>
+        <span class="badge b-tag">chore</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Milestone summary + Next session -->
+  <div class="columns">
+
+    <!-- Milestone summary -->
+    <div class="panel">
+      <div class="panel-header">Milestone summary</div>
+      <div class="milestone-row">
+        <span class="milestone-name">V1 Stable</span>
+        <span class="milestone-count">✅ cleared · tagged <span style="color:var(--orange)">v1-stable</span></span>
+      </div>
+      <div class="milestone-row">
+        <span class="milestone-name">Phase 2</span>
+        <span class="milestone-count"><span class="num">5</span> open — #152, #153, #156, #154, #129</span>
+      </div>
+      <div class="milestone-row">
+        <span class="milestone-name">V3</span>
+        <span class="milestone-count"><span class="num">13</span> open — scale + integrations</span>
+      </div>
+      <div style="padding: 10px 16px; border-top: 0.5px solid var(--border);">
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:6px;">Session backlog items</div>
+        <div style="font-size:12px;color:var(--text-secondary);font-family:var(--mono);">
+          SB-2 orange consistency · SB-4 group header ·<br>
+          SB-7 chevron size → all fold into #154
+        </div>
+      </div>
+    </div>
+
+    <!-- Next session build order -->
+    <div class="panel">
+      <div class="panel-header">Next session — Phase 2 build order <span class="cnt">5 open</span></div>
+      <div class="issue-row static">
+        <span class="issue-num">#152</span>
+        <span class="issue-title">Skill set pill → consultants modal</span>
+        <span class="badge b-open">next</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#153</span>
+        <span class="issue-title">Group panels by level/role</span>
+        <span class="badge b-open">open</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#156</span>
+        <span class="issue-title">Open Needs filter for Fully Met rows</span>
+        <span class="badge b-open">open</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#154</span>
+        <span class="issue-title">Holistic UI/UX design pass (big one)</span>
+        <span class="badge b-backlog">polish</span>
+      </div>
+      <div class="issue-row static">
+        <span class="issue-num">#129</span>
+        <span class="issue-title">Historical staffing snapshots</span>
+        <span class="badge b-backlog">feat</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="hint">Session 23 complete · <span>76 issues closed · Phase 2 = 5 open · V3 = 13 open</span> · next: #152 skill set pill → consultants modal</div>
+
+  <!-- Activity log -->
+  <div class="log-section">
+    <div class="log-header"><span class="log-dot"></span> Activity log</div>
+    <div class="log-list" id="log-list">
+      <div class="log-entry">
+        <span class="log-time" id="start-time">--:--</span>
+        <span class="log-msg">Session 23 <span class="hl">complete</span> — 9 closed · 76 total · Phase 2 down to 5 open</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#158/#159</span> Recommendations engine: <span class="hl-amber">allSkillSets.includes()</span> — empWeekMap stores allSkillSets array. Benjamin Liu now surfaced for R2R Consolidation.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#157</span> AI acceptance date range guard — no 0h rows written outside engagement start/end</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#146</span> Enter key navigation: while loop skips empty rows, <span class="hl-blue">setInterval 50ms polling</span> for post-render DOM, Escape restores pending value</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#148</span> Consultant name click → <span class="hl-amber">openConsultantProfileEditor(data-cid)</span> · chevron → toggleHmExpand(data-emp)</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#155/#161</span> Rolling Off Soon: capped at 4, View all (N) → drillAllRollingOff(), apostrophe fix</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl">#160</span> KPI drilldowns open expanded by default + Expand/Collapse All button</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg"><span class="hl-orange">Data cleanup</span>: 75 zero-hour resource_assignment rows deleted · [#109 row check] debug log removed</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">—</span>
+        <span class="log-msg">Cache busters: <span class="hl-blue">app.js v=83</span> · <span class="hl-blue">styles.css v=41</span></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function tick() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('live-time').textContent = t;
+  }
+  tick(); setInterval(tick, 1000);
+
+  (function() {
+    const now = new Date();
+    document.getElementById('start-time').textContent =
+      now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  })();
+</script>
+</body>
+</html>
