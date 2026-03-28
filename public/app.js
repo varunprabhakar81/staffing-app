@@ -1445,22 +1445,25 @@ function _vsRenderRow(row) {
       const match = wkProjs.find(p => p.project === projName);
       const origH = match ? match.hours : 0;
 
-      const isActive = _editActiveCell &&
-        _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i &&
-        _editActiveCell.project === projName;
-      if (isActive) {
-        return `<td class="hm-sub-cell hm-cell-editing">
-          <input class="hm-cell-input" type="number" min="0" max="100"
-            value="${origH}" data-emp="${sn}" data-idx="${i}" data-proj="${encodeAttr(projName)}"
-            onblur="hmCellBlur(this)"
-            onkeydown="hmCellKeydown(event,this)"
-            onfocus="this.select()"></td>`;
-      }
-
       const weekLabel = _vsData ? _vsData.weeks[i] : '';
       const fillKey   = `${emp.name}||${weekLabel}||${projName}`;
       const pending   = _pendingStaffing.has(fillKey) ? _pendingStaffing.get(fillKey) : null;
       const h         = pending !== null ? pending : origH;
+
+      const isActive = _editActiveCell &&
+        _editActiveCell.empName === emp.name && _editActiveCell.weekIdx === i &&
+        _editActiveCell.project === projName;
+      if (isActive) {
+        // Use pending value if one exists so navigating back shows the committed value,
+        // not the original server value (which would cause hmCellBlur to delete the pending entry).
+        const activeVal = pending !== null ? pending : origH;
+        return `<td class="hm-sub-cell hm-cell-editing">
+          <input class="hm-cell-input" type="number" min="0" max="100"
+            value="${activeVal}" data-original="${origH}" data-emp="${sn}" data-idx="${i}" data-proj="${encodeAttr(projName)}"
+            onblur="hmCellBlur(this)"
+            onkeydown="hmCellKeydown(event,this)"
+            onfocus="this.select()"></td>`;
+      }
       const isPending = pending !== null;
 
       const _subBl = isPending ? '3px solid #F59E0B' : `3px solid ${heatmapCellBorder(h)}`;
@@ -3173,40 +3176,66 @@ function hmCellBlur(input) {
 
 function hmCellKeydown(event, input) {
   if (event.key === 'Escape') {
+    // Cancel edit — restore original server value, clear any pending change for this cell
+    const _escWeekIdx = parseInt(input.dataset.idx);
+    const _escEmpName = input.dataset.emp;
+    const _escProject = input.dataset.proj || null;
+    const _escWeekLabel = _vsData ? _vsData.weeks[_escWeekIdx] : null;
+    if (_escProject && _escWeekLabel) {
+      _pendingStaffing.delete(`${_escEmpName}||${_escWeekLabel}||${_escProject}`);
+    }
     _editActiveCell = null;
     _buildVsAllRows();
     _vsRenderVisible();
     return;
   }
-  if (event.key === 'Tab' || event.key === 'Enter') {
+  if (event.key === 'Tab') {
     event.preventDefault();
     const weekIdx = parseInt(input.dataset.idx);
     const empName = input.dataset.emp;
     const project = input.dataset.proj || null;
     hmCellBlur(input); // commit first
-
-    if (event.key === 'Tab') {
-      const maxWeek = (_vsData ? _vsData.weeks.length : 1) - 1;
-      const nextIdx = event.shiftKey ? weekIdx - 1 : weekIdx + 1;
-      if (nextIdx >= 0 && nextIdx <= maxWeek) {
-        _editActiveCell = { empName, weekIdx: nextIdx, project };
-        _buildVsAllRows();
-        _vsRenderVisible();
-        setTimeout(() => {
-          const ni = document.querySelector('.hm-cell-editing input');
-          if (ni) { ni.focus(); ni.select(); }
-        }, 0);
-      }
+    const maxWeek = (_vsData ? _vsData.weeks.length : 1) - 1;
+    const nextIdx = event.shiftKey ? weekIdx - 1 : weekIdx + 1;
+    if (nextIdx >= 0 && nextIdx <= maxWeek) {
+      _editActiveCell = { empName, weekIdx: nextIdx, project };
+      _buildVsAllRows();
+      _vsRenderVisible();
+      setTimeout(() => {
+        const ni = document.querySelector('.hm-cell-editing input');
+        if (ni) { ni.focus(); ni.select(); }
+      }, 0);
     }
-    // Enter: just commit; for "move down" we'd need employee ordering, skip for simplicity
+    return;
   }
-  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    event.preventDefault(); // prevent number input increment/decrement
+  // ArrowLeft/Right = navigate to previous/next week column (commit first)
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault();
     const weekIdx = parseInt(input.dataset.idx);
     const empName = input.dataset.emp;
     const project = input.dataset.proj || null;
-    if (!project) return; // total row — no project to navigate from
-    const goDown = event.key === 'ArrowDown';
+    hmCellBlur(input); // commit pending changes map before navigating
+    const maxWeek = (_vsData ? _vsData.weeks.length : 1) - 1;
+    const nextIdx = event.key === 'ArrowLeft' ? weekIdx - 1 : weekIdx + 1;
+    if (nextIdx >= 0 && nextIdx <= maxWeek) {
+      _editActiveCell = { empName, weekIdx: nextIdx, project };
+      _buildVsAllRows();
+      _vsRenderVisible();
+      setTimeout(() => {
+        const ni = document.querySelector('.hm-cell-editing input');
+        if (ni) { ni.focus(); ni.select(); }
+      }, 0);
+    }
+    return;
+  }
+  // Enter = move down (same column, next row); ArrowDown/Up = move within column
+  if (event.key === 'Enter' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault(); // prevent number input spin on arrow keys
+    const weekIdx = parseInt(input.dataset.idx);
+    const empName = input.dataset.emp;
+    const project = input.dataset.proj || null;
+    if (!project) { if (event.key === 'Enter') hmCellBlur(input); return; } // total row — commit on Enter, no navigation
+    const goDown = event.key !== 'ArrowUp';
 
     // Returns ordered project list for any employee (same order as sub-rows)
     const empProjects = emp => {
@@ -3237,7 +3266,7 @@ function hmCellKeydown(event, input) {
     const nextProjIdx = goDown ? curIdx + 1 : curIdx - 1;
 
     if (nextProjIdx >= 0 && nextProjIdx < allProjects.length) {
-      // Within same consultant
+      // Within same consultant — move to next/prev project row
       hmCellBlur(input);
       _editActiveCell = { empName, weekIdx, project: allProjects[nextProjIdx] };
       _buildVsAllRows();
@@ -3249,13 +3278,31 @@ function hmCellKeydown(event, input) {
     // At consultant boundary — cross to adjacent consultant
     const emps = orderedEmps();
     const empIdx = emps.findIndex(e => e.name === empName);
-    if (empIdx === -1) return;
+    if (empIdx === -1) { if (event.key === 'Enter') hmCellBlur(input); return; }
     const targetEmpIdx = goDown ? empIdx + 1 : empIdx - 1;
-    if (targetEmpIdx < 0 || targetEmpIdx >= emps.length) return; // absolute boundary — do nothing
-    const targetEmp = emps[targetEmpIdx];
+    if (targetEmpIdx < 0 || targetEmpIdx >= emps.length) {
+      // Absolute boundary: Enter commits + blurs; arrows do nothing
+      if (event.key === 'Enter') hmCellBlur(input);
+      return;
+    }
+    // Skip past collapsed employees (no projects) to find first expanded one
+    let _nextEmpIdx = targetEmpIdx;
+    while (_nextEmpIdx >= 0 && _nextEmpIdx < emps.length && !empProjects(emps[_nextEmpIdx]).length) {
+      _nextEmpIdx = goDown ? _nextEmpIdx + 1 : _nextEmpIdx - 1;
+    }
+    if (_nextEmpIdx < 0 || _nextEmpIdx >= emps.length) {
+      // No expanded employee found in that direction — commit and blur cleanly
+      if (event.key === 'Enter') hmCellBlur(input);
+      return;
+    }
+    const targetEmp = emps[_nextEmpIdx];
     const targetProjects = empProjects(targetEmp);
-    if (!targetProjects.length) return;
-    // Expand target consultant if collapsed
+    if (!targetProjects.length) {
+      // Still empty after loop (shouldn't happen) — blur cleanly on Enter
+      if (event.key === 'Enter') hmCellBlur(input);
+      return;
+    }
+    // targetEmp is already expanded (empProjects returned non-empty); ensure set membership
     if (!_hmExpanded.has(targetEmp.name)) _hmExpanded.add(targetEmp.name);
     hmCellBlur(input);
     _editActiveCell = {
@@ -3265,7 +3312,14 @@ function hmCellKeydown(event, input) {
     };
     _buildVsAllRows();
     _vsRenderVisible();
-    setTimeout(() => { const ni = document.querySelector('.hm-cell-editing input'); if (ni) { ni.focus(); ni.select(); } }, 0);
+    // Poll for the active-cell input to appear (virtual scroll may not have rendered it yet)
+    let _navAttempts = 0;
+    const _navPoll = setInterval(() => {
+      const nameTd = document.querySelector(`td.hm-sub-name-cell[data-emp="${CSS.escape(targetEmp.name)}"]`);
+      const cell = nameTd && nameTd.closest('tr').querySelector('.hm-cell-editing input');
+      if (cell) { cell.focus(); cell.select(); clearInterval(_navPoll); return; }
+      if (++_navAttempts >= 20) clearInterval(_navPoll);
+    }, 50);
   }
 }
 
