@@ -1419,13 +1419,13 @@ function _vsRenderRow(row) {
         onmouseleave="hideHmTooltip()">${displayH}</td>`;
     }).join('');
     return `<tr class="hm-emp-row">
-      <td class="hm-name-cell" data-emp="${sn}" data-tip="${tip}"
+      <td class="hm-name-cell" data-emp="${sn}" data-cid="${_esc(emp.id||'')}" data-tip="${tip}"
         onmouseenter="showEmpTip(event,this)"
         onmousemove="moveEmpTip(event)"
         onmouseleave="hideEmpTip()">
-        <div class="hm-name-inner" onmousedown="if(_editActiveCell)_editActiveCell=null;" onclick="toggleHmExpand(this.closest('td').dataset.emp)">
-          <span class="hm-chevron">${chv}</span>
-          <div class="hm-name-text"><div class="hm-emp-name">${emp.name}</div></div>
+        <div class="hm-name-inner" onmousedown="if(_editActiveCell)_editActiveCell=null;">
+          <span class="hm-chevron" onclick="toggleHmExpand(this.closest('td').dataset.emp)" title="Expand/collapse">${chv}</span>
+          <div class="hm-name-text"${emp.id ? ` onclick="openConsultantProfileEditor(this.closest('td').dataset.cid)" title="Open consultant profile"` : ''}><div class="hm-emp-name">${emp.name}</div></div>
         </div>
         <div class="hm-row-actions">
           <span class="hm-info-icon"

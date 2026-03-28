@@ -2790,12 +2790,10 @@ td[data-cell-type="emp-total"]:hover {
   display: flex;
   align-items: center;
   gap: 4px;
-  cursor: pointer;
+  cursor: default;
   height: 48px;
   padding-right: 44px; /* leave room for hm-row-actions buttons */
 }
-
-.hm-name-inner:hover .hm-emp-name { color: var(--accent); }
 
 /* ── Chevron ────────────────────────────────────────────────────── */
 .hm-chevron {
@@ -2809,10 +2807,12 @@ td[data-cell-type="emp-total"]:hover {
   user-select: none;
   transition: color 0.15s;
   line-height: 1;
+  cursor: pointer;
 }
-.hm-name-inner:hover .hm-chevron { color: var(--accent); }
+.hm-chevron:hover { color: var(--accent); }
 
-.hm-name-text { flex: 1; min-width: 0; }
+.hm-name-text { flex: 1; min-width: 0; cursor: pointer; }
+.hm-name-text:hover .hm-emp-name { color: var(--accent); }
 
 /* ── Row action buttons container (ℹ and +) ────────────────────── */
 .hm-row-actions {
