@@ -65,7 +65,7 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     }
     // Reload active panel each time Settings tab is opened
     if (tab === 'settings') {
-      const defaultPanel = currentUserRole === 'admin' ? 'users' : 'consultants';
+      const defaultPanel = 'consultants';
       switchSettingsPanel(_settingsActivePanel || defaultPanel);
     }
   });
