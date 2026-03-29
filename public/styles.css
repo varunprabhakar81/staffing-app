@@ -930,25 +930,28 @@ body {
 
 /* Col 1: Project */
 .coverage-table th:nth-child(1),
-.coverage-table td:nth-child(1) { width: 24%; }
+.coverage-table td:nth-child(1) { width: 22%; }
 /* Col 2: Skill */
 .coverage-table th:nth-child(2),
-.coverage-table td:nth-child(2) { width: 18%; }
+.coverage-table td:nth-child(2) { width: 16%; }
 /* Col 3: Level */
 .coverage-table th:nth-child(3),
-.coverage-table td:nth-child(3) { width: 14%; }
+.coverage-table td:nth-child(3) { width: 13%; }
 /* Col 4: Hrs/Wk */
 .coverage-table th:nth-child(4),
 .coverage-table td:nth-child(4) { width: 9%; }
 /* Col 5: Start */
 .coverage-table th:nth-child(5),
-.coverage-table td:nth-child(5) { width: 11%; }
+.coverage-table td:nth-child(5) { width: 10%; }
 /* Col 6: End */
 .coverage-table th:nth-child(6),
-.coverage-table td:nth-child(6) { width: 11%; }
+.coverage-table td:nth-child(6) { width: 10%; }
 /* Col 7: Status */
 .coverage-table th:nth-child(7),
-.coverage-table td:nth-child(7) { width: 13%; }
+.coverage-table td:nth-child(7) { width: 12%; }
+/* Col 8: Actions */
+.coverage-table th:nth-child(8),
+.coverage-table td:nth-child(8) { width: 8%; text-align: right; }
 
 .coverage-table .col-project,
 .coverage-table th:nth-child(1) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
