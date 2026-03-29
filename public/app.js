@@ -20,7 +20,7 @@ let currentUserCanViewRates = false;
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
-let _needsStatusFilter = null;    // active donut segment filter: 'fully_met' | 'partially_met' | 'unmet' | null
+let _needsStatusFilter = null;    // active donut segment filter: 'partially_met' | 'unmet' | null
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
 let _cpIsDirty = false;            // tracks unsaved changes in profile editor
 let _cpSnapshot = null;            // original field values for revert
@@ -731,7 +731,7 @@ function renderOverviewStats(data, heatmapData) {
   // ── Card 3: Pipeline Coverage ─────────────────────────────────────
   const summary    = (data.needsCoverage || {}).summary || {};
   const unmet      = summary.unmet || 0;
-  const totalRoles = (summary.fully_met || 0) + (summary.partially_met || 0) + unmet;
+  const totalRoles = (summary.partially_met || 0) + unmet;
   const needsColor = unmet > 0 ? '#FFB3B3' : '#A8E6CF';
   const needsCard  = document.getElementById('overviewNeedsCard');
   if (needsCard) needsCard.style.setProperty('--ov-accent', needsColor);
@@ -1865,10 +1865,9 @@ function renderCoverageChart(coverage) {
   _needsStatusFilter = null;
 
   const summary      = coverage.summary || {};
-  const fullyMet     = summary.fully_met    || 0;
   const partiallyMet = summary.partially_met || 0;
   const unmet        = summary.unmet        || 0;
-  const total        = fullyMet + partiallyMet + unmet;
+  const total        = partiallyMet + unmet;
 
   const badge = document.getElementById('coverageBadge');
   badge.textContent = total ? `${total} open needs` : 'No open needs';
@@ -1877,12 +1876,12 @@ function renderCoverageChart(coverage) {
   charts.coverage = new Chart(document.getElementById('chartCoverage'), {
     type: 'doughnut',
     data: {
-      labels: ['Fully Met', 'Partially Met', 'Unmet'],
+      labels: ['Partially Met', 'Unmet'],
       datasets: [{
-        data: total === 0 ? [1, 0, 0] : [fullyMet, partiallyMet, unmet],
+        data: total === 0 ? [1, 0] : [partiallyMet, unmet],
         backgroundColor: total === 0
-          ? ['#2E3250', '#2E3250', '#2E3250']
-          : ['#A8E6CF', '#FFF3A3', '#FFB3B3'],
+          ? ['#2E3250', '#2E3250']
+          : ['#FFF3A3', '#FFB3B3'],
         borderWidth: 0,
         hoverOffset: 0,
       }],
@@ -1894,7 +1893,7 @@ function renderCoverageChart(coverage) {
       cutout: '62%',
       animation: { animateRotate: true, animateScale: false },
       onClick(evt, elements) {
-        const statusMap = ['fully_met', 'partially_met', 'unmet'];
+        const statusMap = ['partially_met', 'unmet'];
         const clicked = elements.length ? statusMap[elements[0].index] : null;
         if (!clicked || _needsStatusFilter === clicked) {
           _needsStatusFilter = null;
@@ -1930,13 +1929,12 @@ function renderCoverageChart(coverage) {
 
   const legendEl = document.getElementById('coverageLegend');
   if (legendEl) {
-    const colors = total === 0 ? ['#2E3250', '#2E3250', '#2E3250'] : ['#A8E6CF', '#FFF3A3', '#FFB3B3'];
+    const colors = total === 0 ? ['#2E3250', '#2E3250'] : ['#FFF3A3', '#FFB3B3'];
     const items  = [
-      { label: 'Fully Met',     count: fullyMet,     color: colors[0] },
-      { label: 'Partially Met', count: partiallyMet, color: colors[1] },
-      { label: 'Unmet',         count: unmet,         color: colors[2] },
+      { label: 'Partially Met', count: partiallyMet, color: colors[0] },
+      { label: 'Unmet',         count: unmet,         color: colors[1] },
     ];
-    const statusKeys = ['fully_met', 'partially_met', 'unmet'];
+    const statusKeys = ['partially_met', 'unmet'];
     legendEl.innerHTML = items.map((it, i) =>
       `<div class="cov-legend-item" data-filter-status="${statusKeys[i]}" style="cursor:pointer" title="Click to filter">
         <span class="cov-legend-dot" style="background:${it.color}"></span>
@@ -2041,7 +2039,7 @@ function applyNeedsFilter() {
   const legendEl = document.getElementById('coverageLegend');
   if (legendEl) {
     legendEl.querySelectorAll('.cov-legend-item').forEach((el, i) => {
-      const statuses = ['fully_met', 'partially_met', 'unmet'];
+      const statuses = ['partially_met', 'unmet'];
       const isActive = _needsStatusFilter === statuses[i];
       el.style.opacity = _needsStatusFilter && !isActive ? '0.4' : '1';
       el.style.fontWeight = isActive ? '600' : '';
@@ -2053,7 +2051,7 @@ function applyNeedsFilter() {
   if (chart && chart.data && chart.data.datasets[0]) {
     const ds = chart.data.datasets[0];
     const count = ds.data.length;
-    const statuses = ['fully_met', 'partially_met', 'unmet'];
+    const statuses = ['partially_met', 'unmet'];
     ds.borderColor = Array.from({ length: count }, (_, i) =>
       _needsStatusFilter === statuses[i] ? '#FFFFFF' : 'transparent'
     );
