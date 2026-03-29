@@ -210,7 +210,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **allSkillSets.includes() for matching** — recommendations engine matches against full `allSkillSets` array, not primary skill only. `empWeekMap` stores `allSkillSets` array. Never revert to primary-only matching.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=89`, `styles.css?v=47`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=91`, `styles.css?v=48`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
