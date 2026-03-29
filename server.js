@@ -375,6 +375,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     return {
       _needId:      role._needId,
       project:      role.projectName,
+      client:       role.clientName,
       level:        role.resourceLevel,
       skillSet:     role.skillSet,
       startDate:    role.startDate,

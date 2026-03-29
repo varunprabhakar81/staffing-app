@@ -928,35 +928,40 @@ body {
   table-layout: fixed;
 }
 
-/* Col 1: Project */
+/* Col 1: Client */
 .coverage-table th:nth-child(1),
-.coverage-table td:nth-child(1) { width: 22%; }
-/* Col 2: Skill */
+.coverage-table td:nth-child(1) { width: 13%; }
+/* Col 2: Project */
 .coverage-table th:nth-child(2),
-.coverage-table td:nth-child(2) { width: 16%; }
-/* Col 3: Level */
+.coverage-table td:nth-child(2) { width: 14%; }
+/* Col 3: Skill */
 .coverage-table th:nth-child(3),
-.coverage-table td:nth-child(3) { width: 13%; }
-/* Col 4: Hrs/Wk */
+.coverage-table td:nth-child(3) { width: 14%; }
+/* Col 4: Level */
 .coverage-table th:nth-child(4),
-.coverage-table td:nth-child(4) { width: 9%; }
-/* Col 5: Start */
+.coverage-table td:nth-child(4) { width: 11%; }
+/* Col 5: Hrs/Wk */
 .coverage-table th:nth-child(5),
-.coverage-table td:nth-child(5) { width: 10%; }
-/* Col 6: End */
+.coverage-table td:nth-child(5) { width: 8%; }
+/* Col 6: Start */
 .coverage-table th:nth-child(6),
 .coverage-table td:nth-child(6) { width: 10%; }
-/* Col 7: Status */
+/* Col 7: End */
 .coverage-table th:nth-child(7),
-.coverage-table td:nth-child(7) { width: 12%; }
-/* Col 8: Actions */
+.coverage-table td:nth-child(7) { width: 10%; }
+/* Col 8: Status */
 .coverage-table th:nth-child(8),
-.coverage-table td:nth-child(8) { width: 8%; text-align: right; }
+.coverage-table td:nth-child(8) { width: 12%; }
+/* Col 9: Actions */
+.coverage-table th:nth-child(9),
+.coverage-table td:nth-child(9) { width: 8%; text-align: right; }
 
-.coverage-table .col-project,
+.coverage-table .col-client,
 .coverage-table th:nth-child(1) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.coverage-table .col-skill,
+.coverage-table .col-project,
 .coverage-table th:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coverage-table .col-skill,
+.coverage-table th:nth-child(3) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .coverage-table .col-center { text-align: center; }
 
 .coverage-table th {

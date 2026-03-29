@@ -1980,6 +1980,7 @@ function renderCoverageChart(coverage) {
       : '';
     return `
     <tr class="dd-clickable need-row" data-status="${r.status || 'unmet'}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+      <td class="col-client">${r.client ? _esc(r.client) : '—'}</td>
       <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
       <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
       <td>${r.level || '—'}</td>
@@ -1990,7 +1991,7 @@ function renderCoverageChart(coverage) {
       <td class="col-actions">${abandonBtn}</td>
     </tr>
     <tr class="need-expansion-row hidden" id="need-exp-${i}">
-      <td colspan="8" class="need-expansion-cell">
+      <td colspan="9" class="need-expansion-cell">
         <div class="need-match-panel" id="need-match-panel-${i}">
           <div class="need-match-loading">Finding matches…</div>
         </div>
@@ -2002,7 +2003,7 @@ function renderCoverageChart(coverage) {
   tableEl.innerHTML = `
     <table>
       <thead><tr>
-        <th>Project</th><th>Skill</th><th>Level</th>
+        <th>Client</th><th>Project</th><th>Skill</th><th>Level</th>
         <th class="col-center">Hrs/Wk</th>
         <th class="col-center">Start</th>
         <th class="col-center">End</th>
