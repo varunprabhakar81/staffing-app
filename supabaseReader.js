@@ -414,6 +414,7 @@ async function createProject(projectData, tenantId = TENANT_ID) {
       probability_pct: projectData.probability_pct ?? null,
       start_date:      projectData.start_date || null,
       end_date:        projectData.end_date   || null,
+      is_billable:     true,
     })
     .select()
     .single();
