@@ -993,7 +993,6 @@ function drillRollingOff(empName) {
   // First available: first week in rolling window where total booked hours drop below 45h
   windowIndices.forEach(({ wk, i }) => {
     const hrs = emp.weeklyHours[i] || 0;
-    console.log('[drillRollingOff]', { weekKey: 'Week ending ' + wk, totalHours: hrs, isAvailable: hrs < 45 });
   });
   const firstAvailEntry = windowIndices.find(({ i }) => (emp.weeklyHours[i] || 0) < 45);
   let firstAvailHtml;
@@ -2338,7 +2337,6 @@ async function openSkillSetModal(skillName, needContext = null, source = 'needs'
     const res  = await apiFetch(`/api/skill-sets/${encodeURIComponent(skillName)}/consultants`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    console.log('[skillModal] raw response:', data);
     if (!Array.isArray(data)) {
       openDrilldown(skillName, '<p class="dd-empty">Failed to load consultants.</p>');
       return;
@@ -2373,7 +2371,6 @@ async function openSkillSetModal(skillName, needContext = null, source = 'needs'
       </tr>`;
     }, 4, true);
     const actionHeader = needContext ? '<th>Action</th>' : '';
-    console.log('[skillModal] groupedRows HTML length:', groupedRows.length);
     openDrilldown(skillName, `
       ${subtitle}
       <div style="padding:0 0 8px">
@@ -4155,7 +4152,6 @@ async function openAddProjectModal(empName) {
       return;
     }
     allProjects = await res.json();
-    console.log('[addProject] /api/projects returned', allProjects.length, 'projects', allProjects);
   } catch (e) {
     console.error('[addProject] fetch error', e);
     showToast('Failed to load projects', 'error');
@@ -4170,13 +4166,11 @@ async function openAddProjectModal(empName) {
       for (const p of wkProjs)
         if (p.project && p.project !== 'Unassigned') assignedProjects.add(p.project);
   }
-  console.log('[addProject] assigned projects for', empName, [...assignedProjects]);
 
   // Populate project dropdown (exclude already assigned)
   const projSel = document.getElementById('apProject');
   projSel.innerHTML = '<option value="">Select project…</option>';
   const available = allProjects.filter(p => !assignedProjects.has(p.name));
-  console.log('[addProject] available projects', available.length, available.map(p => p.name));
   if (available.length === 0) {
     const opt = document.createElement('option');
     opt.value = '';
