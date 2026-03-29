@@ -4759,6 +4759,195 @@ function initLocationTypeahead() {
   });
 }
 
+// ── Create New Need Modal (#164) ──────────────────────────────────
+
+let _cnStep            = 1;
+let _cnNewProjExpanded = false;
+
+function openCreateNeedModal() {
+  _cnStep            = 1;
+  _cnNewProjExpanded = false;
+
+  document.getElementById('cn-step-1').classList.remove('hidden');
+  document.getElementById('cn-step-2').classList.add('hidden');
+  document.getElementById('cn-new-proj-form').classList.add('hidden');
+  document.getElementById('cn-new-proj-toggle-icon').textContent = '＋';
+  _cnResetNewProjForm();
+  _cnUpdateStepIndicator();
+  _cnUpdateFooter();
+
+  document.getElementById('create-need-modal').classList.remove('hidden');
+  _cnLoadProjects();
+}
+
+function closeCreateNeedModal() {
+  document.getElementById('create-need-modal').classList.add('hidden');
+  _cnStep            = 1;
+  _cnNewProjExpanded = false;
+}
+
+async function _cnLoadProjects() {
+  const sel = document.getElementById('cn-project-select');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const res = await apiFetch('/api/projects?status=Verbal+Commit,Sold');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const projects = await res.json();
+    sel.innerHTML = '<option value="">— select a project —</option>';
+    for (const p of projects) {
+      const opt = document.createElement('option');
+      opt.value       = p.id;
+      opt.textContent = p.name + (p.clientName ? ` (${p.clientName})` : '');
+      sel.appendChild(opt);
+    }
+  } catch (e) {
+    sel.innerHTML = '<option value="">Failed to load projects</option>';
+    showToast('Failed to load projects', 'error');
+  }
+}
+
+function _cnToggleNewProjectForm() {
+  _cnNewProjExpanded = !_cnNewProjExpanded;
+  const form = document.getElementById('cn-new-proj-form');
+  const icon = document.getElementById('cn-new-proj-toggle-icon');
+  if (_cnNewProjExpanded) {
+    form.classList.remove('hidden');
+    icon.textContent = '−';
+    document.getElementById('cn-proj-name').focus();
+  } else {
+    form.classList.add('hidden');
+    icon.textContent = '＋';
+    _cnResetNewProjForm();
+  }
+}
+
+function _cnResetNewProjForm() {
+  ['cn-proj-name', 'cn-proj-client', 'cn-proj-probability', 'cn-proj-start', 'cn-proj-end'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const statusEl = document.getElementById('cn-proj-status');
+  if (statusEl) statusEl.value = '';
+  const errEl = document.getElementById('cn-proj-error');
+  if (errEl) errEl.classList.add('hidden');
+}
+
+function _cnAutoSetProbability() {
+  const probMap = { 'Proposed': 25, 'Verbal Commit': 75, 'Sold': 100 };
+  const status  = document.getElementById('cn-proj-status').value;
+  if (probMap[status] != null) {
+    document.getElementById('cn-proj-probability').value = probMap[status];
+  }
+}
+
+async function _cnSaveNewProject() {
+  const name   = document.getElementById('cn-proj-name').value.trim();
+  const client = document.getElementById('cn-proj-client').value.trim();
+  const status = document.getElementById('cn-proj-status').value;
+  const prob   = document.getElementById('cn-proj-probability').value;
+  const start  = document.getElementById('cn-proj-start').value;
+  const end    = document.getElementById('cn-proj-end').value;
+  const errEl  = document.getElementById('cn-proj-error');
+
+  if (!name)   { errEl.textContent = 'Project name is required.'; errEl.classList.remove('hidden'); return; }
+  if (!status) { errEl.textContent = 'Status is required.';       errEl.classList.remove('hidden'); return; }
+  errEl.classList.add('hidden');
+
+  const btn = document.getElementById('cn-save-proj-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await apiFetch('/api/projects', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        name,
+        clientName:  client || null,
+        status,
+        probability: prob ? Number(prob) : null,
+        startDate:   start || null,
+        endDate:     end   || null,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    const project = await res.json();
+
+    // Add new project to dropdown and auto-select it
+    const sel = document.getElementById('cn-project-select');
+    const opt = document.createElement('option');
+    opt.value       = project.id;
+    opt.textContent = name + (client ? ` (${client})` : '');
+    sel.appendChild(opt);
+    sel.value = project.id;
+
+    // Collapse sub-form
+    _cnNewProjExpanded = false;
+    document.getElementById('cn-new-proj-form').classList.add('hidden');
+    document.getElementById('cn-new-proj-toggle-icon').textContent = '＋';
+    _cnResetNewProjForm();
+
+    showToast('Project created', 'success');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Save Project';
+  }
+}
+
+function _cnNextStep() {
+  const projectId = document.getElementById('cn-project-select').value;
+  if (!projectId) {
+    showToast('Please select a project before continuing.', 'default');
+    return;
+  }
+  _cnStep = 2;
+  document.getElementById('cn-step-1').classList.add('hidden');
+  document.getElementById('cn-step-2').classList.remove('hidden');
+  _cnUpdateStepIndicator();
+  _cnUpdateFooter();
+}
+
+function _cnPrevStep() {
+  _cnStep = 1;
+  document.getElementById('cn-step-2').classList.add('hidden');
+  document.getElementById('cn-step-1').classList.remove('hidden');
+  _cnUpdateStepIndicator();
+  _cnUpdateFooter();
+}
+
+function _cnUpdateStepIndicator() {
+  const labels = ['Step 1 of 2 — Select Project', 'Step 2 of 2 — Need Details'];
+  document.getElementById('cn-step-indicator').textContent = labels[_cnStep - 1];
+}
+
+function _cnUpdateFooter() {
+  const backBtn   = document.getElementById('cn-back-btn');
+  const cancelBtn = document.getElementById('cn-cancel-btn');
+  const nextBtn   = document.getElementById('cn-next-btn');
+  const createBtn = document.getElementById('cn-create-btn');
+  if (_cnStep === 1) {
+    backBtn.classList.add('hidden');
+    cancelBtn.classList.remove('hidden');
+    nextBtn.classList.remove('hidden');
+    createBtn.classList.add('hidden');
+  } else {
+    backBtn.classList.remove('hidden');
+    cancelBtn.classList.add('hidden');
+    nextBtn.classList.add('hidden');
+    createBtn.classList.remove('hidden');
+  }
+}
+
+function _cnSubmit() {
+  // Implemented in Sub-task C
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -4780,6 +4969,12 @@ function initLocationTypeahead() {
   if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
   // resource_manager: settings tab visible (Consultants panel), but User Management is hidden
   // admin: no tabs hidden
+
+  // Show Create New Need button for roles that can create needs
+  if (role === 'admin' || role === 'resource_manager' || role === 'project_manager') {
+    const btn = document.getElementById('createNeedBtn');
+    if (btn) btn.classList.remove('hidden');
+  }
 
   // Hide User Management section for non-admin roles
   if (role !== 'admin') {

@@ -3250,6 +3250,22 @@ td[data-cell-type="emp-total"]:hover {
   color: #A8C7FA;
 }
 
+/* Create New Need button (#164) */
+.create-need-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: #0F1117;
+  background: #A8C7FA;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.create-need-btn:hover { opacity: 0.85; }
+
 /* Rolling Off Soon — Change Assignment row flash (#141) */
 @keyframes hmRowFlashAmber {
   0%   { border-left-color: #F59E0B; box-shadow: inset 3px 0 12px rgba(245,158,11,0.4); }
