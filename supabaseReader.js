@@ -459,13 +459,17 @@ async function createNeed(needData, tenantId = TENANT_ID) {
 }
 
 /**
- * Mark a need as closed by setting closed_at to now.
+ * Mark a need as closed.
+ * reason: 'met' (auto-close when fully staffed) | 'abandoned' (manual)
  * Closed needs are excluded from readStaffingData demand results.
  */
-async function closeNeed(needId) {
+async function closeNeed(needId, reason) {
+  if (!['met', 'abandoned'].includes(reason)) {
+    throw new Error(`closeNeed: invalid reason "${reason}"`);
+  }
   const { error } = await serviceClient
     .from('needs')
-    .update({ closed_at: new Date().toISOString() })
+    .update({ closed_at: new Date().toISOString(), closed_reason: reason })
     .eq('id', needId);
   if (error) throw error;
 }

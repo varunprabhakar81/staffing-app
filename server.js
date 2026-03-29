@@ -373,6 +373,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     }
 
     return {
+      _needId:      role._needId,
       project:      role.projectName,
       level:        role.resourceLevel,
       skillSet:     role.skillSet,
@@ -700,6 +701,23 @@ app.post('/api/needs', requireAuth, requireRole('admin', 'resource_manager', 'pr
   }
 });
 
+// POST /api/needs/:id/close — manually close a need (#164)
+app.post('/api/needs/:id/close', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const { reason } = req.body || {};
+  if (!['met', 'abandoned'].includes(reason)) {
+    return res.status(400).json({ error: "reason must be 'met' or 'abandoned'" });
+  }
+  try {
+    await closeNeed(req.params.id, reason);
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'need-closed', id: req.params.id, reason });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[POST /api/needs/:id/close]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/consultants — list all consultants for the Consultants Management panel (#126)
 app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const tenantId = process.env.TENANT_ID;
@@ -865,6 +883,82 @@ app.put('/api/consultants/:id/skills', requireAuth, requireRole('admin', 'resour
   }
 });
 
+/**
+ * After assignments are written, check if any of the specified needs are now
+ * fully covered by the new supply. A need is fully met when at least one
+ * consultant on the project has >= hoursPerWeek assigned in every week of the
+ * need's date range. Returns array of needIds that were closed.
+ */
+async function checkAndAutoCloseNeeds(needIds, freshData) {
+  const { supply, demand } = freshData;
+  const { weekKeyToDate } = freshData._meta;
+  const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+  if (!weekKeys.length) return [];
+
+  function parseDemandDate(str) {
+    if (!str) return null;
+    const parts = String(str).split('/');
+    if (parts.length !== 3) return null;
+    return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+  }
+  function parseWkDate(wk) {
+    const iso = weekKeyToDate[wk];
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  const closed = [];
+  for (const needId of needIds) {
+    if (!needId) continue;
+    const need = demand.find(n => n._needId === needId);
+    if (!need) continue; // already closed or not found
+
+    const startDate   = parseDemandDate(need.startDate);
+    const endDate     = parseDemandDate(need.endDate);
+    const hoursNeeded = Number(need.hoursPerWeek) || 45;
+
+    const demandWeeks = weekKeys.filter(wk => {
+      const d = parseWkDate(wk);
+      return d && startDate && endDate && d >= startDate && d <= endDate;
+    });
+    if (!demandWeeks.length) continue;
+
+    // Gather supply rows for this project, keyed by consultant
+    const byConsultant = {};
+    for (const row of supply) {
+      if (row.projectAssigned !== need.projectName) continue;
+      if (!byConsultant[row.employeeName]) {
+        byConsultant[row.employeeName] = { level: row.level, weeklyHours: {} };
+      }
+      for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
+        byConsultant[row.employeeName].weeklyHours[wk] =
+          (byConsultant[row.employeeName].weeklyHours[wk] || 0) + hrs;
+      }
+    }
+
+    // Need is fully met if any consultant covers every week at the required hours
+    let fullyMet = false;
+    for (const info of Object.values(byConsultant)) {
+      if (info.level !== need.resourceLevel) continue;
+      if (demandWeeks.every(wk => (info.weeklyHours[wk] || 0) >= hoursNeeded)) {
+        fullyMet = true;
+        break;
+      }
+    }
+
+    if (fullyMet) {
+      try {
+        await closeNeed(needId, 'met');
+        closed.push(needId);
+      } catch (e) {
+        console.error('[checkAndAutoCloseNeeds]', e.message);
+      }
+    }
+  }
+  return closed;
+}
+
 // POST /api/supply/update — apply add/update/delete changes to supply via Supabase
 app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (req, res) => {
   const { changes } = req.body || {};
@@ -957,7 +1051,18 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
     // 3. Reload cached data
     staffingData = await readStaffingData(null, serviceClient);
 
-    res.json({ success: true, updatedRows: changes.length });
+    // 4. Auto-close any needs that are now fully covered by accepted assignments
+    const affectedNeedIds = [...new Set(changes.filter(c => c.needId).map(c => c.needId))];
+    const closedNeedIds = affectedNeedIds.length
+      ? await checkAndAutoCloseNeeds(affectedNeedIds, staffingData)
+      : [];
+
+    if (closedNeedIds.length) {
+      staffingData = await readStaffingData(null, serviceClient);
+      broadcastSSE({ type: 'need-closed', ids: closedNeedIds, reason: 'met', autoClose: true });
+    }
+
+    res.json({ success: true, updatedRows: changes.length, closedNeedIds });
 
   } catch (err) {
     console.error('[supply/update]', err);

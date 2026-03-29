@@ -3266,6 +3266,30 @@ td[data-cell-type="emp-total"]:hover {
 }
 .create-need-btn:hover { opacity: 0.85; }
 
+/* Open Needs table — Abandon action (#164) */
+.col-actions {
+  width: 80px;
+  text-align: right;
+  padding-right: 12px !important;
+}
+.need-abandon-btn {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font);
+  color: #9CA3AF;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.need-abandon-btn:hover {
+  color: #FCA5A5;
+  border-color: rgba(252,165,165,0.35);
+}
+
 /* Create Need modal — Step 2 skill grid validation state (#164) */
 #cn-skill-grid.pills-error {
   outline: 1px solid rgba(248,113,113,.45);

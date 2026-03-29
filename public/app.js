@@ -1973,24 +1973,31 @@ function renderCoverageChart(coverage) {
     return '<span class="badge-uncovered">Unmet</span>';
   };
 
-  const rows = coverage.roles.map((r, i) => `
+  const rows = coverage.roles.map((r, i) => {
+    const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
+    const abandonBtn = (_hmCanEdit() && r._needId)
+      ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
+      : '';
+    return `
     <tr class="dd-clickable need-row" data-status="${r.status || 'unmet'}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
       <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
-      <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${JSON.stringify({needId: null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;')}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
+      <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
       <td>${r.level || '—'}</td>
       <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
       <td class="col-center">${fmtDate(r.startDate)}</td>
       <td class="col-center">${fmtDate(r.endDate)}</td>
       <td>${statusBadge(r.status)}</td>
+      <td class="col-actions">${abandonBtn}</td>
     </tr>
     <tr class="need-expansion-row hidden" id="need-exp-${i}">
-      <td colspan="7" class="need-expansion-cell">
+      <td colspan="8" class="need-expansion-cell">
         <div class="need-match-panel" id="need-match-panel-${i}">
           <div class="need-match-loading">Finding matches…</div>
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   tableEl.innerHTML = `
     <table>
@@ -2000,6 +2007,7 @@ function renderCoverageChart(coverage) {
         <th class="col-center">Start</th>
         <th class="col-center">End</th>
         <th>Status</th>
+        <th></th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -2158,6 +2166,7 @@ async function acceptMatch(needIdxOrMatch, matchIdx, event) {
       startDate:    m.startDate,
       endDate:      m.endDate,
       hoursPerWeek: Number(m.hoursPerWeek),
+      needId:       m.needId || null,
     }]);
     return;
   }
@@ -2216,6 +2225,26 @@ function clearNeedsPending() {
   _needs.expanded.forEach(idx => renderNeedMatchPanel(idx));
 }
 
+async function abandonNeed(needId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Abandon this need? It will be removed from the pipeline.')) return;
+  try {
+    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ reason: 'abandoned' }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    showToast('Need abandoned', 'success');
+    loadDashboard();
+  } catch (e) {
+    showToast(`Failed to abandon need: ${e.message}`, 'error');
+  }
+}
+
 async function saveAllAssignments(overrideChanges) {
   const saveBtn = document.getElementById('needsSaveBtn');
   if (saveBtn && !overrideChanges) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
@@ -2228,6 +2257,7 @@ async function saveAllAssignments(overrideChanges) {
     startDate:    p.need.startDate,
     endDate:      p.need.endDate,
     hoursPerWeek: Number(p.need.hoursPerWeek),
+    needId:       p.need._needId || null,
   }));
 
   try {
@@ -2244,6 +2274,11 @@ async function saveAllAssignments(overrideChanges) {
       return;
     }
     if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+
+    // Show toast if any needs were auto-closed as fully staffed
+    if (data.closedNeedIds && data.closedNeedIds.length > 0) {
+      showToast('Need fully staffed — closed automatically', 'success');
+    }
 
     if (overrideChanges) {
       // Direct-save path (skill set modal): just refresh dashboard data
