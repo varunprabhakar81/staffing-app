@@ -3274,13 +3274,15 @@ td[data-cell-type="emp-total"]:hover {
 }
 .create-need-btn:hover { opacity: 0.85; }
 
-/* Open Needs table — Abandon action (#164) */
+/* Open Needs table — Edit + Abandon actions (#164, #173) */
 .col-actions {
-  width: 80px;
+  width: 140px;
   text-align: right;
   padding-right: 12px !important;
+  white-space: nowrap;
 }
-.need-abandon-btn {
+.need-abandon-btn,
+.need-edit-btn {
   padding: 3px 9px;
   font-size: 11px;
   font-weight: 500;
@@ -3293,13 +3295,19 @@ td[data-cell-type="emp-total"]:hover {
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
+.need-edit-btn { margin-right: 5px; }
 .need-abandon-btn:hover {
   color: #FCA5A5;
   border-color: rgba(252,165,165,0.35);
 }
+.need-edit-btn:hover {
+  color: #A8C7FA;
+  border-color: rgba(168,199,250,0.35);
+}
 
-/* Create Need modal — Step 2 skill grid validation state (#164) */
-#cn-skill-grid.pills-error {
+/* Create/Edit Need modals — skill grid validation state (#164, #173) */
+#cn-skill-grid.pills-error,
+#en-skill-grid.pills-error {
   outline: 1px solid rgba(248,113,113,.45);
   border-radius: 6px;
   padding: 4px;

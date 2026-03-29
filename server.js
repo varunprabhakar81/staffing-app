@@ -6,7 +6,7 @@ const cookieParser         = require('cookie-parser');
 const session              = require('express-session');
 const path                 = require('path');
 const { createClient }     = require('@supabase/supabase-js');
-const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient, createProject, createNeed, closeNeed } = require('./supabaseReader');
+const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient, createProject, createNeed, closeNeed, updateNeed, replaceNeedSkillSets } = require('./supabaseReader');
 const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
 
 // Anon client used only for auth operations (login). Data queries go through
@@ -378,6 +378,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
       client:       role.clientName,
       level:        role.resourceLevel,
       skillSet:     role.skillSet,
+      allSkillSets: role.allSkillSets || [],
       startDate:    role.startDate,
       endDate:      role.endDate,
       hoursPerWeek: hoursNeeded,
@@ -715,6 +716,39 @@ app.post('/api/needs/:id/close', requireAuth, requireRole('admin', 'resource_man
     res.json({ success: true });
   } catch (err) {
     console.error('[POST /api/needs/:id/close]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/needs/:id — edit an existing open need (#173)
+app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const { level, skillSetIds, hoursPerWeek, startDate, endDate } = req.body || {};
+  if (!level || !hoursPerWeek) {
+    return res.status(400).json({ error: 'level and hoursPerWeek are required' });
+  }
+
+  try {
+    const tenantId = process.env.TENANT_ID;
+
+    // Resolve level name → level_id
+    const levelById = staffingData._meta.levelById;
+    const levelId = Object.keys(levelById).find(id => levelById[id] === level);
+    if (!levelId) return res.status(400).json({ error: `Unknown level: ${level}` });
+
+    await updateNeed(req.params.id, {
+      level_id:      levelId,
+      hours_per_week: Number(hoursPerWeek),
+      start_date:    startDate || null,
+      end_date:      endDate   || null,
+    });
+
+    await replaceNeedSkillSets(req.params.id, Array.isArray(skillSetIds) ? skillSetIds : [], tenantId);
+
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'need-updated', id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[PATCH /api/needs/:id]', err.message);
     res.status(500).json({ error: err.message });
   }
 });

@@ -1974,6 +1974,9 @@ function renderCoverageChart(coverage) {
 
   const rows = coverage.roles.map((r, i) => {
     const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
+    const editBtn = (_hmCanEdit() && r._needId)
+      ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
+      : '';
     const abandonBtn = (_hmCanEdit() && r._needId)
       ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
       : '';
@@ -1987,7 +1990,7 @@ function renderCoverageChart(coverage) {
       <td class="col-center">${fmtDate(r.startDate)}</td>
       <td class="col-center">${fmtDate(r.endDate)}</td>
       <td>${statusBadge(r.status)}</td>
-      <td class="col-actions">${abandonBtn}</td>
+      <td class="col-actions">${editBtn}${abandonBtn}</td>
     </tr>
     <tr class="need-expansion-row hidden" id="need-exp-${i}">
       <td colspan="9" class="need-expansion-cell">
@@ -5111,6 +5114,115 @@ async function _cnSubmit() {
   } finally {
     createBtn.disabled    = false;
     createBtn.textContent = 'Create Need';
+  }
+}
+
+// ── Edit Need Modal (#173) ────────────────────────────────────────
+
+let _enNeedId = null;  // ID of the need currently being edited
+
+// Convert "MM/DD/YYYY" display date → "YYYY-MM-DD" for <input type="date">
+function _displayDateToIso(s) {
+  if (!s) return '';
+  const parts = String(s).split('/');
+  if (parts.length < 3) return '';
+  const [m, d, y] = parts;
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+}
+
+function openEditNeedModal(needId, event) {
+  if (event) event.stopPropagation();
+  const need = (rawData.coverageRoles || []).find(r => r._needId === needId);
+  if (!need) { showToast('Need not found', 'error'); return; }
+
+  _enNeedId = needId;
+
+  document.getElementById('en-project-header').textContent = need.project || '—';
+  document.getElementById('en-client-header').textContent  = need.client  ? need.client + ' —' : '';
+
+  document.getElementById('en-level-select').value = need.level || '';
+  document.getElementById('en-hours').value        = need.hoursPerWeek || '';
+  document.getElementById('en-start-date').value   = _displayDateToIso(need.startDate);
+  document.getElementById('en-end-date').value     = _displayDateToIso(need.endDate);
+
+  _enPopulateSkills(need.allSkillSets || []);
+
+  document.getElementById('en-error').classList.add('hidden');
+  document.getElementById('edit-need-modal').classList.remove('hidden');
+}
+
+function closeEditNeedModal() {
+  document.getElementById('edit-need-modal').classList.add('hidden');
+  _enNeedId = null;
+}
+
+function _enPopulateSkills(selectedNames) {
+  const skillGrid = document.getElementById('en-skill-grid');
+  skillGrid.innerHTML = '';
+
+  const skillSets = rawData._meta?.skillSets || [];
+  const sorted = [...skillSets].sort((a, b) => {
+    if (a.type === b.type) return a.name.localeCompare(b.name);
+    return a.type === 'Practice Area' ? -1 : 1;
+  });
+
+  for (const ss of sorted) {
+    const tag = document.createElement('span');
+    tag.className    = 'cp-skill-tag' + (ss.type === 'Practice Area' ? ' type-practice' : '');
+    tag.dataset.ssId = ss.id;
+    tag.textContent  = ss.name;
+    if (selectedNames.includes(ss.name)) tag.classList.add('selected');
+    tag.addEventListener('click', () => tag.classList.toggle('selected'));
+    skillGrid.appendChild(tag);
+  }
+}
+
+async function _enSubmit() {
+  const level       = document.getElementById('en-level-select').value;
+  const hours       = document.getElementById('en-hours').value;
+  const startDate   = document.getElementById('en-start-date').value;
+  const endDate     = document.getElementById('en-end-date').value;
+  const skillSetIds = [...document.querySelectorAll('#en-skill-grid .cp-skill-tag.selected')]
+    .map(t => t.dataset.ssId);
+  const errEl = document.getElementById('en-error');
+
+  const showErr = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
+  errEl.classList.add('hidden');
+
+  if (!level) { showErr('Please select a level.'); return; }
+  if (skillSetIds.length === 0) {
+    document.getElementById('en-skill-grid').classList.add('pills-error');
+    setTimeout(() => document.getElementById('en-skill-grid').classList.remove('pills-error'), 1500);
+    showErr('Please select at least one skill set.'); return;
+  }
+  if (!hours || Number(hours) < 1 || Number(hours) > 45) {
+    showErr('Hours per week must be between 1 and 45.'); return;
+  }
+  if (!startDate || !endDate) { showErr('Start date and end date are required.'); return; }
+  if (startDate > endDate)    { showErr('Start date must be before end date.'); return; }
+
+  const saveBtn = document.getElementById('en-save-btn');
+  saveBtn.disabled    = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const res = await apiFetch(`/api/needs/${_enNeedId}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ level, skillSetIds, hoursPerWeek: Number(hours), startDate, endDate }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    showToast('Need updated', 'success');
+    closeEditNeedModal();
+    loadDashboard();
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    saveBtn.disabled    = false;
+    saveBtn.textContent = 'Save Changes';
   }
 }
 

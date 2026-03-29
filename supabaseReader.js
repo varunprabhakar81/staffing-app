@@ -474,6 +474,37 @@ async function closeNeed(needId, reason) {
   if (error) throw error;
 }
 
+/**
+ * Update editable fields on an existing open need.
+ * All writes use serviceClient — RLS blocks user JWT on write paths.
+ */
+async function updateNeed(needId, { level_id, hours_per_week, start_date, end_date }) {
+  const { error } = await serviceClient
+    .from('needs')
+    .update({ level_id, hours_per_week, start_date: start_date || null, end_date: end_date || null })
+    .eq('id', needId);
+  if (error) throw error;
+}
+
+/**
+ * Replace all skill set associations for a need.
+ * Deletes existing need_skill_sets rows, then inserts the new set.
+ * All writes use serviceClient.
+ */
+async function replaceNeedSkillSets(needId, skillSetIds, tenantId = TENANT_ID) {
+  const { error: delErr } = await serviceClient
+    .from('need_skill_sets')
+    .delete()
+    .eq('need_id', needId);
+  if (delErr) throw delErr;
+
+  if (skillSetIds.length > 0) {
+    const rows = skillSetIds.map(ssId => ({ tenant_id: tenantId, need_id: needId, skill_set_id: ssId }));
+    const { error: insErr } = await serviceClient.from('need_skill_sets').insert(rows);
+    if (insErr) throw insErr;
+  }
+}
+
 module.exports = {
   serviceClient,
   readStaffingData,
@@ -484,4 +515,6 @@ module.exports = {
   createProject,
   createNeed,
   closeNeed,
+  updateNeed,
+  replaceNeedSkillSets,
 };
