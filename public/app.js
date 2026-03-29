@@ -25,6 +25,7 @@ let _editConsultantStatus = null; // status of the consultant open in the profil
 let _cpIsDirty = false;            // tracks unsaved changes in profile editor
 let _cpSnapshot = null;            // original field values for revert
 let _cpAbortController = null;     // abort signal for dirty-tracking listeners
+let _settingsActivePanel = null;   // 'users' | 'consultants' — active Settings sub-nav panel
 let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -62,10 +63,10 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     if (tab === 'ask') {
       loadSuggestedQuestions();
     }
-    // Reload user list each time Settings tab is opened
+    // Reload active panel each time Settings tab is opened
     if (tab === 'settings') {
-      if (currentUserRole === 'admin') loadUsers();
-      if (_hmCanEdit()) loadConsultantsPanel();
+      const defaultPanel = currentUserRole === 'admin' ? 'users' : 'consultants';
+      switchSettingsPanel(_settingsActivePanel || defaultPanel);
     }
   });
 });
@@ -3672,6 +3673,21 @@ function umPill(color, text) {
 let _deactivatedExpanded = false;
 let _inactiveConsultantsExpanded = false;
 
+// ── Settings sub-nav ──────────────────────────────────────────────
+function switchSettingsPanel(panel) {
+  _settingsActivePanel = panel;
+  document.querySelectorAll('.settings-subnav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.panel === panel);
+  });
+  const panelMap = { users: 'settingsPanelUsers', consultants: 'settingsPanelConsultants' };
+  for (const [key, id] of Object.entries(panelMap)) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', key !== panel);
+  }
+  if (panel === 'users' && currentUserRole === 'admin') loadUsers();
+  if (panel === 'consultants' && _hmCanEdit()) loadConsultantsPanel();
+}
+
 // ── Settings panels: shared group header row ──────────────────────
 function _renderSettingsGroupHeader(label, count, colSpan) {
   return `<tr style="background:rgba(255,255,255,0.025)">
@@ -5126,10 +5142,10 @@ async function _cnSubmit() {
     if (btn) btn.classList.remove('hidden');
   }
 
-  // Hide User Management section for non-admin roles
+  // Hide Users nav item for non-admin roles
   if (role !== 'admin') {
-    const umSection = document.getElementById('userMgmtSection');
-    if (umSection) umSection.style.display = 'none';
+    const usersNavBtn = document.getElementById('settingsNavUsers');
+    if (usersNavBtn) usersNavBtn.style.display = 'none';
   }
 
   loadDashboard();

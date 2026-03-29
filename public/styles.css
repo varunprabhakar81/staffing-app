@@ -3314,3 +3314,45 @@ td[data-cell-type="emp-total"]:hover {
 .hm-row-flash-amber td:first-child {
   animation: hmRowFlashAmber 3s ease-out forwards;
 }
+
+/* ── Settings sub-nav (#165) ───────────────────────────────────────── */
+.settings-layout {
+  display: flex;
+  gap: 24px;
+  padding: 0 0 32px;
+  align-items: flex-start;
+}
+.settings-subnav {
+  width: 120px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+.settings-subnav-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8892B0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, background 0.15s;
+  margin-bottom: 2px;
+}
+.settings-subnav-item:hover {
+  color: #E2E8F0;
+  background: rgba(255,255,255,0.05);
+}
+.settings-subnav-item.active {
+  color: #A8C7FA;
+  background: rgba(168,199,250,0.1);
+  font-weight: 600;
+}
+.settings-content {
+  flex: 1;
+  min-width: 0;
+}

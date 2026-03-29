@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=47">
+  <link rel="stylesheet" href="styles.css?v=48">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -392,84 +392,98 @@
 
     <!-- ── Settings Tab ───────────────────────────────────────────── -->
     <div class="tab-panel" id="tab-settings">
-      <div style="padding:0 0 32px">
+      <div class="settings-layout">
 
-        <!-- User management card: header + table -->
-        <div id="userMgmtSection" style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
+        <!-- Settings sub-nav -->
+        <nav class="settings-subnav">
+          <button class="settings-subnav-item" id="settingsNavUsers" data-panel="users" onclick="switchSettingsPanel('users')">Users</button>
+          <button class="settings-subnav-item" id="settingsNavConsultants" data-panel="consultants" onclick="switchSettingsPanel('consultants')">Consultants</button>
+        </nav>
 
-          <!-- Page header -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-            <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0">User Management</h2>
-            <button id="inviteBtn" onclick="openInviteModal()"
-              style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#5B5BD6;color:#FFFFFF;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
-              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              Invite User
-            </button>
+        <!-- Settings content area -->
+        <div class="settings-content">
+
+          <!-- Users panel -->
+          <div id="settingsPanelUsers" class="hidden">
+            <!-- User management card: header + table -->
+            <div id="userMgmtSection" style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
+
+              <!-- Page header -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+                <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0">User Management</h2>
+                <button id="inviteBtn" onclick="openInviteModal()"
+                  style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:#5B5BD6;color:#FFFFFF;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
+                  onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                  Invite User
+                </button>
+              </div>
+
+              <!-- User table -->
+              <div style="overflow:hidden;border-radius:8px;border:0.5px solid rgba(255,255,255,0.07)">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                  <thead>
+                    <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+                      <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Name</th>
+                      <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Email</th>
+                      <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Role</th>
+                      <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Status</th>
+                      <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Last login</th>
+                      <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Date added</th>
+                      <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userTableBody">
+                    <!-- populated by loadUsers() in app.js -->
+                  </tbody>
+                </table>
+                <!-- empty state -->
+                <div id="userTableEmpty" class="hidden"
+                  style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
+                  No users yet — invite someone above
+                </div>
+              </div>
+
+            </div>
+            <!-- Deactivated users section (rendered by loadUsers()) -->
+            <div id="deactivatedSection"></div>
           </div>
 
-          <!-- User table -->
-          <div style="overflow:hidden;border-radius:8px;border:0.5px solid rgba(255,255,255,0.07)">
-            <table style="width:100%;border-collapse:collapse;font-size:13px">
-              <thead>
-                <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
-                  <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Name</th>
-                  <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Email</th>
-                  <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Role</th>
-                  <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Status</th>
-                  <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Last login</th>
-                  <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Date added</th>
-                  <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="userTableBody">
-                <!-- populated by loadUsers() in app.js -->
-              </tbody>
-            </table>
-            <!-- empty state -->
-            <div id="userTableEmpty" class="hidden"
-              style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
-              No users yet — invite someone above
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Deactivated users section (rendered by loadUsers()) -->
-        <div id="deactivatedSection"></div>
-
-        <!-- Consultants Management panel (#126) -->
-        <div id="consultantsMgmtSection" style="margin-top:24px">
-          <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-              <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0">Consultants</h2>
-            </div>
-            <div style="overflow:hidden;border-radius:8px;border:0.5px solid rgba(255,255,255,0.07)">
-              <table style="width:100%;border-collapse:collapse;font-size:13px">
-                <thead>
-                  <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
-                    <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Name</th>
-                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Level</th>
-                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Skill Set</th>
-                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Location</th>
-                    <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Status</th>
-                    <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="consultantTableBody">
-                  <!-- populated by loadConsultantsPanel() -->
-                </tbody>
-              </table>
-              <div id="consultantTableEmpty" class="hidden"
-                style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
-                No consultants found
+          <!-- Consultants panel -->
+          <div id="settingsPanelConsultants" class="hidden">
+            <div id="consultantsMgmtSection">
+              <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+                  <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0">Consultants</h2>
+                </div>
+                <div style="overflow:hidden;border-radius:8px;border:0.5px solid rgba(255,255,255,0.07)">
+                  <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <thead>
+                      <tr style="border-bottom:1px solid rgba(255,255,255,.07)">
+                        <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Name</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Level</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Skill Set</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Location</th>
+                        <th style="padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Status</th>
+                        <th style="padding:12px 20px;text-align:left;font-size:12px;font-weight:500;color:var(--color-text-secondary);white-space:nowrap">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="consultantTableBody">
+                      <!-- populated by loadConsultantsPanel() -->
+                    </tbody>
+                  </table>
+                  <div id="consultantTableEmpty" class="hidden"
+                    style="padding:56px 24px;text-align:center;color:#8892B0;font-size:14px">
+                    No consultants found
+                  </div>
+                </div>
+                <div id="inactiveConsultantsSection"></div>
               </div>
             </div>
-            <div id="inactiveConsultantsSection"></div>
           </div>
-        </div>
 
-      </div>
+        </div><!-- /.settings-content -->
+      </div><!-- /.settings-layout -->
     </div>
 
   <!-- ── Staffing Inline Edit Save Bar ────────────────────────── -->
@@ -999,6 +1013,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=89"></script>
+  <script src="app.js?v=90"></script>
 </body>
 </html>
