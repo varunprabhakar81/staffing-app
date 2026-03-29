@@ -44,6 +44,7 @@ clients              — Client names
 projects             — Engagements (name, status, probability, dates, client)
 resource_assignments — Supply: one row per consultant + project + week_ending + hours
 needs                — Demand: open role requirements (level, hours/week, date range)
+                        closed_at TIMESTAMPTZ + closed_reason TEXT ('met'|'abandoned') — NULL = open
 need_skill_sets      — Many-to-many: need → required skills
 ```
 
@@ -74,8 +75,12 @@ PUT  /api/consultants/:id/skills      — replace skill sets
 PATCH /api/consultants/:id/deactivate
 PATCH /api/consultants/:id/reactivate
 
-GET  /api/projects                    — active projects
+GET  /api/projects                    — active projects (?status= filter supported)
+POST /api/projects                    — create new project
 GET  /api/skill-sets/:name/consultants — consultants with skill + current hours
+
+POST /api/needs                       — create new staffing need
+POST /api/needs/:id/close             — close need with { reason: 'met' | 'abandoned' }
 
 POST /api/suggested-questions         — Claude-generated Q prompts
 GET  /api/ask?question=...            — Claude NL query over staffing context
@@ -205,10 +210,12 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **allSkillSets.includes() for matching** — recommendations engine matches against full `allSkillSets` array, not primary skill only. `empWeekMap` stores `allSkillSets` array. Never revert to primary-only matching.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=89`, `styles.css?v=47`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
+- **Need lifecycle uses closed_at IS NULL** — `readStaffingData()` filters `.is('closed_at', null)`. Auto-close (reason='met') fires in `checkAndAutoCloseNeeds()` after every `acceptMatch()` write. Manual close (reason='abandoned') via `POST /api/needs/:id/close`. All close writes use `serviceClient`.
+- **Needs donut chart is 2 segments only** — Partially Met + Unmet. Fully Met is permanently removed. `statusMap`, `statuses`, legend, and `applyNeedsFilter` arrays are all 2-element. Do not add a third segment.
 
 ---
 
@@ -231,5 +238,4 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - No email notifications
 - TENANT_ID is hard-coded per deployment (not parameterized for multi-tenant SaaS)
 - Excel import script (`import-to-supabase.js`) is one-time only
-- Fully met needs currently show in Open Needs table — will auto-close in #164 (Create New Need lifecycle)
-- No way to create new projects or staffing needs from UI — being built in #164
+- No way to edit existing needs from UI — being built in #173
