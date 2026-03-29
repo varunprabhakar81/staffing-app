@@ -4887,6 +4887,18 @@ async function _cnSaveNewProject() {
     sel.appendChild(opt);
     sel.value = project.id;
 
+    // Mirror into _cnProjects so Step 2 can read the date range.
+    // POST /api/projects returns the raw DB row (snake_case), so map to camelCase
+    // to match the shape loaded by _cnLoadProjects().
+    _cnProjects.push({
+      id:         project.id,
+      name:       project.name,
+      status:     project.status,
+      clientName: client || null,
+      startDate:  project.start_date || null,
+      endDate:    project.end_date   || null,
+    });
+
     // Collapse sub-form
     _cnNewProjExpanded = false;
     document.getElementById('cn-new-proj-form').classList.add('hidden');
