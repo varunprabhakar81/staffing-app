@@ -6,7 +6,7 @@ const cookieParser         = require('cookie-parser');
 const session              = require('express-session');
 const path                 = require('path');
 const { createClient }     = require('@supabase/supabase-js');
-const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient } = require('./supabaseReader');
+const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient, createProject, createNeed, closeNeed } = require('./supabaseReader');
 const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
 
 // Anon client used only for auth operations (login). Data queries go through
@@ -590,14 +590,111 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
   }
 });
 
-// GET /api/projects — active projects list for Add Project modal
-app.get('/api/projects', requireRole('admin', 'resource_manager'), (req, res) => {
+// GET /api/projects — projects list; optional ?status=Verbal+Commit,Sold to filter by status
+app.get('/api/projects', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
   if (!staffingData || !staffingData.projects) return res.json([]);
-  const active = staffingData.projects
-    .filter(p => p.status === 'Verbal Commit' || p.status === 'Sold')
-    .map(p => ({ id: p.projectId, name: p.projectName, status: p.status }))
+  const statusFilter = req.query.status
+    ? req.query.status.split(',').map(s => s.trim())
+    : null;
+  const results = staffingData.projects
+    .filter(p => statusFilter ? statusFilter.includes(p.status) : (p.status === 'Verbal Commit' || p.status === 'Sold'))
+    .map(p => ({ id: p.projectId, name: p.projectName, status: p.status, clientName: p.clientName }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  res.json(active);
+  res.json(results);
+});
+
+// POST /api/projects — create a new project (#164)
+app.post('/api/projects', requireAuth, requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const { name, clientName, status, probability, startDate, endDate } = req.body || {};
+  if (!name || !status) return res.status(400).json({ error: 'name and status are required' });
+
+  try {
+    const tenantId = process.env.TENANT_ID;
+
+    // Resolve or create client
+    let clientId = null;
+    if (clientName) {
+      const { data: existingClient, error: clientLookupErr } = await serviceClient
+        .from('clients')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('name', clientName)
+        .maybeSingle();
+      if (clientLookupErr) throw clientLookupErr;
+
+      if (existingClient) {
+        clientId = existingClient.id;
+      } else {
+        const { data: newClient, error: clientCreateErr } = await serviceClient
+          .from('clients')
+          .insert({ tenant_id: tenantId, name: clientName })
+          .select('id')
+          .single();
+        if (clientCreateErr) throw clientCreateErr;
+        clientId = newClient.id;
+      }
+    }
+
+    const project = await createProject({
+      name,
+      client_id:       clientId,
+      status,
+      probability_pct: probability != null ? Number(probability) : null,
+      start_date:      startDate || null,
+      end_date:        endDate   || null,
+    }, tenantId);
+
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'project-created', id: project.id });
+    res.status(201).json(project);
+  } catch (err) {
+    console.error('[POST /api/projects]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/needs — create a new staffing need (#164)
+app.post('/api/needs', requireAuth, requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const { projectId, level, skillSetIds, hoursPerWeek, startDate, endDate } = req.body || {};
+  if (!projectId || !level || !hoursPerWeek) {
+    return res.status(400).json({ error: 'projectId, level, and hoursPerWeek are required' });
+  }
+
+  try {
+    const tenantId = process.env.TENANT_ID;
+
+    // Validate need dates fall within project dates
+    const project = staffingData?._meta?.projectById?.[projectId];
+    if (!project) return res.status(400).json({ error: 'Project not found' });
+
+    if (project.start_date && startDate && startDate < project.start_date) {
+      return res.status(400).json({ error: 'Need start date is before project start date' });
+    }
+    if (project.end_date && endDate && endDate > project.end_date) {
+      return res.status(400).json({ error: 'Need end date is after project end date' });
+    }
+
+    // Resolve level name → level_id
+    const levelById = staffingData._meta.levelById;
+    const levelId = Object.keys(levelById).find(id => levelById[id] === level);
+    if (!levelId) return res.status(400).json({ error: `Unknown level: ${level}` });
+
+    const need = await createNeed({
+      project_id:     projectId,
+      level_id:       levelId,
+      hours_per_week: Number(hoursPerWeek),
+      start_date:     startDate || null,
+      end_date:       endDate   || null,
+      skill_set_ids:  Array.isArray(skillSetIds) ? skillSetIds : [],
+    }, tenantId);
+
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'need-created', id: need.id });
+    res.status(201).json(need);
+  } catch (err) {
+    console.error('[POST /api/needs]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/consultants — list all consultants for the Consultants Management panel (#126)

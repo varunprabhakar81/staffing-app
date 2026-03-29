@@ -240,7 +240,8 @@ async function readStaffingData(userToken, _client = null) {
     const { data: needsData, error: needsErr } = await supabase
       .from('needs')
       .select('id, project_id, level_id, hours_per_week, start_date, end_date')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', TENANT_ID)
+      .is('closed_at', null);
     if (needsErr) throw needsErr;
 
     const { data: nssData, error: nssErr } = await supabase
@@ -397,6 +398,77 @@ async function resolveProjectId(userToken, name, createIfMissing = false) {
   return null;
 }
 
+/**
+ * Create a new project row.
+ * projectData: { name, client_id, status, probability_pct, start_date, end_date }
+ * Returns the newly created project row.
+ */
+async function createProject(projectData, tenantId = TENANT_ID) {
+  const { data, error } = await serviceClient
+    .from('projects')
+    .insert({
+      tenant_id:       tenantId,
+      name:            projectData.name,
+      client_id:       projectData.client_id || null,
+      status:          projectData.status,
+      probability_pct: projectData.probability_pct ?? null,
+      start_date:      projectData.start_date || null,
+      end_date:        projectData.end_date   || null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Create a new need row and its skill set associations.
+ * needData: { project_id, level_id, hours_per_week, start_date, end_date, skill_set_ids: [] }
+ * Returns the newly created need row.
+ */
+async function createNeed(needData, tenantId = TENANT_ID) {
+  const { data: need, error: needErr } = await serviceClient
+    .from('needs')
+    .insert({
+      tenant_id:     tenantId,
+      project_id:    needData.project_id,
+      level_id:      needData.level_id,
+      hours_per_week: needData.hours_per_week,
+      start_date:    needData.start_date || null,
+      end_date:      needData.end_date   || null,
+    })
+    .select()
+    .single();
+  if (needErr) throw needErr;
+
+  const skillSetIds = needData.skill_set_ids || [];
+  if (skillSetIds.length > 0) {
+    const rows = skillSetIds.map(ssId => ({
+      tenant_id:    tenantId,
+      need_id:      need.id,
+      skill_set_id: ssId,
+    }));
+    const { error: nssErr } = await serviceClient
+      .from('need_skill_sets')
+      .insert(rows);
+    if (nssErr) throw nssErr;
+  }
+
+  return need;
+}
+
+/**
+ * Mark a need as closed by setting closed_at to now.
+ * Closed needs are excluded from readStaffingData demand results.
+ */
+async function closeNeed(needId) {
+  const { error } = await serviceClient
+    .from('needs')
+    .update({ closed_at: new Date().toISOString() })
+    .eq('id', needId);
+  if (error) throw error;
+}
+
 module.exports = {
   serviceClient,
   readStaffingData,
@@ -404,4 +476,7 @@ module.exports = {
   deleteAssignments,
   resolveConsultantId,
   resolveProjectId,
+  createProject,
+  createNeed,
+  closeNeed,
 };
