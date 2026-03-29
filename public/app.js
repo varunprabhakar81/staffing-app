@@ -3641,6 +3641,13 @@ function umPill(color, text) {
 let _deactivatedExpanded = false;
 let _inactiveConsultantsExpanded = false;
 
+// ── Settings panels: shared group header row ──────────────────────
+function _renderSettingsGroupHeader(label, count, colSpan) {
+  return `<tr style="background:rgba(255,255,255,0.025)">
+    <td colspan="${colSpan}" style="padding:7px 20px 5px;font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#8892B0;border-bottom:1px solid rgba(255,255,255,0.06)">${_esc(label)}&ensp;<span style="font-weight:400;opacity:0.6">${count}</span></td>
+  </tr>`;
+}
+
 // ── Consultants Management Panel (#126) ───────────────────────────
 async function loadConsultantsPanel() {
   const tbody   = document.getElementById('consultantTableBody');
@@ -3671,9 +3678,24 @@ async function loadConsultantsPanel() {
     return;
   }
 
-  tbody.innerHTML = active.length
-    ? active.map(c => _renderConsultantRow(c)).join('')
-    : `<tr><td colspan="6" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active consultants</td></tr>`;
+  if (active.length) {
+    const byLevel = {};
+    for (const c of active) {
+      const key = LEVEL_ORDER.indexOf(c.level) >= 0 ? c.level : '__other__';
+      if (!byLevel[key]) byLevel[key] = [];
+      byLevel[key].push(c);
+    }
+    let html = '';
+    for (const lvl of [...LEVEL_ORDER, '__other__']) {
+      const grp = byLevel[lvl];
+      if (!grp || !grp.length) continue;
+      html += _renderSettingsGroupHeader(lvl === '__other__' ? 'Other' : lvl, grp.length, 6);
+      html += grp.map(c => _renderConsultantRow(c)).join('');
+    }
+    tbody.innerHTML = html;
+  } else {
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active consultants</td></tr>`;
+  }
 
   if (inactEl) _renderInactiveConsultantsSection(inactEl, inactive);
 }
@@ -3837,9 +3859,26 @@ async function loadUsers() {
     return;
   }
 
-  tbody.innerHTML = activeUsers.length
-    ? activeUsers.map(u => _renderActiveRow(u)).join('')
-    : `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active users — invite someone above</td></tr>`;
+  if (activeUsers.length) {
+    const ROLE_ORDER = ['admin', 'resource_manager', 'project_manager', 'executive'];
+    const byRole = {};
+    for (const u of activeUsers) {
+      const key = ROLE_ORDER.includes(u.role) ? u.role : '__other__';
+      if (!byRole[key]) byRole[key] = [];
+      byRole[key].push(u);
+    }
+    let html = '';
+    for (const role of [...ROLE_ORDER, '__other__']) {
+      const grp = byRole[role];
+      if (!grp || !grp.length) continue;
+      const label = UM_ROLE_LABELS[role] || (role === '__other__' ? 'Other' : role);
+      html += _renderSettingsGroupHeader(label, grp.length, 7);
+      html += grp.map(u => _renderActiveRow(u)).join('');
+    }
+    tbody.innerHTML = html;
+  } else {
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#8892B0;font-size:13px">No active users — invite someone above</td></tr>`;
+  }
 
   if (deactEl) _renderDeactivatedSection(deactEl, deactivatedUsers);
 }
