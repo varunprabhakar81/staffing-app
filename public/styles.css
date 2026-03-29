@@ -3266,6 +3266,13 @@ td[data-cell-type="emp-total"]:hover {
 }
 .create-need-btn:hover { opacity: 0.85; }
 
+/* Create Need modal — Step 2 skill grid validation state (#164) */
+#cn-skill-grid.pills-error {
+  outline: 1px solid rgba(248,113,113,.45);
+  border-radius: 6px;
+  padding: 4px;
+}
+
 /* Rolling Off Soon — Change Assignment row flash (#141) */
 @keyframes hmRowFlashAmber {
   0%   { border-left-color: #F59E0B; box-shadow: inset 3px 0 12px rgba(245,158,11,0.4); }

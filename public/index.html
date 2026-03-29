@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=42">
+  <link rel="stylesheet" href="styles.css?v=43">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -925,8 +925,56 @@
 
       </div>
 
-      <!-- Step 2: Need details (placeholder — built in Sub-task C) -->
-      <div id="cn-step-2" class="hidden"></div>
+      <!-- Step 2: Need details (#164) -->
+      <div id="cn-step-2" class="hidden">
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">LEVEL <span style="color:#F87171">*</span></label>
+          <select id="cn-level-select"
+            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            <option value="">— select level —</option>
+            <option value="Analyst">Analyst</option>
+            <option value="Consultant">Consultant</option>
+            <option value="Senior Consultant">Senior Consultant</option>
+            <option value="Manager">Manager</option>
+            <option value="Senior Manager">Senior Manager</option>
+            <option value="Partner/Principal/Managing Director">Partner/Principal/Managing Director</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">SKILL SETS <span style="color:#F87171">*</span> <span style="font-weight:400;color:#4A5168">(select at least one)</span></label>
+          <div id="cn-skill-grid" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px"></div>
+          <div id="cn-skill-empty" class="hidden" style="font-size:12px;color:#4A5168;padding:4px 0">No skill sets found.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">HOURS / WEEK <span style="color:#F87171">*</span></label>
+            <input id="cn-hours" type="number" min="1" max="45" placeholder="e.g. 40"
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </div>
+          <div></div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START DATE <span style="color:#F87171">*</span></label>
+            <input id="cn-start-date" type="date"
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END DATE <span style="color:#F87171">*</span></label>
+            <input id="cn-end-date" type="date"
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </div>
+        </div>
+
+        <div id="cn-step2-error" class="hidden"
+          style="font-size:12px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:7px;margin-bottom:4px"></div>
+
+      </div>
 
       <!-- Footer -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
@@ -951,6 +999,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=84"></script>
+  <script src="app.js?v=85"></script>
 </body>
 </html>

@@ -393,7 +393,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     roles: needsCoverageRoles,
   };
 
-  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, needsCoverage, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate } });
+  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, needsCoverage, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById) } });
 });
 
 // GET /api/heatmap
@@ -598,7 +598,10 @@ app.get('/api/projects', requireRole('admin', 'resource_manager', 'project_manag
     : null;
   const results = staffingData.projects
     .filter(p => statusFilter ? statusFilter.includes(p.status) : (p.status === 'Verbal Commit' || p.status === 'Sold'))
-    .map(p => ({ id: p.projectId, name: p.projectName, status: p.status, clientName: p.clientName }))
+    .map(p => {
+      const meta = staffingData._meta?.projectById?.[p.projectId] || {};
+      return { id: p.projectId, name: p.projectName, status: p.status, clientName: p.clientName, startDate: meta.start_date || null, endDate: meta.end_date || null };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
   res.json(results);
 });

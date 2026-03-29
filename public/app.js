@@ -4763,6 +4763,7 @@ function initLocationTypeahead() {
 
 let _cnStep            = 1;
 let _cnNewProjExpanded = false;
+let _cnProjects        = [];   // [{id, name, status, clientName, startDate, endDate}]
 
 function openCreateNeedModal() {
   _cnStep            = 1;
@@ -4784,6 +4785,7 @@ function closeCreateNeedModal() {
   document.getElementById('create-need-modal').classList.add('hidden');
   _cnStep            = 1;
   _cnNewProjExpanded = false;
+  _cnProjects        = [];
 }
 
 async function _cnLoadProjects() {
@@ -4792,15 +4794,16 @@ async function _cnLoadProjects() {
   try {
     const res = await apiFetch('/api/projects?status=Verbal+Commit,Sold');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const projects = await res.json();
+    _cnProjects = await res.json();
     sel.innerHTML = '<option value="">— select a project —</option>';
-    for (const p of projects) {
+    for (const p of _cnProjects) {
       const opt = document.createElement('option');
       opt.value       = p.id;
       opt.textContent = p.name + (p.clientName ? ` (${p.clientName})` : '');
       sel.appendChild(opt);
     }
   } catch (e) {
+    _cnProjects = [];
     sel.innerHTML = '<option value="">Failed to load projects</option>';
     showToast('Failed to load projects', 'error');
   }
@@ -4911,6 +4914,7 @@ function _cnNextStep() {
   document.getElementById('cn-step-2').classList.remove('hidden');
   _cnUpdateStepIndicator();
   _cnUpdateFooter();
+  _cnPopulateStep2();
 }
 
 function _cnPrevStep() {
@@ -4944,8 +4948,108 @@ function _cnUpdateFooter() {
   }
 }
 
-function _cnSubmit() {
-  // Implemented in Sub-task C
+function _cnPopulateStep2() {
+  // Reset all fields
+  document.getElementById('cn-level-select').value = '';
+  document.getElementById('cn-hours').value         = '';
+  document.getElementById('cn-start-date').value    = '';
+  document.getElementById('cn-end-date').value      = '';
+  document.getElementById('cn-step2-error').classList.add('hidden');
+
+  const skillGrid = document.getElementById('cn-skill-grid');
+  skillGrid.innerHTML = '';
+  document.getElementById('cn-skill-empty').classList.add('hidden');
+
+  // Set date min/max from selected project's date range
+  const projectId = document.getElementById('cn-project-select').value;
+  const proj = _cnProjects.find(p => String(p.id) === String(projectId));
+  if (proj) {
+    const startEl = document.getElementById('cn-start-date');
+    const endEl   = document.getElementById('cn-end-date');
+    if (proj.startDate) { startEl.min = proj.startDate; startEl.value = proj.startDate; }
+    if (proj.endDate)   { endEl.max   = proj.endDate;   endEl.value   = proj.endDate; }
+  }
+
+  // Populate skill set pills from dashboard _meta
+  const skillSets = rawData._meta?.skillSets || [];
+  if (skillSets.length === 0) {
+    document.getElementById('cn-skill-empty').classList.remove('hidden');
+    return;
+  }
+  // Sort: Practice Areas first, then Technologies, each group alphabetically
+  const sorted = [...skillSets].sort((a, b) => {
+    if (a.type === b.type) return a.name.localeCompare(b.name);
+    return a.type === 'Practice Area' ? -1 : 1;
+  });
+  for (const ss of sorted) {
+    const tag = document.createElement('span');
+    tag.className    = 'cp-skill-tag' + (ss.type === 'Practice Area' ? ' type-practice' : '');
+    tag.dataset.ssId = ss.id;
+    tag.textContent  = ss.name;
+    tag.addEventListener('click', () => tag.classList.toggle('selected'));
+    skillGrid.appendChild(tag);
+  }
+}
+
+async function _cnSubmit() {
+  const projectId   = document.getElementById('cn-project-select').value;
+  const level       = document.getElementById('cn-level-select').value;
+  const hours       = document.getElementById('cn-hours').value;
+  const startDate   = document.getElementById('cn-start-date').value;
+  const endDate     = document.getElementById('cn-end-date').value;
+  const skillSetIds = [...document.querySelectorAll('#cn-skill-grid .cp-skill-tag.selected')]
+    .map(t => t.dataset.ssId);
+  const errEl = document.getElementById('cn-step2-error');
+
+  const showErr = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
+  errEl.classList.add('hidden');
+
+  if (!level)                  { showErr('Please select a level.'); return; }
+  if (skillSetIds.length === 0) {
+    document.getElementById('cn-skill-grid').classList.add('pills-error');
+    setTimeout(() => document.getElementById('cn-skill-grid').classList.remove('pills-error'), 1500);
+    showErr('Please select at least one skill set.'); return;
+  }
+  if (!hours || Number(hours) < 1 || Number(hours) > 45) {
+    showErr('Hours per week must be between 1 and 45.'); return;
+  }
+  if (!startDate || !endDate)  { showErr('Start date and end date are required.'); return; }
+  if (startDate > endDate)     { showErr('Start date must be before end date.'); return; }
+
+  // Validate dates fall within project range
+  const proj = _cnProjects.find(p => String(p.id) === String(projectId));
+  if (proj) {
+    if (proj.startDate && startDate < proj.startDate) {
+      showErr(`Start date cannot be before the project start (${proj.startDate}).`); return;
+    }
+    if (proj.endDate && endDate > proj.endDate) {
+      showErr(`End date cannot be after the project end (${proj.endDate}).`); return;
+    }
+  }
+
+  const createBtn = document.getElementById('cn-create-btn');
+  createBtn.disabled    = true;
+  createBtn.textContent = 'Creating…';
+
+  try {
+    const res = await apiFetch('/api/needs', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ projectId, level, skillSetIds, hoursPerWeek: Number(hours), startDate, endDate }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    showToast('Need created', 'success');
+    closeCreateNeedModal();
+    loadDashboard();
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    createBtn.disabled    = false;
+    createBtn.textContent = 'Create Need';
+  }
 }
 
 // ── Boot ──────────────────────────────────────────────────────────
