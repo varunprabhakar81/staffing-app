@@ -3240,6 +3240,14 @@ td[data-cell-type="emp-total"]:hover {
   background: rgba(255,255,255,0.07);
   border: 1px solid rgba(255,255,255,0.1);
 }
+.skill-pill.clickable-pill {
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.skill-pill.clickable-pill:hover {
+  border-color: rgba(168,199,250,0.45);
+  color: #A8C7FA;
+}
 
 /* Rolling Off Soon — Change Assignment row flash (#141) */
 @keyframes hmRowFlashAmber {

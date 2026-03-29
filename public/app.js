@@ -22,6 +22,10 @@ let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
 let _needsStatusFilter = null;    // active donut segment filter: 'fully_met' | 'partially_met' | 'unmet' | null
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
+let _cpIsDirty = false;            // tracks unsaved changes in profile editor
+let _cpSnapshot = null;            // original field values for revert
+let _cpAbortController = null;     // abort signal for dirty-tracking listeners
+let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
 // ── Tracks which employee rows are expanded in the heatmap ────────
@@ -1973,7 +1977,7 @@ function renderCoverageChart(coverage) {
   const rows = coverage.roles.map((r, i) => `
     <tr class="dd-clickable need-row" data-status="${r.status || 'unmet'}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
       <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
-      <td class="col-skill">${r.skillSet || '—'}</td>
+      <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${JSON.stringify({needId: null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;')}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
       <td>${r.level || '—'}</td>
       <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
       <td class="col-center">${fmtDate(r.startDate)}</td>
@@ -2001,6 +2005,13 @@ function renderCoverageChart(coverage) {
       <tbody>${rows}</tbody>
     </table>
   `;
+}
+
+// Helper: open skill set modal from a pill element, passing optional need context
+function onSkillPillClick(el) {
+  const skillName   = el.dataset.skill;
+  const needContext = el.dataset.needContext ? JSON.parse(el.dataset.needContext) : null;
+  openSkillSetModal(skillName, needContext);
 }
 
 // ── Needs donut filter ────────────────────────────────────────────
@@ -2136,7 +2147,24 @@ function renderNeedMatchPanel(roleIdx) {
   panel.innerHTML = `<div class="match-cards-container">${cards}</div>`;
 }
 
-async function acceptMatch(needIdx, matchIdx, event) {
+async function acceptMatch(needIdxOrMatch, matchIdx, event) {
+  // Direct match object path — called from skill set modal (no recommendations context needed)
+  if (needIdxOrMatch !== null && typeof needIdxOrMatch === 'object') {
+    const m = needIdxOrMatch;
+    await saveAllAssignments([{
+      type:         'add',
+      employeeName: m.consultantName,
+      project:      m.projectName,
+      skillSet:     m.skillSet || '',
+      startDate:    m.startDate,
+      endDate:      m.endDate,
+      hoursPerWeek: Number(m.hoursPerWeek),
+    }]);
+    return;
+  }
+
+  // Original recommendations engine path
+  const needIdx = needIdxOrMatch;
   if (event) event.stopPropagation();
   if (!_needs.recommendations) return;
   const needData = _needs.recommendations[needIdx];
@@ -2189,11 +2217,11 @@ function clearNeedsPending() {
   _needs.expanded.forEach(idx => renderNeedMatchPanel(idx));
 }
 
-async function saveAllAssignments() {
+async function saveAllAssignments(overrideChanges) {
   const saveBtn = document.getElementById('needsSaveBtn');
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  if (saveBtn && !overrideChanges) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
-  const changes = _needs.pending.map(p => ({
+  const changes = overrideChanges ?? _needs.pending.map(p => ({
     type:         'add',
     employeeName: p.consultant.employeeName,
     project:      p.need.projectName,
@@ -2211,11 +2239,18 @@ async function saveAllAssignments() {
     });
     const data = await res.json();
     if (res.status === 423) {
+      if (overrideChanges) throw new Error(data.error || 'Assignment locked');
       const countEl = document.getElementById('needsPendingCount');
       if (countEl) { countEl.textContent = data.error; countEl.style.color = 'var(--coral)'; }
       return;
     }
     if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+
+    if (overrideChanges) {
+      // Direct-save path (skill set modal): just refresh dashboard data
+      await loadDashboard();
+      return;
+    }
 
     const savedCount = _needs.pending.length;
     _needs.pending = [];
@@ -2232,9 +2267,10 @@ async function saveAllAssignments() {
       setTimeout(() => { bar.classList.add('hidden'); countEl.style.color = ''; }, 3000);
     }
   } catch (err) {
+    if (overrideChanges) throw err; // re-throw so skill modal handler can show the toast
     showToast(`Save failed: ${err.message}`, 'error');
   } finally {
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save All'; }
+    if (saveBtn && !overrideChanges) { saveBtn.disabled = false; saveBtn.textContent = 'Save All'; }
   }
 }
 
@@ -2295,6 +2331,114 @@ function renderBenchReport(benchReport) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// ── Skill Set Modal (#152) ────────────────────────────────────────
+async function openSkillSetModal(skillName, needContext = null, source = 'needs') {
+  openDrilldown(skillName, '<p class="dd-empty" style="color:#8892B0">Loading…</p>');
+  try {
+    const res  = await apiFetch(`/api/skill-sets/${encodeURIComponent(skillName)}/consultants`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    console.log('[skillModal] raw response:', data);
+    if (!Array.isArray(data)) {
+      openDrilldown(skillName, '<p class="dd-empty">Failed to load consultants.</p>');
+      return;
+    }
+    const countLine = `<p style="font-size:12px;color:#8892B0;padding:0 0 4px 0">${data.length} consultant${data.length !== 1 ? 's' : ''} with this skill</p>`;
+    const needLine  = needContext
+      ? `<p style="font-size:12px;color:#CDD9F5;padding:0 0 12px 0;opacity:0.8">Staffing for: <strong>${_esc(needContext.projectName)}</strong> · ${needContext.hoursPerWeek}h/wk</p>`
+      : '';
+    const subtitle  = countLine + needLine;
+    if (!data.length) {
+      openDrilldown(skillName, subtitle + '<p class="dd-empty">No consultants found with this skill.</p>');
+      return;
+    }
+    const normalized = data.map(c => ({ ...c, level: c.level?.name ?? c.level ?? '—' }));
+    const groupedRows = buildGroupedRows(normalized, c => c.level, c => {
+      const booked = c.bookedHours || 0;
+      const avail  = Math.max(0, 45 - booked);
+      const cls    = booked === 0    ? 'hm-bench'
+                   : booked <= 10    ? 'hm-bench'
+                   : booked < 45     ? 'hm-partial'
+                   : booked === 45   ? 'hm-utilized'
+                   : 'hm-over';
+      const acceptCell = needContext
+        ? `<td><button class="match-accept-btn skill-modal-accept-btn" data-emp="${_esc(c.name)}">Accept</button></td>`
+        : '';
+      return `<tr>
+        <td><span class="drill-link" style="color:#CDD9F5;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2)" data-name="${_esc(c.name)}" data-cid="${_esc(c.id || '')}">${_esc(c.name)}</span></td>
+        <td style="color:#8892B0;font-size:12px">${_esc(c.level || '—')}</td>
+        <td style="color:#8892B0;font-size:12px">${_esc(c.location || '—')}</td>
+        <td><span class="dd-avail-badge ${cls}" style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">${avail}h avail</span></td>
+        ${acceptCell}
+      </tr>`;
+    }, 4, true);
+    const actionHeader = needContext ? '<th>Action</th>' : '';
+    console.log('[skillModal] groupedRows HTML length:', groupedRows.length);
+    openDrilldown(skillName, `
+      ${subtitle}
+      <div style="padding:0 0 8px">
+        <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+      </div>
+      <table class="dd-table">
+        <thead><tr><th>Consultant</th><th>Level</th><th>Location</th><th>This Week</th>${actionHeader}</tr></thead>
+        <tbody>${groupedRows}</tbody>
+      </table>`);
+
+    // Attach name-click listeners (closure-safe, handles apostrophe names like Delaney O'Neil)
+    document.querySelectorAll('#drilldownBody .drill-link').forEach(el => {
+      el.addEventListener('click', () => {
+        closeDrilldown();
+        if (source === 'settings') {
+          openConsultantProfileEditor(el.dataset.cid);
+        } else {
+          navigateToEmployee(el.dataset.name);
+        }
+      });
+    });
+
+    // Attach Accept button handlers when opened from a need pill
+    if (needContext) {
+      document.querySelectorAll('#drilldownBody .skill-modal-accept-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const consultantName = btn.dataset.emp;
+          const c = normalized.find(x => x.name === consultantName);
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            await acceptMatch({
+              consultantId:  c?.id ?? null,
+              consultantName,
+              needId:        needContext.needId,
+              projectName:   needContext.projectName,
+              hoursPerWeek:  needContext.hoursPerWeek,
+              startDate:     needContext.startDate,
+              endDate:       needContext.endDate,
+              levelRequired: needContext.levelRequired,
+              skillSet:      skillName,
+            });
+            btn.textContent = 'Accepted \u2713';
+            btn.style.background = '#10b981';
+            btn.style.color = '#fff';
+            btn.classList.add('accepted');
+            setTimeout(() => {
+              closeDrilldown();
+              navigateTo('staffing');
+            }, 800);
+          } catch (err) {
+            showToast(`Failed to accept: ${err.message}`, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Accept';
+          }
+        });
+      });
+    }
+  } catch (err) {
+    console.error('[skillModal] error:', err);
+    openDrilldown(skillName, '<p class="dd-empty">Error loading data.</p>');
+  }
+}
+
 // ── Drilldown Modal ───────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════
 
@@ -3539,17 +3683,18 @@ function _renderConsultantRow(c) {
   const skills       = Array.isArray(c.skillSets) ? c.skillSets : (c.primarySkillSet ? [{ name: c.primarySkillSet, type: 'Technology' }] : []);
   const skillPills   = skills.map(s => {
     const label = typeof s === 'string' ? s : s.name;
-    return `<span class="skill-pill">${_esc(label)}</span>`;
+    return `<span class="skill-pill clickable-pill" data-skill="${_esc(label)}" onclick="openSkillSetModal(this.dataset.skill, null, 'settings')">${_esc(label)}</span>`;
   });
   const skillCell    = skillPills.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${skillPills.join('')}</div>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
   const locationCell = c.location ? `<span style="color:#8892B0;font-size:12px">${_esc(c.location)}</span>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
   const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)">Active</span>`;
 
-  const editBtn = c.id
-    ? `<button data-cid="${_esc(c.id)}" onclick="openConsultantProfileEditor(this.dataset.cid)"
-         style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
-         onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Edit</button>`
-    : '';
+  const nameCell = c.id
+    ? `<span class="settings-name-link" data-cid="${_esc(c.id)}" onclick="openConsultantProfileEditor(this.dataset.cid)"
+         style="color:#E2E8F0;cursor:pointer;font-weight:500"
+         onmouseover="this.style.color='#A8C7FA';this.style.textDecoration='underline'"
+         onmouseout="this.style.color='#E2E8F0';this.style.textDecoration='none'">${_esc(c.name)}</span>`
+    : `<span style="color:#E2E8F0;font-weight:500">${_esc(c.name)}</span>`;
 
   const deactBtn = c.id
     ? `<button data-cid="${_esc(c.id)}" data-name="${_esc(c.name)}" onclick="deactivateConsultant(this.dataset.cid,this.dataset.name)"
@@ -3558,17 +3703,12 @@ function _renderConsultantRow(c) {
     : '';
 
   return `<tr data-cid="${_esc(c.id)}" style="border-bottom:1px solid rgba(255,255,255,.05)">
-    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
+    <td style="padding:13px 20px;white-space:nowrap">${nameCell}</td>
     <td style="padding:13px 16px">${levelCell}</td>
     <td style="padding:13px 16px">${skillCell}</td>
     <td style="padding:13px 16px">${locationCell}</td>
     <td style="padding:13px 16px">${statusPill}</td>
-    <td style="padding:13px 20px">
-      <div style="display:flex;align-items:center;gap:8px">
-        ${editBtn}
-        ${deactBtn}
-      </div>
-    </td>
+    <td style="padding:13px 20px">${deactBtn}</td>
   </tr>`;
 }
 
@@ -3615,11 +3755,18 @@ function _renderInactiveConsultantRow(c) {
   const skills       = Array.isArray(c.skillSets) ? c.skillSets : (c.primarySkillSet ? [{ name: c.primarySkillSet, type: 'Technology' }] : []);
   const skillPills   = skills.map(s => {
     const label = typeof s === 'string' ? s : s.name;
-    return `<span class="skill-pill">${_esc(label)}</span>`;
+    return `<span class="skill-pill clickable-pill" data-skill="${_esc(label)}" onclick="openSkillSetModal(this.dataset.skill, null, 'settings')">${_esc(label)}</span>`;
   });
   const skillCell    = skillPills.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${skillPills.join('')}</div>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
   const locationCell = c.location ? `<span style="color:#8892B0;font-size:12px">${_esc(c.location)}</span>` : `<span style="color:#4A4D5A;font-size:12px">—</span>`;
   const statusPill   = `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#6B6F76;background:#1A1D27;border:1px solid rgba(255,255,255,0.1)">Inactive</span>`;
+
+  const nameCell = c.id
+    ? `<span class="settings-name-link" data-cid="${_esc(c.id)}" onclick="openConsultantProfileEditor(this.dataset.cid)"
+         style="color:#E2E8F0;cursor:pointer;font-weight:500"
+         onmouseover="this.style.color='#A8C7FA';this.style.textDecoration='underline'"
+         onmouseout="this.style.color='#E2E8F0';this.style.textDecoration='none'">${_esc(c.name)}</span>`
+    : `<span style="color:#E2E8F0;font-weight:500">${_esc(c.name)}</span>`;
 
   const reactBtn = c.id
     ? `<button data-cid="${_esc(c.id)}" data-name="${_esc(c.name)}" onclick="reactivateConsultant(this.dataset.cid,this.dataset.name)"
@@ -3628,7 +3775,7 @@ function _renderInactiveConsultantRow(c) {
     : '';
 
   return `<tr data-cid="${_esc(c.id)}" style="border-bottom:1px solid rgba(255,255,255,.04);opacity:0.5">
-    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(c.name)}</td>
+    <td style="padding:13px 20px;white-space:nowrap">${nameCell}</td>
     <td style="padding:13px 16px">${levelCell}</td>
     <td style="padding:13px 16px">${skillCell}</td>
     <td style="padding:13px 16px">${locationCell}</td>
@@ -3675,6 +3822,7 @@ async function loadUsers() {
     const res = await apiFetch('/api/admin/users');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     users = await res.json();
+    _umUsers = users;
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="padding:32px 20px;text-align:center;color:#FCA5A5;font-size:13px">Failed to load users: ${_esc(err.message)}</td></tr>`;
     return;
@@ -3729,7 +3877,7 @@ function _renderActiveRow(u) {
          onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`;
 
   return `<tr style="border-bottom:1px solid rgba(255,255,255,.05);${isInvited ? 'opacity:0.75;' : ''}">
-    <td style="padding:13px 20px;color:#E2E8F0;font-weight:500;white-space:nowrap">${_esc(u.name)}</td>
+    <td style="padding:13px 20px;font-weight:500;white-space:nowrap"><span class="settings-name-link" data-uid="${_esc(u.id)}" onclick="openUserEditModal(this.dataset.uid)" style="color:#E2E8F0;cursor:pointer" onmouseover="this.style.color='#A8C7FA';this.style.textDecoration='underline'" onmouseout="this.style.color='#E2E8F0';this.style.textDecoration='none'">${_esc(u.name)}</span></td>
     <td style="padding:13px 16px;color:#8892B0;font-size:12px">${_esc(u.email)}</td>
     <td style="padding:13px 16px">${umPill(roleColor, _esc(roleLabel))}</td>
     <td style="padding:13px 16px">${statusPill}</td>
@@ -3848,6 +3996,76 @@ async function reactivateUser(userId) {
     loadUsers();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+// ── User Edit Modal ────────────────────────────────────────────────
+
+function openUserEditModal(userId) {
+  const u = _umUsers.find(x => x.id === userId);
+  if (!u) return;
+
+  document.getElementById('umTitle').textContent = u.name || u.email || 'User';
+  document.getElementById('umEmail').textContent = u.email || '—';
+
+  const isInvited = u.status === 'pending';
+  const statusPill = document.getElementById('umStatusPill');
+  if (isInvited) {
+    statusPill.textContent = 'Pending';
+    statusPill.style.cssText = 'display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#F59E0B;background:#451A03;border:1px solid rgba(245,158,11,0.3)';
+  } else {
+    statusPill.textContent = 'Active';
+    statusPill.style.cssText = 'display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;color:#10B981;background:#052E16;border:1px solid rgba(16,185,129,0.3)';
+  }
+
+  const roleSel = document.getElementById('umRoleSelect');
+  roleSel.innerHTML = Object.entries(UM_ROLE_LABELS)
+    .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
+    .join('');
+  roleSel.disabled = isInvited;
+  roleSel.dataset.uid  = u.id;
+  roleSel.dataset.prev = u.role;
+
+  const note = document.getElementById('umRolePendingNote');
+  if (note) note.classList.toggle('hidden', !isInvited);
+
+  document.getElementById('userEditModal').classList.remove('hidden');
+}
+
+function closeUserEditModal() {
+  document.getElementById('userEditModal').classList.add('hidden');
+}
+
+async function saveUserEditModal() {
+  const roleSel = document.getElementById('umRoleSelect');
+  const uid     = roleSel.dataset.uid;
+  const newRole = roleSel.value;
+  const prevRole = roleSel.dataset.prev;
+  if (newRole === prevRole) { closeUserEditModal(); return; }
+
+  const btn = document.getElementById('umSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(uid)}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showToast(`Failed to update role: ${body.error || res.status}`, 'error');
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      return;
+    }
+    showToast(`Role updated to ${UM_ROLE_LABELS[newRole] || newRole}.`, 'success');
+    closeUserEditModal();
+    loadUsers();
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save';
   }
 }
 
@@ -4030,6 +4248,11 @@ async function submitAddProject(event) {
 async function openConsultantProfileEditor(consultantId, consultantName) {
   if (!consultantId) return;
   _editConsultantId = consultantId;
+  _cpIsDirty = false;
+  _cpSnapshot = null;
+  if (_cpAbortController) { _cpAbortController.abort(); _cpAbortController = null; }
+  const strip = document.getElementById('cpDiscardStrip');
+  if (strip) strip.classList.add('hidden');
 
   document.getElementById('cpTitle').textContent = consultantName || 'Consultant Profile';
   document.getElementById('cpSubtitle').textContent = 'Loading…';
@@ -4114,12 +4337,14 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
       tag.className = 'cp-skill-tag' +
         (ss.type === 'Practice Area' ? ' type-practice' : '') +
         (selectedIds.has(ss.id) ? ' selected' : '');
-      tag.dataset.ssId = ss.id;
-      tag.textContent = ss.name;
+      tag.dataset.ssId   = ss.id;
+      tag.dataset.skill  = ss.name;
+      tag.textContent    = ss.name;
       if (readOnly) {
-        tag.setAttribute('disabled', '');
+        tag.style.cursor = 'pointer';
+        tag.addEventListener('click', () => openSkillSetModal(tag.dataset.skill, null, 'profile'));
       } else {
-        tag.addEventListener('click', () => tag.classList.toggle('selected'));
+        tag.addEventListener('click', () => { tag.classList.toggle('selected'); _cpIsDirty = true; });
       }
       grid.appendChild(tag);
     }
@@ -4128,13 +4353,45 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   // Track status for deactivate/reactivate button
   _editConsultantStatus = consultant.status;
 
-  // Show/hide save button
+  // Snapshot + dirty tracking (editable mode only)
+  if (!readOnly) {
+    _cpSnapshot = {
+      name:     consultant.name || '',
+      levelId:  String(consultant.level_id || ''),
+      location: consultant.location || '',
+      billRate: consultant.bill_rate_override != null ? String(consultant.bill_rate_override) : '',
+      costRate: consultant.cost_rate_override != null ? String(consultant.cost_rate_override) : '',
+      skillIds: new Set((skillSetIds || []).map(String)),
+    };
+    _cpAbortController = new AbortController();
+    const { signal } = _cpAbortController;
+    const markDirty = () => { _cpIsDirty = true; };
+    document.getElementById('cpName').addEventListener('input', markDirty, { signal });
+    document.getElementById('cpLevel').addEventListener('change', markDirty, { signal });
+    document.getElementById('cpLocation').addEventListener('input', markDirty, { signal });
+    document.getElementById('cpBillRate').addEventListener('input', markDirty, { signal });
+    document.getElementById('cpCostRate').addEventListener('input', markDirty, { signal });
+  }
+
+  // Wire strip buttons outside the AbortController scope so abort() can't interfere.
+  // Discard: close the modal immediately (stopPropagation prevents any backdrop handler firing).
+  // Keep editing: hide the strip only.
+  document.getElementById('cpDiscardConfirmBtn').onclick = (e) => {
+    e.stopPropagation();
+    closeConsultantProfileEditor();
+  };
+  document.getElementById('cpKeepEditingBtn').onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('cpDiscardStrip').classList.add('hidden');
+  };
+
+  // Show/hide save button; label Discard button appropriately
   if (readOnly) {
     document.getElementById('cpSubmitBtn').style.display = 'none';
-    document.querySelector('#cpActions button[type="button"][onclick*="close"]').textContent = 'Close';
+    document.getElementById('cpDiscardBtn').textContent = 'Close';
   } else {
     document.getElementById('cpSubmitBtn').style.display = '';
-    document.querySelector('#cpActions button[type="button"][onclick*="close"]').textContent = 'Cancel';
+    document.getElementById('cpDiscardBtn').textContent = 'Discard';
   }
 
   // Deactivate / Reactivate button (editors only)
@@ -4156,9 +4413,30 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
 function closeConsultantProfileEditor() {
   const modal = document.getElementById('consultantProfileModal');
   if (!modal) return;
+  // Hide the modal and reset all state BEFORE aborting the controller,
+  // so no in-flight handlers can observe a half-reset state.
   modal.classList.add('hidden');
+  const strip = document.getElementById('cpDiscardStrip');
+  if (strip) strip.classList.add('hidden');
   _editConsultantId = null;
   _editConsultantStatus = null;
+  _cpIsDirty = false;
+  _cpSnapshot = null;
+  // Abort dirty-tracking listeners last — nothing after this point reads them.
+  if (_cpAbortController) { _cpAbortController.abort(); _cpAbortController = null; }
+}
+
+function handleCpClose() {
+  if (!_cpIsDirty) { closeConsultantProfileEditor(); return; }
+  document.getElementById('cpDiscardStrip').classList.remove('hidden');
+}
+
+function _cpKeepEditing() {
+  document.getElementById('cpDiscardStrip').classList.add('hidden');
+}
+
+function _cpRevertChanges() {
+  closeConsultantProfileEditor();
 }
 
 async function toggleConsultantActiveFromModal() {

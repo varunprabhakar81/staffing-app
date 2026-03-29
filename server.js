@@ -865,6 +865,87 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
   }
 });
 
+// GET /api/skill-sets/:skillName/consultants — all active consultants with that skill + current week booked hours
+app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
+  const skillName = req.params.skillName;
+  const tenantId  = process.env.TENANT_ID;
+  console.log(`[skillSets] lookup: skillName="${skillName}" tenantId="${tenantId}"`);
+  try {
+    // 1. Find skill set by name
+    const { data: ssRows, error: ssErr } = await serviceClient
+      .from('skill_sets')
+      .select('id, name')
+      .eq('tenant_id', tenantId)
+      .eq('name', skillName);
+    console.log(`[skillSets] step1 ssRows=${JSON.stringify(ssRows)} err=${ssErr?.message}`);
+    if (!ssRows || !ssRows.length) return res.json([]);
+    const ssId = ssRows[0].id;
+
+    // 2. Get all consultant IDs with this skill
+    const { data: cssRows, error: cssErr } = await serviceClient
+      .from('consultant_skill_sets')
+      .select('consultant_id')
+      .eq('tenant_id', tenantId)
+      .eq('skill_set_id', ssId);
+    console.log(`[skillSets] step2 cssRows.length=${cssRows?.length} err=${cssErr?.message}`);
+    if (!cssRows || !cssRows.length) return res.json([]);
+    const consultantIds = cssRows.map(r => r.consultant_id);
+
+    // 3. Get active consultants + levels in parallel
+    const [{ data: cRows, error: cErr }, { data: levels, error: lErr }] = await Promise.all([
+      serviceClient.from('consultants')
+        .select('id, name, level_id, location')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .in('id', consultantIds),
+      serviceClient.from('levels')
+        .select('id, name, sort_order')
+        .eq('tenant_id', tenantId)
+        .order('sort_order'),
+    ]);
+    console.log(`[skillSets] step3 cRows.length=${cRows?.length} err=${cErr?.message} levels.length=${levels?.length} lErr=${lErr?.message}`);
+    if (cErr) return res.status(500).json({ error: cErr.message });
+
+    const levelMap = Object.fromEntries((levels || []).map(l => [l.id, l.name]));
+    console.log(`[skillSets] levelMap keys=${Object.keys(levelMap).length} sample:`, Object.entries(levelMap).slice(0, 3));
+
+    // 4. Current week booked hours from cache
+    const currentWeekHours = {};
+    const sd = staffingData;
+    if (sd && sd.supply && sd.supply.length && sd._meta?.weekKeyToDate) {
+      const weekKeys = Object.keys(sd.supply[0].weeklyHours);
+      const { weekKeyToDate } = sd._meta;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      let currentWk = null;
+      for (const wk of weekKeys) {
+        const iso = weekKeyToDate[wk];
+        if (!iso) continue;
+        const [y, m, d] = iso.split('-').map(Number);
+        if (new Date(y, m - 1, d) >= today) { currentWk = wk; break; }
+      }
+      if (currentWk) {
+        for (const row of sd.supply) {
+          currentWeekHours[row.employeeName] = (currentWeekHours[row.employeeName] || 0) + (row.weeklyHours[currentWk] || 0);
+        }
+      }
+    }
+
+    // 5. Build response — level is always a plain string (levelMap resolves level_id → name)
+    const result = (cRows || []).map(c => ({
+      id:          c.id,
+      name:        c.name,
+      level:       levelMap[c.level_id] ?? null,
+      location:    c.location  ?? null,
+      bookedHours: currentWeekHours[c.name] ?? 0,
+    }));
+    console.log(`[skillSets] responding with ${result.length} consultants, sample:`, JSON.stringify(result[0]));
+    res.json(result);
+  } catch (err) {
+    console.error('[skillSets] error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);

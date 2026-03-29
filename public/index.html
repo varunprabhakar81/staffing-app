@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=41">
+  <link rel="stylesheet" href="styles.css?v=42">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -30,13 +30,13 @@
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor"/></svg>
         <span class="nav-label">Overview</span>
       </button>
-      <button class="nav-item" data-tab="staffing" title="Staffing (Ctrl+2)">
+      <button class="nav-item" data-tab="staffing" title="Resource Allocation (Ctrl+2)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="4.5" r="2.5" fill="currentColor"/><path d="M1 13c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="5" r="2" fill="currentColor" opacity=".5"/><path d="M14 13c0-2.209-1.343-4-3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>
-        <span class="nav-label">Staffing</span>
+        <span class="nav-label">Resource Allocation</span>
       </button>
-      <button class="nav-item" data-tab="needs" title="Needs (Ctrl+3)">
+      <button class="nav-item" data-tab="needs" title="Open Needs (Ctrl+3)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="3.5" y="3" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 3V2a2 2 0 014 0v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="5.5" y1="7.5" x2="10.5" y2="7.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="5.5" y1="10" x2="8.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <span class="nav-label">Needs</span>
+        <span class="nav-label">Open Needs</span>
       </button>
       <button class="nav-item" data-tab="ask" title="Ask Claude (Ctrl+4)">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 7c0 3.314-2.686 6-6 6a5.97 5.97 0 01-3-.8L2 14l1.8-3A5.97 5.97 0 012 7c0-3.314 2.686-6 6-6s6 2.686 6 6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="6" cy="7" r=".7" fill="currentColor"/><circle cx="8" cy="7" r=".7" fill="currentColor"/><circle cx="10" cy="7" r=".7" fill="currentColor"/></svg>
@@ -689,9 +689,47 @@
     </div>
   </div>
 
+  <!-- User Edit Modal -->
+  <div id="userEditModal" class="hidden"
+    onclick="if(event.target===this)closeUserEditModal()"
+    style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+    <div onclick="event.stopPropagation()"
+      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:400px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 id="umTitle" style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">User</h3>
+        <button type="button" onclick="closeUserEditModal()"
+          style="background:none;border:none;color:#8892B0;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px"
+          onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">✕</button>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:4px;letter-spacing:.04em">EMAIL</label>
+        <div id="umEmail" style="font-size:13px;color:#CDD9F5;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.08);border-radius:8px"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:4px;letter-spacing:.04em">STATUS</label>
+        <span id="umStatusPill" style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid"></span>
+      </div>
+      <div style="margin-bottom:24px">
+        <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">ROLE</label>
+        <select id="umRoleSelect"
+          style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;cursor:pointer"
+          onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"></select>
+        <p id="umRolePendingNote" class="hidden" style="font-size:11px;color:#6B6F76;margin:6px 0 0 0">Role cannot be changed until the user accepts their invite.</p>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="closeUserEditModal()"
+          style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
+          onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
+        <button type="button" id="umSaveBtn" onclick="saveUserEditModal()"
+          style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit"
+          onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Consultant Profile Editor Modal (#119) -->
   <div id="consultantProfileModal" class="hidden"
-    onclick="if(event.target===this)closeConsultantProfileEditor()"
+    onclick="if(event.target===this)handleCpClose()"
     style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
     <div onclick="event.stopPropagation()"
       style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
@@ -701,7 +739,7 @@
           <h3 id="cpTitle" style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">Consultant Profile</h3>
           <div id="cpSubtitle" style="font-size:12px;color:#8892B0;margin-top:3px"></div>
         </div>
-        <button type="button" onclick="closeConsultantProfileEditor()"
+        <button type="button" onclick="handleCpClose()"
           style="background:none;border:none;color:#8892B0;font-size:18px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px"
           onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">✕</button>
       </div>
@@ -751,6 +789,20 @@
           <div id="cpSkillEmpty" class="hidden" style="font-size:12px;color:#4A5168;padding:6px 0">No skill sets found.</div>
         </div>
 
+        <!-- Discard confirmation strip (shown when closing with unsaved changes) -->
+        <div id="cpDiscardStrip" class="hidden"
+             style="margin-bottom:14px;padding:10px 14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.28);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <span style="font-size:12px;color:#FCD34D">Discard unsaved changes?</span>
+          <div style="display:flex;gap:8px">
+            <button type="button" id="cpKeepEditingBtn"
+              style="padding:4px 10px;background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#E2E8F0;font-size:12px;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.background='rgba(255,255,255,.08)'" onmouseout="this.style.background='transparent'">Keep editing</button>
+            <button type="button" id="cpDiscardConfirmBtn"
+              style="padding:4px 10px;background:rgba(245,158,11,0.2);border:1px solid rgba(245,158,11,0.4);border-radius:6px;color:#FCD34D;font-size:12px;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.background='rgba(245,158,11,0.3)'" onmouseout="this.style.background='rgba(245,158,11,0.2)'">Discard</button>
+          </div>
+        </div>
+
         <div id="cpActions" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div>
             <button type="button" id="cpDeactivateBtn" onclick="toggleConsultantActiveFromModal()" class="hidden"
@@ -758,9 +810,9 @@
               onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>
           </div>
           <div style="display:flex;gap:10px">
-            <button type="button" onclick="closeConsultantProfileEditor()"
+            <button type="button" id="cpDiscardBtn" onclick="handleCpClose()"
               style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
-              onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
+              onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Discard</button>
             <button type="submit" id="cpSubmitBtn"
               style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:100px"
               onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Save</button>
@@ -771,6 +823,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=83"></script>
+  <script src="app.js?v=87"></script>
 </body>
 </html>
