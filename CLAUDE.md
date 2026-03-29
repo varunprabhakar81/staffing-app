@@ -124,12 +124,12 @@ Enforced via `requireRole()` middleware on sensitive routes.
 
 ## Heatmap Color Coding
 
-| Hours | Color | Meaning |
-|-------|-------|---------|
-| 0 | Dark blue | Bench |
-| 1–34 | Purple | Available capacity |
-| 35–45 | Green | Fully utilized |
-| >45 | Orange/red | Overbooked |
+| Hours | Class | Color | Meaning |
+|-------|-------|-------|---------|
+| 0–10h | hm-bench | Red | Bench / urgent |
+| 11–44h | hm-partial | Yellow | Partial utilization |
+| 45h | hm-utilized | Green | Perfect utilization |
+| 46h+ | hm-over | Orange | Overallocated |
 
 ---
 
@@ -196,6 +196,22 @@ node server.js
 
 ---
 
+## Critical Rules — Never Revert
+
+These decisions were made deliberately to fix hard-to-debug bugs. Do not revert them.
+
+- **serviceClient on all write paths** — `resolveConsultantId`, `resolveProjectId`, `upsertAssignment`, `deleteAssignments`, `acceptMatch()` all use `serviceClient`. RLS blocks user JWT on write paths. Never switch to user JWT.
+- **data-cid pattern** — all consultant name references in DOM use `data-cid` attributes. Never pass consultant names as inline JS string literals. Handles apostrophe names (e.g. Delaney O'Neil) correctly.
+- **allSkillSets.includes() for matching** — recommendations engine matches against full `allSkillSets` array, not primary skill only. `empWeekMap` stores `allSkillSets` array. Never revert to primary-only matching.
+- **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
+- **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`.
+- **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
+- **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
+- **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
+
+---
+
 ## UI Keyboard Shortcuts
 
 | Key | Action |
@@ -215,3 +231,5 @@ node server.js
 - No email notifications
 - TENANT_ID is hard-coded per deployment (not parameterized for multi-tenant SaaS)
 - Excel import script (`import-to-supabase.js`) is one-time only
+- Fully met needs currently show in Open Needs table — will auto-close in #164 (Create New Need lifecycle)
+- No way to create new projects or staffing needs from UI — being built in #164

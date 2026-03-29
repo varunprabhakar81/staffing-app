@@ -278,7 +278,7 @@ Key schema decisions:
 * Resource Allocation: full heatmap, 25 employees x 12 weeks, expandable rows, virtual scrolling, hybrid edit mode. 4-tier color scheme: Red 0–10h / Yellow 11–44h / Green 45h / Orange 46h+. Consultant name click opens profile modal; chevron toggles row expand/collapse.
 * Edit Mode: solid blue button top-right (admin + resource_manager only), Quick Fill bar, inline cell editing, Save/Cancel bar, amber conflict banner. Enter key navigates down (skips empty rows), Escape restores pending value.
 * Search bar: elevated border, focus ring, expands rightward on focus
-* Open Needs: donut chart (partially_met + unmet only) + expandable rows with AI match panel. AI recommendations use any-skill matching (allSkillSets.includes()).
+* Open Needs: donut chart (partially_met + unmet only) + expandable rows with AI match panel. AI recommendations use any-skill matching (allSkillSets.includes()). Fully met needs currently visible in table — auto-close coming in #164.
 * Ask Claude: dynamic suggested questions, text input, markdown responses
 * Settings — admin: User Management + Consultants panel. Users grouped by role; click name to open edit modal.
 * Settings — resource_manager: Consultants panel only (User Management hidden). Consultants grouped by level; click name to open profile editor.
@@ -354,10 +354,10 @@ All drilldowns audited and fixed. Current state:
 
 | File | Current version |
 |---|---|
-| app.js | v=88 |
-| styles.css | v=42 |
+| app.js | v=83 |
+| styles.css | v=41 |
 
-Note: bump these when making frontend changes to bust browser cache.
+Note: bump these on every deploy with frontend changes to bust browser cache.
 
 ---
 
@@ -368,18 +368,20 @@ Note: bump these when making frontend changes to bust browser cache.
 | Active Sprint | ✅ Cleared (Session 13) | — |
 | Soon | ✅ Cleared (Session 18) | — |
 | V1 Stable | ✅ Cleared (Session 19), tagged v1-stable (Session 20) | — |
-| Phase 2 | In progress | 7 open — #156, #165, #163, #164, #162, #154, #129 |
+| Phase 2 | In progress | 5 open — #164, #165, #154, #129, #162 (epic) |
 | V3 | Backlog | 14 open — tenant onboarding, Finance dashboard, integrations, extended roles, #145 |
 
-GitHub Project: "Staffing Intelligence Build Board" (Project #4) — all 21 open issues added.
+GitHub Project: "Staffing Intelligence Build Board" (Project #4) — all open issues tracked.
 
-Label taxonomy (25 labels, 4 dimensions):
+Label taxonomy (6 dimensions — established Session 24):
 * `type:bug / feature / enhancement / polish / epic / chore / security / integration`
 * `priority:p0 / p1 / p2 / p3`
 * `effort:xs / s / m / l / xl`
 * `area:overview / heatmap / open-needs / settings / auth / ai / infra`
+* Phase via Milestone
+* Status via Project board field
 
-All 21 open issues have labels applied.
+All open issues have labels applied.
 
 ---
 
@@ -387,32 +389,45 @@ All 21 open issues have labels applied.
 
 | Issue | Title | Notes |
 |---|---|---|
-| #152 | Settings UX — skill modal source routing, clickable names, Smart Discard | openSkillSetModal source param; consultant/user names clickable in Settings panels via data-cid/data-uid; dirty-state tracking (_cpIsDirty, _cpSnapshot, _cpAbortController) with amber strip; abort-after-hide ordering |
-| #153 | Group consultants panel by level, user management panel by role | LEVEL_ORDER grouping for consultants; ROLE_ORDER grouping for users; _renderSettingsGroupHeader() helper |
-| — | Tab labels verified: Resource Allocation + Open Needs | Nav labels confirmed and fixed in index.html |
+| #153 | Group consultants panel by level, user management panel by role | LEVEL_ORDER grouping for consultants; ROLE_ORDER grouping for users; _renderSettingsGroupHeader() helper. 22/22 UAT passed. |
+| #156 | Open Needs — filter/hide Fully Met rows | Closed as superseded — proper lifecycle (fully met needs auto-close) handled in #164 |
+| #163 | Create and edit projects | Closed as design/scope tracker — Part A (inline project creation) absorbed into #164; Part B (project editing) moved to #165 |
+| SB-3 | Console.log audit | 11 debug statements removed from server.js (6 × [skillSets] step-logs) and app.js (5 variable dumps: [drillRollingOff], [skillModal] ×2, [addProject] ×2) |
 | — | GitHub issues audit — 27 stale/completed issues closed | 15 completed-but-not-closed + 11 pre-Supabase stale; #145 re-milestoned to V3 |
-| — | GitHub Project board created — "Staffing Intelligence Build Board" (#4) | All 21 open issues on board |
-| #162 | Epic: Create and manage staffing demand | Parent issue with child links to #163 + #164 |
-| #163 | Create and edit projects | New project form, child of #162 |
-| #164 | Create, edit, and close staffing needs | Full Open Needs CRUD, child of #162 |
-| #165 | Settings tab — sectioned nav menu | Users / Consultants / future admin panels |
+| — | GitHub Project board created — "Staffing Intelligence Build Board" (#4) | All open issues on board |
 | — | GitHub label taxonomy overhaul | Deleted 31 stale labels, created 25 new across 4 dimensions, applied to all open issues |
 
 ---
 
-## Session Backlog (carry to next session)
+## New Issues Created This Session (Session 24)
 
-| ID | Item | Note |
+| Issue | Title | Labels |
 |---|---|---|
-| SB-1 | UAT widget guidance — CSS variables, light bg, saveNotes() before render, no dark backgrounds | See UAT Widget Guidance section below |
-| SB-2 | Overallocation orange #F97316 consistency | Fold into #154 |
-| SB-3 | Console.log audit — server.js and app.js | Not yet done |
-| SB-4 | Group header visual treatment | Fold into #154 |
-| SB-7 | Heatmap chevron size enhancement | Fold into #154 |
+| #162 | Epic: Create and manage staffing demand | type:epic · p1 · xl · area:open-needs |
+| #165 | Settings nav menu | type:enhancement · p1 · s · area:settings |
+| #166 | Standalone deployment — remove Railway | type:chore · p3 · m · area:infra |
+| #167 | Anonymize data — replace with synthetic dataset | type:chore · p2 · m · area:infra |
 
 ---
 
-## Key Technical Decisions
+## Key Technical Decisions (Session 24)
+
+* Open Needs tab is workflow-first — needs table is primary surface, no projects panel
+* Fully met needs auto-close and exit pipeline — lifecycle implemented in #164
+* Project editing belongs in Settings, not Open Needs — implemented in #165
+* #156 toggle approach abandoned — wrong solution; proper lifecycle supersedes it in #164
+* Session docs simplified — HANDOFF + CLAUDE.md only going forward. README, Roadmap, session-dashboard dropped.
+* CLAUDE.md is CC's codebase reference — updated each session when architecture changes
+
+---
+
+## Pending Technical Debt
+
+* No open SB items — SB-3 resolved this session.
+
+---
+
+## Key Technical Decisions (cumulative — do not revert)
 
 * Capacity threshold = 45h/week
 * Hours/Week input max = 100
@@ -486,12 +501,6 @@ The UAT widget is rendered inline in the Claude chat. Always follow these rules 
 
 ---
 
-## Pending Technical Debt
-
-* **SB-3 — Console.log audit**: Scan server.js and app.js for leftover debug logs from closed issues. Not yet done.
-
----
-
 ## Decision Tracking Protocol (added Session 19)
 
 When a decision is confirmed during a session, Claude will do one of two things — no silent confirmations:
@@ -501,14 +510,14 @@ When a decision is confirmed during a session, Claude will do one of two things 
 This applies to: issue milestone moves, roadmap updates, architectural decisions, any confirmed change that isn't immediately acted on.
 
 Confirmed decisions this session:
-* Smart Discard uses abort-after-hide ordering — modal hidden and state reset before abort() call
-* Strip buttons wired via .onclick property assignment (not addEventListener) to remain exempt from AbortController abort
-* Settings panels use always-expanded group headers (_renderSettingsGroupHeader) — no collapse toggle needed for small lists
-* openSkillSetModal source param approach: data-cid on all drill-link spans for settings context routing
-* #145 (On Bench modal count mismatch) re-milestoned to V3 — fix is minor and low priority
-* GitHub label taxonomy: 4 dimensions (type / priority / effort / area), 25 labels total — this is the canonical label system going forward
-* GitHub Project Board #4 ("Staffing Intelligence Build Board") is the canonical issue tracking view
-* SB-2, SB-4, SB-7 still deferred to #154 (UI/UX pass)
+* Open Needs tab is workflow-first — projects panel removed, needs table is primary
+* Fully met needs auto-close in #164 — #156 toggle approach abandoned
+* Project editing moves to Settings as part of #165 — not a standalone feature in Open Needs
+* Session docs simplified — HANDOFF + CLAUDE.md only going forward
+* CLAUDE.md updated each session when architecture changes — it is CC's codebase reference
+* #163 closed as scope tracker; implementation split between #164 and #165
+* SB-3 resolved — 11 debug statements removed
+* Cache busters restored to v=83 / v=41 by revert commit
 
 ---
 
@@ -547,11 +556,9 @@ Railway auto-deploys from GitHub on every push to main. Allow 1-3 min for build.
 
 ## Build Order — Next Session
 
-Phase 2 remaining (7 issues, priority order):
-1. #156 — Open Needs filter/hide Fully Met rows (effort:s, ~1–2h)
-2. #165 — Settings tab sectioned nav menu (effort:s, ~1–2h)
-3. #163 — Create and edit projects form (effort:m, ~3–6h, child of #162)
-4. #164 — Create, edit, and close staffing needs / full Open Needs CRUD (effort:l, ~6–12h, child of #162)
-5. #162 — Epic gate — closes when #163 + #164 both done
-6. #154 — Holistic UI/UX design pass (effort:l, absorbs SB-2, SB-4, SB-7)
-7. #129 — Historical staffing snapshots + time-travel view (effort:xl)
+Phase 2 remaining (5 open issues, priority order):
+1. **#164 — Create New Need modal** — full spec in GitHub issue body. Includes inline project creation sub-form, need lifecycle (fully met → auto-close), date range guard. ← START HERE
+2. **#165 — Settings nav menu** — sectioned nav: Users / Consultants / Projects. Project editing panel here.
+3. **#154 — Holistic UI/UX design pass** — absorbs SB-2 (orange consistency), SB-4 (group header treatment), SB-7 (chevron sizing)
+4. **#129 — Historical staffing snapshots** — time-travel view, effort:xl
+5. **#162 — Epic gate** — closes automatically when #164 + #165 both done
