@@ -80,6 +80,7 @@ POST /api/projects                    — create new project
 GET  /api/skill-sets/:name/consultants — consultants with skill + current hours
 
 POST /api/needs                       — create new staffing need
+PATCH /api/needs/:id                  — edit existing need (level, skills, hours, dates)
 POST /api/needs/:id/close             — close need with { reason: 'met' | 'abandoned' }
 
 POST /api/suggested-questions         — Claude-generated Q prompts
@@ -120,6 +121,9 @@ Enforced via `requireRole()` middleware on sensitive routes.
 - `_pendingStaffing` — Map of unsaved inline edits (`${empName}||${weekLabel}||${project}`)
 - `_editActiveCell` — currently focused heatmap cell
 - `_needsStatusFilter` — active donut chart filter
+- `_settingsActivePanel` — active Settings sub-nav panel ('consultants' | 'users')
+
+**Settings tab** uses a left sub-nav (Consultants first, Users second). Consultants visible to admin + resource_manager; Users visible to admin only. `switchSettingsPanel()` handles nav highlight + panel swap.
 
 **Heatmap** uses virtual scrolling (renders only visible rows) to handle 40+ employees. Cells support keyboard nav (Tab/Enter/Arrow keys).
 
@@ -205,17 +209,18 @@ node server.js
 
 These decisions were made deliberately to fix hard-to-debug bugs. Do not revert them.
 
-- **serviceClient on all write paths** — `resolveConsultantId`, `resolveProjectId`, `upsertAssignment`, `deleteAssignments`, `acceptMatch()` all use `serviceClient`. RLS blocks user JWT on write paths. Never switch to user JWT.
+- **serviceClient on all write paths** — `resolveConsultantId`, `resolveProjectId`, `upsertAssignment`, `deleteAssignments`, `acceptMatch()`, `updateNeed()`, `replaceNeedSkillSets()` all use `serviceClient`. RLS blocks user JWT on write paths. Never switch to user JWT.
 - **data-cid pattern** — all consultant name references in DOM use `data-cid` attributes. Never pass consultant names as inline JS string literals. Handles apostrophe names (e.g. Delaney O'Neil) correctly.
 - **allSkillSets.includes() for matching** — recommendations engine matches against full `allSkillSets` array, not primary skill only. `empWeekMap` stores `allSkillSets` array. Never revert to primary-only matching.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=91`, `styles.css?v=48`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=92`, `styles.css?v=49`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
 - **Need lifecycle uses closed_at IS NULL** — `readStaffingData()` filters `.is('closed_at', null)`. Auto-close (reason='met') fires in `checkAndAutoCloseNeeds()` after every `acceptMatch()` write. Manual close (reason='abandoned') via `POST /api/needs/:id/close`. All close writes use `serviceClient`.
 - **Needs donut chart is 2 segments only** — Partially Met + Unmet. Fully Met is permanently removed. `statusMap`, `statuses`, legend, and `applyNeedsFilter` arrays are all 2-element. Do not add a third segment.
+- **Settings nav defaults to Consultants** — both admin and resource_manager see Consultants panel first. `_settingsActivePanel` persists across tab switches.
 
 ---
 
@@ -238,4 +243,3 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - No email notifications
 - TENANT_ID is hard-coded per deployment (not parameterized for multi-tenant SaaS)
 - Excel import script (`import-to-supabase.js`) is one-time only
-- No way to edit existing needs from UI — being built in #173
