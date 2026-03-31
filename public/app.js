@@ -418,7 +418,7 @@ function updateBellBadge() {
   const alertList = document.getElementById('bellAlertList');
   if (!badge || !alertList) return;
 
-  const openCount = (rawData.coverageRoles || []).length;
+  const openCount = ((rawData.openNeeds || {}).roles || []).length;
 
   const empTotals = {};
   for (const row of rawData.supply || []) {
@@ -434,7 +434,7 @@ function updateBellBadge() {
   const total = openCount + overbookedCount;
 
   // If data hasn't loaded yet keep the hardcoded fallback badge visible
-  if (rawData.coverageRoles.length === 0 && rawData.supply.length === 0) return;
+  if (((rawData.openNeeds || {}).roles || []).length === 0 && rawData.supply.length === 0) return;
 
   badge.textContent = String(total);
   badge.style.display = total > 0 ? '' : 'none';
@@ -541,7 +541,7 @@ async function loadDashboard() {
     rawData.supply        = supplyRes.ok    ? JSON.parse(supplyText)    : [];
     rawData.employees     = empRes.ok       ? JSON.parse(empText)       : [];
     rawData.cliffs        = data.cliffs     || [];
-    rawData.coverageRoles = (data.openNeeds || {}).roles || [];
+    rawData.openNeeds     = data.openNeeds;
     rawData.heatmap       = heatmapRes.ok   ? JSON.parse(heatmapText)   : null;
     rawData._meta         = data._meta      || {};
 
@@ -2666,7 +2666,7 @@ function drillCliff(weekIndex) {
 
 // ── Drilldown 4: Open Need — Role Detail ─────────────────────────
 function drillCoverage(roleIdx) {
-  const role = rawData.coverageRoles[roleIdx];
+  const role = ((rawData.openNeeds || {}).roles || [])[roleIdx];
   if (!role) return;
 
   const roleCard = `
@@ -2966,7 +2966,7 @@ function drillBenchKPI() {
 
 // ── KPI Drilldown 4: Open Needs ──────────────────────────────────
 function drillDemandKPI() {
-  const roles = rawData.coverageRoles;
+  const roles = (rawData.openNeeds || {}).roles || [];
   if (!roles.length) {
     openDrilldown('Open Needs',
       '<p class="dd-empty">No open needs.</p>');
@@ -5050,7 +5050,7 @@ function _displayDateToIso(s) {
 
 function openEditNeedModal(needId, event) {
   if (event) event.stopPropagation();
-  const need = (rawData.coverageRoles || []).find(r => r._needId === needId);
+  const need = ((rawData.openNeeds || {}).roles || []).find(r => r._needId === needId);
   if (!need) { showToast('Need not found', 'error'); return; }
 
   _enNeedId = needId;
