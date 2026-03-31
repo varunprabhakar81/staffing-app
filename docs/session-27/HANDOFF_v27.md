@@ -633,11 +633,9 @@ cp CLAUDE.md docs/session-XX/
 
 ## Build Order — Next Session
 
-V2 remaining (priority order):
-1. **#176 — Simplify coverage status model** — remove Partially Met/Fully Met distinction ← START HERE
-2. **#175 — Group needs by Client → Project hierarchy** — builds on simpler status model
-3. **#177 — AI recommendations partial availability** — fits after status rethink
-4. **#178 — Forward-looking time horizon control** — independent, pairs with #129
-5. **#129 — Historical staffing snapshots** — biggest feature, stable base needed
-6. **#154 — UI/UX design pass** — covers ALL new surfaces including #129
-7. **#168 — Multi-user UAT suite** — final gate
+V2 remaining (5 open issues, priority order):
+1. **#175 — Group needs by Client → Project hierarchy** ← START HERE
+2. **#177 — AI recommendations partial availability** — fits after grouping rethink
+3. **#178 — Forward-looking time horizon control** — independent
+4. **#154 — UI/UX design pass** — covers ALL new surfaces
+5. **#168 — Multi-user UAT suite** — final gate
