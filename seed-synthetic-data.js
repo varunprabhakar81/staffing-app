@@ -39,6 +39,13 @@ function addDays(isoDate, days) {
   return d.toISOString().split('T')[0];
 }
 
+// Returns YYYY-MM-DD for today + n days (used for need start/end dates)
+function daysFromNow(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
 // ---------------------------------------------------------------------------
 // Confirmation prompt
 // ---------------------------------------------------------------------------
@@ -131,17 +138,17 @@ const ASSIGNMENT_DEFS = [
   // Partial Utilization
   { consultant: 'Emma Evans',   project: 'Echo Order Management',        hours: 30, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Frank Fisher', project: 'Bright P2P Implementation',    hours: 20, weekRange: [1, 12], is_billable: true  },
-  // Grace Garcia: 0h weeks 1-6 (45h avail ≥ 30h need → covered), 35h weeks 7-12 (10h avail < 30h → not covered) → Partially Met for Cascade Finance Consultant need
+  // Grace Garcia: free weeks 1-6 (10h avail in later weeks) → partial match for Cascade Finance Consultant need
   { consultant: 'Grace Garcia', project: 'Cascade Finance Transform',    hours: 35, weekRange: [7, 12], is_billable: true  },
-  // Henry Hall: 0h weeks 1-2 (45h avail ≥ 45h need → covered), 25h weeks 3-12 (20h avail < 45h → not covered) → Partially Met for Globe Inventory Consultant need (covers only weeks 1-4)
+  // Henry Hall: free weeks 1-2 (20h avail in later weeks) → partial match for Globe Inventory Consultant need
   { consultant: 'Henry Hall',   project: 'Globe Inventory Optimization', hours: 25, weekRange: [3, 12], is_billable: true  },
   { consultant: 'Leo Lopez',    project: 'Cascade Finance Transform',    hours: 40, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Chad Chen',    project: 'Acme ERP Rollout',             hours: 40, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Yara York',    project: 'Echo Order Management',        hours: 30, weekRange: [1, 12], is_billable: true  },
   // Bench
-  // Brad Baker: 0h weeks 1-6 (45h avail ≥ 45h need → covered), 5h weeks 7-12 (40h avail < 45h → not covered) → Partially Met for Bright P2P Analyst need
+  // Brad Baker: mostly free (40h avail later weeks) → partial match for Bright P2P Analyst need
   { consultant: 'Brad Baker',   project: 'Pre-Sales Support',            hours: 5,  weekRange: [7, 12], is_billable: false },
-  // Abby Adams: 0h weeks 1-6 (45h avail ≥ 45h need → covered), 5h weeks 7-12 (40h avail < 45h → not covered) → Partially Met for Echo O2C Analyst need
+  // Abby Adams: mostly free (40h avail later weeks) → partial match for Echo O2C Analyst need
   { consultant: 'Abby Adams',   project: 'Internal Training',            hours: 5,  weekRange: [7, 12], is_billable: false },
   { consultant: 'Xavier Xu',    project: 'Internal Training',            hours: 5,  weekRange: [1, 12], is_billable: false },
   // Rolling Off
@@ -162,26 +169,35 @@ const ASSIGNMENT_DEFS = [
   { consultant: 'Wendy Walsh',  project: 'Pre-Sales Support',            hours: 8,  weekRange: [1, 12], is_billable: false },
 ];
 
-// Needs: date offsets relative to week[0] Monday (same reference as projects)
-// Truly Unmet (4): no consultant has the required skill combination at that level
-// Partially Met (4): some matching capacity exists but not enough to fully cover
+// 8 open needs spread across 3 urgency tiers (Urgent/Soon/Planned).
+// Urgency thresholds (computed client-side from start_date vs today):
+//   Urgent  = start_date ≤ today + 14 days
+//   Soon    = start_date ≤ today + 28 days
+//   Planned = start_date > today + 28 days
+//
+// startOff/endOff here are days from TODAY (not from week1Monday).
+// End dates are 9-12 weeks after start date for realistic engagement length.
+// Spread across all 8 clients so the donut has meaningful segments.
 const NEED_DEFS = [
-  // Truly Unmet — no SM has both SC + PM (Sam/Tara have SC; Uma has PM — no overlap)
-  { project: 'Delta Supply Chain',          level: 'Senior Manager',    skills: ['Supply Chain', 'Program Manager'],   hoursPerWeek: 30, startOff: 0,   endOff: 56  },
-  // Truly Unmet — no Manager has both R2R + PM (Olivia/Rosa have R2R; Quinn has PM — no overlap)
-  { project: 'Harbor NetSuite Migration',   level: 'Manager',           skills: ['Record to Report', 'Program Manager'], hoursPerWeek: 40, startOff: 0,   endOff: 84  },
-  // Truly Unmet — no Senior Consultant has Program Manager skill
-  { project: 'Falcon Procure-to-Pay',       level: 'Senior Consultant', skills: ['Program Manager'],                   hoursPerWeek: 40, startOff: 28,  endOff: 84  },
-  // Truly Unmet — no SM has both O2C + PM (Sam has O2C; Uma has PM — no overlap)
-  { project: 'Acme Phase 2 Supply Chain',   level: 'Senior Manager',    skills: ['Order to Cash', 'Program Manager'],  hoursPerWeek: 35, startOff: 42,  endOff: 112 },
-  // Partially Met — Abby Adams (O2C+NS, 40h available) vs 45h need
-  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],         hoursPerWeek: 45, startOff: 0,   endOff: 84  },
-  // Partially Met — Grace Garcia (R2R+NS, 10h available) vs 30h need
-  { project: 'Cascade Finance Transform',   level: 'Consultant',        skills: ['Record to Report', 'NetSuite'],      hoursPerWeek: 30, startOff: 0,   endOff: 84  },
-  // Partially Met — Henry Hall (SC+NS, 20h available) vs 45h need
-  { project: 'Globe Inventory Optimization',level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],          hoursPerWeek: 45, startOff: 0,   endOff: 28  },
-  // Partially Met — Brad Baker (P2P+NS, 40h available) vs 45h need
-  { project: 'Bright P2P Implementation',   level: 'Analyst',           skills: ['Procure to Pay', 'NetSuite'],        hoursPerWeek: 45, startOff: 0,   endOff: 84  },
+  // --- Urgent tier (start ≤ 14 days from now) ---
+  // No SM has both SC + PM (Sam/Tara have SC; Uma has PM — no overlap)
+  { project: 'Delta Supply Chain',          level: 'Senior Manager',    skills: ['Supply Chain', 'Program Manager'],     hoursPerWeek: 30, startOff: 3,   endOff: 73   },
+  // No Manager has both R2R + PM (Olivia/Rosa have R2R; Quinn has PM — no overlap)
+  { project: 'Harbor NetSuite Migration',   level: 'Manager',           skills: ['Record to Report', 'Program Manager'], hoursPerWeek: 40, startOff: 10,  endOff: 87   },
+  // Abby Adams (O2C+NS) partially available vs 45h need
+  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],           hoursPerWeek: 45, startOff: 7,   endOff: 91   },
+  // --- Soon tier (start 15-28 days from now) ---
+  // Grace Garcia (R2R+NS, limited hours) vs 30h need
+  { project: 'Cascade Finance Transform',   level: 'Consultant',        skills: ['Record to Report', 'NetSuite'],        hoursPerWeek: 30, startOff: 18,  endOff: 95   },
+  // Henry Hall (SC+NS, partial hours) vs 45h need
+  { project: 'Globe Inventory Optimization',level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],            hoursPerWeek: 45, startOff: 25,  endOff: 88   },
+  // --- Planned tier (start > 28 days from now) ---
+  // No Senior Consultant has Program Manager skill
+  { project: 'Falcon Procure-to-Pay',       level: 'Senior Consultant', skills: ['Program Manager'],                     hoursPerWeek: 40, startOff: 35,  endOff: 98   },
+  // No SM has both O2C + PM (Sam has O2C; Uma has PM — no overlap)
+  { project: 'Acme Phase 2 Supply Chain',   level: 'Senior Manager',    skills: ['Order to Cash', 'Program Manager'],    hoursPerWeek: 35, startOff: 42,  endOff: 126  },
+  // Brad Baker (P2P+NS, partial hours) vs 45h need
+  { project: 'Bright P2P Implementation',   level: 'Analyst',           skills: ['Procure to Pay', 'NetSuite'],          hoursPerWeek: 45, startOff: 49,  endOff: 119  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -344,8 +360,8 @@ async function seed() {
     project_id: projectByName[n.project],
     level_id: levelByName[n.level],
     hours_per_week: n.hoursPerWeek,
-    start_date: addDays(week1Monday, n.startOff),
-    end_date: addDays(week1Monday, n.endOff),
+    start_date: daysFromNow(n.startOff),
+    end_date: daysFromNow(n.endOff),
     closed_at: null,
     closed_reason: null,
     tenant_id: TENANT,
