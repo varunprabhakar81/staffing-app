@@ -615,6 +615,20 @@ git push origin main
 
 Railway auto-deploys from GitHub on every push to main. Allow 1-3 min for build.
 
+### Session Docs
+
+At the end of each session, create `docs/session-XX/` and copy two files into it:
+- `HANDOFF_vXX.md` — session handoff document (new, written that session)
+- `CLAUDE.md` — snapshot of the root `CLAUDE.md` as of that session end
+
+Also update the root `CLAUDE.md` in place (it is the live version Claude Code reads on every session start). The `docs/session-XX/` copy is a point-in-time archive for reference and rollback.
+
+```
+mkdir docs/session-XX
+cp HANDOFF_vXX.md docs/session-XX/
+cp CLAUDE.md docs/session-XX/
+```
+
 ---
 
 ## Build Order — Next Session

@@ -202,6 +202,7 @@ node server.js
 - **SSE broadcast**: Call `broadcast({ type: 'consultant-updated', ... })` after any consultant mutation
 - **Claude context**: Built in `claudeService.js`; includes 12-week window, employee skills/levels, demand roles
 - **Sessions**: In-memory (MemoryStore) — lost on server restart in dev; acceptable for Railway single-instance
+- **Session docs**: At the end of each session, create `docs/session-XX/` containing `HANDOFF_vXX.md` (new handoff) and a snapshot copy of `CLAUDE.md`. The root `CLAUDE.md` is the live version read at session start; `docs/session-XX/CLAUDE.md` is the point-in-time archive.
 
 ---
 
