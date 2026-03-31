@@ -1707,7 +1707,7 @@ function toggleHmExpand(empName, focusWeekIdx = 0) {
 function _updateQuickFillVisibility() {
   const bar = document.getElementById('hmQuickFillBar');
   if (!bar) return;
-  if (_hmExpanded.size > 0 && _hmCanEdit()) {
+  if (_hmCanEdit()) {
     bar.classList.remove('hidden');
   } else {
     bar.classList.add('hidden');
@@ -3460,7 +3460,9 @@ function hmCellKeydown(event, input) {
 // Employee, Project, From, To are all optional filters.
 // If omitted: applies to all expanded consultants, all their projects, all visible weeks.
 // Only hours is required — enter a value and click Apply.
-function applyQuickFill() {
+// Fast path: updates _pendingStaffing for existing heatmap cells (requires expanded rows).
+// Fallback: if no cells match, POSTs directly to /api/save-staffing (requires employee + project + date range).
+async function applyQuickFill() {
   const empFilter  = document.getElementById('qfEmployee')?.value?.trim() || null;
   const projFilter = document.getElementById('qfProject')?.value?.trim() || null;
   const fromVal    = document.getElementById('qfFrom')?.value || null;
@@ -3469,7 +3471,6 @@ function applyQuickFill() {
   const hours      = Math.max(0, Math.min(100, Number(hoursRaw) || 0));
 
   if (!_vsData) { showToast('Heatmap data not loaded yet.', 'error'); return; }
-  if (_hmExpanded.size === 0) { showToast('Expand at least one consultant row first.', 'error'); return; }
   if (hoursRaw === '' || hoursRaw === null || hoursRaw === undefined) {
     showToast('Enter hours per week before applying Quick Fill.', 'error');
     return;
@@ -3487,7 +3488,7 @@ function applyQuickFill() {
   const year = new Date().getFullYear();
   let count = 0;
 
-  // Target: filtered employee or all expanded consultants
+  // ── Fast path: fill existing heatmap cells for expanded rows ─────
   const targetEmps = _vsData.employees.filter(e =>
     _hmExpanded.has(e.name) && (!empFilter || e.name === empFilter)
   );
@@ -3522,15 +3523,55 @@ function applyQuickFill() {
     }
   }
 
-  if (count === 0) {
-    showToast('No cells matched — check employee/project filters or date range.', 'error');
+  if (count > 0) {
+    _buildVsAllRows();
+    _vsRenderVisible();
+    updateHmSaveBar();
+    showToast(`Quick Fill: applied ${hours}h to ${count} cell${count === 1 ? '' : 's'}.`, 'success');
     return;
   }
 
-  _buildVsAllRows();
-  _vsRenderVisible();
-  updateHmSaveBar();
-  showToast(`Quick Fill: applied ${hours}h to ${count} cell${count === 1 ? '' : 's'}.`, 'success');
+  // ── API fallback: consultant has no existing row for this project ─
+  if (!empFilter || !projFilter) {
+    showToast('No cells matched — expand a row or select a specific employee and project.', 'error');
+    return;
+  }
+  if (!fromVal || !toVal) {
+    showToast('No cells matched — select a date range to create new assignments.', 'error');
+    return;
+  }
+
+  // Build one entry per heatmap week that falls within the selected date range
+  const fallbackChanges = [];
+  for (let weekIdx = 0; weekIdx < _vsData.weeks.length; weekIdx++) {
+    const weekLabel = _vsData.weeks[weekIdx];
+    const m = weekLabel.match(/(\d+)\/(\d+)/);
+    if (!m) continue;
+    const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
+    if (fromDate && wkDate < fromDate) continue;
+    if (toDate   && wkDate > toDate)   continue;
+    fallbackChanges.push({ employeeName: empFilter, weekLabel, project: projFilter, hours });
+  }
+
+  if (!fallbackChanges.length) {
+    showToast('No heatmap weeks fall within the selected date range.', 'error');
+    return;
+  }
+
+  try {
+    const res = await apiFetch('/api/save-staffing', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ changes: fallbackChanges }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
+    await loadDashboard();
+    const n = fallbackChanges.length;
+    showToast(`Quick Fill: assigned ${empFilter} to ${projFilter} for ${n} week${n === 1 ? '' : 's'}.`, 'success');
+  } catch (err) {
+    showToast(`Quick Fill failed: ${err.message}`, 'error');
+  }
 }
 
 // ── Save / Cancel bar ─────────────────────────────────────────────
