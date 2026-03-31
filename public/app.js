@@ -3457,11 +3457,9 @@ function hmCellKeydown(event, input) {
 }
 
 // ── Quick Fill ────────────────────────────────────────────────────
-// Employee, Project, From, To are all optional filters.
-// If omitted: applies to all expanded consultants, all their projects, all visible weeks.
-// Only hours is required — enter a value and click Apply.
-// Fast path: updates _pendingStaffing for existing heatmap cells (requires expanded rows).
-// Fallback: if no cells match, POSTs directly to /api/save-staffing (requires employee + project + date range).
+// Employee, Project, From date, To date, and hours are all required.
+// Always writes via POST /api/save-staffing (API path); never touches _pendingStaffing.
+// After a successful write the heatmap refreshes and all fields are cleared.
 async function applyQuickFill() {
   const empFilter  = document.getElementById('qfEmployee')?.value?.trim() || null;
   const projFilter = document.getElementById('qfProject')?.value?.trim() || null;
@@ -3475,85 +3473,37 @@ async function applyQuickFill() {
     showToast('Enter hours per week before applying Quick Fill.', 'error');
     return;
   }
+  if (!empFilter || !projFilter) {
+    showToast('Select an employee and enter a project before applying Quick Fill.', 'error');
+    return;
+  }
+  if (!fromVal || !toVal) {
+    showToast('Select a date range before applying Quick Fill.', 'error');
+    return;
+  }
 
-  // Optional date range
-  let fromDate = null, toDate = null;
-  if (fromVal) fromDate = new Date(fromVal + 'T00:00:00');
-  if (toVal)   toDate   = new Date(toVal   + 'T00:00:00');
-  if (fromDate && toDate && fromDate > toDate) {
+  let fromDate = new Date(fromVal + 'T00:00:00');
+  let toDate   = new Date(toVal   + 'T00:00:00');
+  if (fromDate > toDate) {
     showToast('From date must be before To date.', 'error');
     return;
   }
 
   const year = new Date().getFullYear();
-  let count = 0;
-
-  // ── Fast path: fill existing heatmap cells for expanded rows ─────
-  const targetEmps = _vsData.employees.filter(e =>
-    _hmExpanded.has(e.name) && (!empFilter || e.name === empFilter)
-  );
-
-  for (const emp of targetEmps) {
-    // Collect unique projects for this employee
-    const allProjects = [];
-    for (const wkProjs of emp.weeklyProjects)
-      for (const p of wkProjs)
-        if (!allProjects.includes(p.project)) allProjects.push(p.project);
-
-    // If a project filter is set, narrow to that project only
-    const projects = projFilter ? allProjects.filter(p => p === projFilter) : allProjects;
-    if (!projects.length) continue;
-
-    for (let weekIdx = 0; weekIdx < _vsData.weeks.length; weekIdx++) {
-      const weekLabel = _vsData.weeks[weekIdx];
-
-      // Apply optional date range filter
-      if (fromDate || toDate) {
-        const m = weekLabel.match(/(\d+)\/(\d+)/);
-        if (!m) continue;
-        const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
-        if (fromDate && wkDate < fromDate) continue;
-        if (toDate   && wkDate > toDate)   continue;
-      }
-
-      for (const project of projects) {
-        _pendingStaffing.set(`${emp.name}||${weekLabel}||${project}`, hours);
-        count++;
-      }
-    }
-  }
-
-  if (count > 0) {
-    _buildVsAllRows();
-    _vsRenderVisible();
-    updateHmSaveBar();
-    showToast(`Quick Fill: applied ${hours}h to ${count} cell${count === 1 ? '' : 's'}.`, 'success');
-    return;
-  }
-
-  // ── API fallback: consultant has no existing row for this project ─
-  if (!empFilter || !projFilter) {
-    showToast('No cells matched — expand a row or select a specific employee and project.', 'error');
-    return;
-  }
-  if (!fromVal || !toVal) {
-    showToast('No cells matched — select a date range to create new assignments.', 'error');
-    return;
-  }
 
   // Build one entry per heatmap week that falls within the selected date range
-  const fallbackChanges = [];
+  const changes = [];
   for (let weekIdx = 0; weekIdx < _vsData.weeks.length; weekIdx++) {
     const weekLabel = _vsData.weeks[weekIdx];
     const m = weekLabel.match(/(\d+)\/(\d+)/);
     if (!m) continue;
     const wkDate = new Date(year, parseInt(m[1]) - 1, parseInt(m[2]));
-    if (fromDate && wkDate < fromDate) continue;
-    if (toDate   && wkDate > toDate)   continue;
-    fallbackChanges.push({ employeeName: empFilter, weekLabel, project: projFilter, hours });
+    if (wkDate < fromDate) continue;
+    if (wkDate > toDate)   continue;
+    changes.push({ employeeName: empFilter, weekLabel, project: projFilter, hours });
   }
 
-  if (!fallbackChanges.length) {
+  if (!changes.length) {
     showToast('No heatmap weeks fall within the selected date range.', 'error');
     return;
   }
@@ -3562,13 +3512,24 @@ async function applyQuickFill() {
     const res = await apiFetch('/api/save-staffing', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ changes: fallbackChanges }),
+      body:    JSON.stringify({ changes }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Server error ${res.status}`);
     await loadDashboard();
-    const n = fallbackChanges.length;
+    const n = changes.length;
     showToast(`Quick Fill: assigned ${empFilter} to ${projFilter} for ${n} week${n === 1 ? '' : 's'}.`, 'success');
+    // Clear all Quick Fill fields so the bar is ready for the next entry
+    const qfEmp = document.getElementById('qfEmployee');
+    if (qfEmp) qfEmp.value = '';
+    const qfProj = document.getElementById('qfProject');
+    if (qfProj) qfProj.value = '';
+    const qfFrom = document.getElementById('qfFrom');
+    if (qfFrom) qfFrom.value = '';
+    const qfTo = document.getElementById('qfTo');
+    if (qfTo) qfTo.value = '';
+    const qfHours = document.getElementById('qfHours');
+    if (qfHours) qfHours.value = '';
   } catch (err) {
     showToast(`Quick Fill failed: ${err.message}`, 'error');
   }
