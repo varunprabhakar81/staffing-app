@@ -1176,7 +1176,8 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
       }
 
       const avgBooked          = totalHours / demandWeeks.length;
-      const availableHours     = Math.round((45 - avgBooked) * 10) / 10;
+      const rawAvailable       = Math.round((45 - avgBooked) * 10) / 10;
+      const availableHours     = Math.min(rawAvailable, hoursNeeded);
       const currentUtilization = Math.round((avgBooked / 45) * 100);
       const weeklyBreakdown    = demandWeeks.map(wk => ({
         week: wk,
