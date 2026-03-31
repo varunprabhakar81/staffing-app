@@ -80,8 +80,8 @@ const PROJECT_DEFS = [
   { name: 'Falcon Procure-to-Pay',       client: 'Falcon Manufacturing',status: 'Proposed',      is_billable: true,  startOff: 28,  endOff: 84  },
   { name: 'Globe Inventory Optimization',client: 'Globe Logistics',     status: 'Sold',          is_billable: true,  startOff: -14, endOff: 28  },
   { name: 'Harbor NetSuite Migration',   client: 'Harbor Health',       status: 'Verbal Commit', is_billable: true,  startOff: 0,   endOff: 84  },
-  { name: 'Acme Phase 2 Ivalua',         client: 'Acme Corp',           status: 'Proposed',      is_billable: true,  startOff: 42,  endOff: 112 },
-  { name: 'Bright Emburse Rollout',      client: 'Bright Industries',   status: 'Sold',          is_billable: true,  startOff: -7,  endOff: 84  },
+  { name: 'Acme Phase 2 Supply Chain',         client: 'Acme Corp',           status: 'Proposed',      is_billable: true,  startOff: 42,  endOff: 112 },
+  { name: 'Bright Procure to Pay Rollout',      client: 'Bright Industries',   status: 'Sold',          is_billable: true,  startOff: -7,  endOff: 84  },
   { name: 'Pre-Sales Support',           client: null,                  status: 'Sold',          is_billable: false, startOff: -30, endOff: 84  },
   { name: 'Internal Training',           client: null,                  status: 'Sold',          is_billable: false, startOff: -30, endOff: 84  },
 ];
@@ -93,25 +93,25 @@ const CONSULTANT_DEFS = [
   { name: 'Brad Baker',    level: 'Analyst',                             location: 'Detroit',       skills: ['Procure to Pay', 'NetSuite'] },
   { name: 'Chad Chen',     level: 'Analyst',                             location: 'New York',      skills: ['Record to Report', 'NetSuite'] },
   { name: 'Dana Davis',    level: 'Analyst',                             location: 'Dallas',        skills: ['Supply Chain', 'NetSuite'] },
-  { name: 'Emma Evans',    level: 'Consultant',                          location: 'Chicago',       skills: ['Order to Cash', 'NetSuite', 'Emburse'] },
-  { name: 'Frank Fisher',  level: 'Consultant',                          location: 'Detroit',       skills: ['Procure to Pay', 'Ivalua', 'NetSuite'] },
+  { name: 'Emma Evans',    level: 'Consultant',                          location: 'Chicago',       skills: ['Order to Cash', 'NetSuite', 'Procure to Pay'] },
+  { name: 'Frank Fisher',  level: 'Consultant',                          location: 'Detroit',       skills: ['Procure to Pay', 'Supply Chain', 'NetSuite'] },
   { name: 'Grace Garcia',  level: 'Consultant',                          location: 'San Francisco', skills: ['Record to Report', 'NetSuite'] },
   { name: 'Henry Hall',    level: 'Consultant',                          location: 'New York',      skills: ['Supply Chain', 'NetSuite'] },
   { name: 'Ivy Ibrahim',   level: 'Consultant',                          location: 'Atlanta',       skills: ['Procure to Pay', 'NetSuite'] },
-  { name: 'Jake Jensen',   level: 'Senior Consultant',                   location: 'Detroit',       skills: ['Order to Cash', 'NetSuite', 'Emburse'] },
-  { name: 'Kate Kim',      level: 'Senior Consultant',                   location: 'Chicago',       skills: ['Procure to Pay', 'Ivalua', 'NetSuite'] },
+  { name: 'Jake Jensen',   level: 'Senior Consultant',                   location: 'Detroit',       skills: ['Order to Cash', 'NetSuite', 'Procure to Pay'] },
+  { name: 'Kate Kim',      level: 'Senior Consultant',                   location: 'Chicago',       skills: ['Procure to Pay', 'Supply Chain', 'NetSuite'] },
   { name: 'Leo Lopez',     level: 'Senior Consultant',                   location: 'Dallas',        skills: ['Record to Report', 'NetSuite'] },
   { name: 'Mia Martin',    level: 'Senior Consultant',                   location: 'New York',      skills: ['Supply Chain', 'NetSuite'] },
-  { name: 'Noah Nguyen',   level: 'Senior Consultant',                   location: 'San Francisco', skills: ['Procure to Pay', 'NetSuite', 'Ivalua'] },
+  { name: 'Noah Nguyen',   level: 'Senior Consultant',                   location: 'San Francisco', skills: ['Procure to Pay', 'NetSuite', 'Supply Chain'] },
   { name: 'Olivia Owen',   level: 'Manager',                             location: 'Detroit',       skills: ['Order to Cash', 'Record to Report', 'NetSuite'] },
-  { name: 'Pete Patel',    level: 'Manager',                             location: 'Chicago',       skills: ['Procure to Pay', 'Ivalua', 'NetSuite'] },
+  { name: 'Pete Patel',    level: 'Manager',                             location: 'Chicago',       skills: ['Procure to Pay', 'Supply Chain', 'NetSuite'] },
   { name: 'Quinn Quinn',   level: 'Manager',                             location: 'New York',      skills: ['Supply Chain', 'NetSuite', 'Program Manager'] },
-  { name: 'Rosa Reed',     level: 'Manager',                             location: 'Dallas',        skills: ['Record to Report', 'NetSuite', 'Emburse'] },
-  { name: 'Sam Shaw',      level: 'Senior Manager',                      location: 'Detroit',       skills: ['Order to Cash', 'Procure to Pay', 'NetSuite', 'Ivalua'] },
+  { name: 'Rosa Reed',     level: 'Manager',                             location: 'Dallas',        skills: ['Record to Report', 'NetSuite', 'Procure to Pay'] },
+  { name: 'Sam Shaw',      level: 'Senior Manager',                      location: 'Detroit',       skills: ['Order to Cash', 'Procure to Pay', 'NetSuite', 'Supply Chain'] },
   { name: 'Tara Torres',   level: 'Senior Manager',                      location: 'Chicago',       skills: ['Record to Report', 'Supply Chain', 'NetSuite'] },
-  { name: 'Uma Upton',     level: 'Senior Manager',                      location: 'New York',      skills: ['Procure to Pay', 'NetSuite', 'Ivalua', 'Program Manager'] },
+  { name: 'Uma Upton',     level: 'Senior Manager',                      location: 'New York',      skills: ['Procure to Pay', 'NetSuite', 'Program Manager'] },
   { name: 'Victor Voss',   level: 'Partner/Principal/Managing Director', location: 'Detroit',       skills: ['Order to Cash', 'Procure to Pay', 'Record to Report', 'NetSuite'] },
-  { name: 'Wendy Walsh',   level: 'Partner/Principal/Managing Director', location: 'Chicago',       skills: ['Supply Chain', 'Procure to Pay', 'NetSuite', 'Ivalua'] },
+  { name: 'Wendy Walsh',   level: 'Partner/Principal/Managing Director', location: 'Chicago',       skills: ['Supply Chain', 'Procure to Pay', 'NetSuite', 'Supply Chain'] },
   { name: 'Xavier Xu',     level: 'Analyst',                             location: 'Detroit',       skills: ['Record to Report', 'NetSuite'] },
   { name: 'Yara York',     level: 'Consultant',                          location: 'Dallas',        skills: ['Order to Cash', 'NetSuite'] },
 ];
@@ -131,16 +131,22 @@ const ASSIGNMENT_DEFS = [
   // Partial Utilization
   { consultant: 'Emma Evans',   project: 'Echo Order Management',        hours: 30, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Frank Fisher', project: 'Bright P2P Implementation',    hours: 20, weekRange: [1, 12], is_billable: true  },
-  { consultant: 'Grace Garcia', project: 'Cascade Finance Transform',    hours: 35, weekRange: [1, 12], is_billable: true  },
-  { consultant: 'Henry Hall',   project: 'Globe Inventory Optimization', hours: 25, weekRange: [1, 12], is_billable: true  },
+  // Grace Garcia: 0h weeks 1-6 (45h avail ≥ 30h need → covered), 35h weeks 7-12 (10h avail < 30h → not covered) → Partially Met for Cascade Finance Consultant need
+  { consultant: 'Grace Garcia', project: 'Cascade Finance Transform',    hours: 35, weekRange: [7, 12], is_billable: true  },
+  // Henry Hall: 0h weeks 1-2 (45h avail ≥ 45h need → covered), 25h weeks 3-12 (20h avail < 45h → not covered) → Partially Met for Globe Inventory Consultant need (covers only weeks 1-4)
+  { consultant: 'Henry Hall',   project: 'Globe Inventory Optimization', hours: 25, weekRange: [3, 12], is_billable: true  },
   { consultant: 'Leo Lopez',    project: 'Cascade Finance Transform',    hours: 40, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Chad Chen',    project: 'Acme ERP Rollout',             hours: 40, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Yara York',    project: 'Echo Order Management',        hours: 30, weekRange: [1, 12], is_billable: true  },
   // Bench
-  { consultant: 'Brad Baker',   project: 'Pre-Sales Support',            hours: 5,  weekRange: [1, 12], is_billable: false },
+  // Brad Baker: 0h weeks 1-6 (45h avail ≥ 45h need → covered), 5h weeks 7-12 (40h avail < 45h → not covered) → Partially Met for Bright P2P Analyst need
+  { consultant: 'Brad Baker',   project: 'Pre-Sales Support',            hours: 5,  weekRange: [7, 12], is_billable: false },
+  // Abby Adams: 0h weeks 1-6 (45h avail ≥ 45h need → covered), 5h weeks 7-12 (40h avail < 45h → not covered) → Partially Met for Echo O2C Analyst need
+  { consultant: 'Abby Adams',   project: 'Internal Training',            hours: 5,  weekRange: [7, 12], is_billable: false },
+  { consultant: 'Xavier Xu',    project: 'Internal Training',            hours: 5,  weekRange: [1, 12], is_billable: false },
   // Rolling Off
-  { consultant: 'Mia Martin',   project: 'Globe Inventory Optimization', hours: 45, weekRange: [1, 4],  is_billable: true  },
-  { consultant: 'Noah Nguyen',  project: 'Delta Supply Chain',           hours: 40, weekRange: [1, 3],  is_billable: true  },
+  { consultant: 'Mia Martin',   project: 'Globe Inventory Optimization', hours: 45, weekRange: [1, 2],  is_billable: true  },
+  { consultant: 'Noah Nguyen',  project: 'Delta Supply Chain',           hours: 40, weekRange: [1, 2],  is_billable: true  },
   // Ramping Up
   { consultant: 'Dana Davis',   project: 'Harbor NetSuite Migration',    hours: 40, weekRange: [5, 12], is_billable: true  },
   { consultant: 'Ivy Ibrahim',  project: 'Echo Order Management',        hours: 35, weekRange: [7, 12], is_billable: true  },
@@ -148,7 +154,7 @@ const ASSIGNMENT_DEFS = [
   { consultant: 'Quinn Quinn',  project: 'Globe Inventory Optimization', hours: 20, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Quinn Quinn',  project: 'Harbor NetSuite Migration',    hours: 20, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Rosa Reed',    project: 'Cascade Finance Transform',    hours: 15, weekRange: [1, 12], is_billable: true  },
-  { consultant: 'Rosa Reed',    project: 'Bright Emburse Rollout',       hours: 25, weekRange: [1, 12], is_billable: true  },
+  { consultant: 'Rosa Reed',    project: 'Bright Procure to Pay Rollout',       hours: 25, weekRange: [1, 12], is_billable: true  },
   // PPMD Light Touch + Non-Billable
   { consultant: 'Tara Torres',  project: 'Delta Supply Chain',           hours: 20, weekRange: [1, 12], is_billable: true  },
   { consultant: 'Uma Upton',    project: 'Harbor NetSuite Migration',    hours: 15, weekRange: [1, 12], is_billable: true  },
@@ -157,15 +163,25 @@ const ASSIGNMENT_DEFS = [
 ];
 
 // Needs: date offsets relative to week[0] Monday (same reference as projects)
+// Truly Unmet (4): no consultant has the required skill combination at that level
+// Partially Met (4): some matching capacity exists but not enough to fully cover
 const NEED_DEFS = [
-  { project: 'Falcon Procure-to-Pay',       level: 'Senior Consultant', skills: ['Procure to Pay', 'Ivalua'],           hoursPerWeek: 40, startOff: 28,  endOff: 84  },
-  { project: 'Delta Supply Chain',          level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],           hoursPerWeek: 45, startOff: 0,   endOff: 56  },
-  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],          hoursPerWeek: 40, startOff: 0,   endOff: 84  },
-  { project: 'Harbor NetSuite Migration',   level: 'Manager',           skills: ['Record to Report', 'NetSuite'],       hoursPerWeek: 30, startOff: 0,   endOff: 84  },
-  { project: 'Acme Phase 2 Ivalua',         level: 'Senior Consultant', skills: ['Procure to Pay', 'Ivalua'],           hoursPerWeek: 35, startOff: 42,  endOff: 112 },
-  { project: 'Globe Inventory Optimization',level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],           hoursPerWeek: 30, startOff: 0,   endOff: 28  },
-  { project: 'Falcon Procure-to-Pay',       level: 'Analyst',           skills: ['Procure to Pay', 'NetSuite'],         hoursPerWeek: 40, startOff: 28,  endOff: 84  },
-  { project: 'Cascade Finance Transform',   level: 'Senior Manager',    skills: ['Record to Report', 'NetSuite'],       hoursPerWeek: 20, startOff: 0,   endOff: 84  },
+  // Truly Unmet — no SM has both SC + PM (Sam/Tara have SC; Uma has PM — no overlap)
+  { project: 'Delta Supply Chain',          level: 'Senior Manager',    skills: ['Supply Chain', 'Program Manager'],   hoursPerWeek: 30, startOff: 0,   endOff: 56  },
+  // Truly Unmet — no Manager has both R2R + PM (Olivia/Rosa have R2R; Quinn has PM — no overlap)
+  { project: 'Harbor NetSuite Migration',   level: 'Manager',           skills: ['Record to Report', 'Program Manager'], hoursPerWeek: 40, startOff: 0,   endOff: 84  },
+  // Truly Unmet — no Senior Consultant has Program Manager skill
+  { project: 'Falcon Procure-to-Pay',       level: 'Senior Consultant', skills: ['Program Manager'],                   hoursPerWeek: 40, startOff: 28,  endOff: 84  },
+  // Truly Unmet — no SM has both O2C + PM (Sam has O2C; Uma has PM — no overlap)
+  { project: 'Acme Phase 2 Supply Chain',   level: 'Senior Manager',    skills: ['Order to Cash', 'Program Manager'],  hoursPerWeek: 35, startOff: 42,  endOff: 112 },
+  // Partially Met — Abby Adams (O2C+NS, 40h available) vs 45h need
+  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],         hoursPerWeek: 45, startOff: 0,   endOff: 84  },
+  // Partially Met — Grace Garcia (R2R+NS, 10h available) vs 30h need
+  { project: 'Cascade Finance Transform',   level: 'Consultant',        skills: ['Record to Report', 'NetSuite'],      hoursPerWeek: 30, startOff: 0,   endOff: 84  },
+  // Partially Met — Henry Hall (SC+NS, 20h available) vs 45h need
+  { project: 'Globe Inventory Optimization',level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],          hoursPerWeek: 45, startOff: 0,   endOff: 28  },
+  // Partially Met — Brad Baker (P2P+NS, 40h available) vs 45h need
+  { project: 'Bright P2P Implementation',   level: 'Analyst',           skills: ['Procure to Pay', 'NetSuite'],        hoursPerWeek: 45, startOff: 0,   endOff: 84  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -248,7 +264,7 @@ async function seed() {
     name: p.name,
     client_id: p.client ? clientByName[p.client] : null,
     status: p.status,
-    probability: PROBABILITY_MAP[p.status],
+    probability_pct: PROBABILITY_MAP[p.status],
     is_billable: p.is_billable,
     start_date: addDays(week1Monday, p.startOff),
     end_date: addDays(week1Monday, p.endOff),
@@ -264,7 +280,7 @@ async function seed() {
     name: c.name,
     level_id: levelByName[c.level],
     location: c.location,
-    capacity: 45,
+    capacity_hours_per_week: 45,
     is_active: true,
     bill_rate_override: null,
     cost_rate_override: null,
@@ -279,9 +295,12 @@ async function seed() {
   const cssRows = [];
   for (const c of CONSULTANT_DEFS) {
     const cid = consultantByName[c.name];
+    const seen = new Set();
     for (const skillName of c.skills) {
       const sid = skillByName[skillName];
       if (!sid) throw new Error(`Unknown skill: ${skillName}`);
+      if (seen.has(sid)) continue;
+      seen.add(sid);
       cssRows.push({ consultant_id: cid, skill_set_id: sid, tenant_id: TENANT });
     }
   }
@@ -313,6 +332,14 @@ async function seed() {
 
   // 8. Insert needs
   console.log('Inserting needs...');
+  // Validate all FK lookups first — undefined project_id/level_id fails silently
+  for (const n of NEED_DEFS) {
+    const pid = projectByName[n.project];
+    const lid = levelByName[n.level];
+    if (!pid) throw new Error(`Need FK not found — project: "${n.project}" (check PROJECT_DEFS name matches exactly)`);
+    if (!lid) throw new Error(`Need FK not found — level: "${n.level}" (check levels table has this name)`);
+    console.log(`  Need: ${n.project} | ${n.level} → project_id=${pid} level_id=${lid}`);
+  }
   const needRows = NEED_DEFS.map(n => ({
     project_id: projectByName[n.project],
     level_id: levelByName[n.level],
@@ -324,6 +351,9 @@ async function seed() {
     tenant_id: TENANT,
   }));
   const insertedNeeds = await insert('needs', needRows);
+  if (insertedNeeds.length !== NEED_DEFS.length) {
+    throw new Error(`Needs insert returned ${insertedNeeds.length} rows but expected ${NEED_DEFS.length} — Supabase may have silently dropped rows`);
+  }
   console.log(`  Inserted ${insertedNeeds.length} needs`);
 
   // 9. Insert need_skill_sets

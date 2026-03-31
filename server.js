@@ -1247,15 +1247,15 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
       if (info.level !== need.resourceLevel) continue;
       if (!info.allSkillSets || !info.allSkillSets.includes(need.skillSet)) continue;
 
-      // Consultant qualifies only if they have capacity every week in the range
-      let qualifies  = true;
-      let totalHours = 0;
+      // Consultant qualifies if they have capacity >= hoursNeeded in at least one week
+      let qualifyingWeeks = 0;
+      let totalHours      = 0;
       for (const wk of demandWeeks) {
         const booked = info.weekTotals[wk] || 0;
-        if (booked > 45 - hoursNeeded) { qualifies = false; break; }
         totalHours += booked;
+        if (45 - booked >= hoursNeeded) qualifyingWeeks++;
       }
-      if (!qualifies) continue;
+      if (qualifyingWeeks === 0) continue;
 
       const avgBooked          = totalHours / demandWeeks.length;
       const availableHours     = Math.round((45 - avgBooked) * 10) / 10;
