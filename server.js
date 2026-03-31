@@ -1166,18 +1166,13 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
     }
 
     const matches = [];
-    const partialMatches = [];
     for (const [name, info] of Object.entries(empWeekMap)) {
       if (info.level !== need.resourceLevel) continue;
       if (!info.allSkillSets || !info.allSkillSets.includes(need.skillSet)) continue;
 
-      // Tier 1: consultant has full capacity (>= hoursNeeded) in at least one week
-      let qualifyingWeeks = 0;
-      let totalHours      = 0;
+      let totalHours = 0;
       for (const wk of demandWeeks) {
-        const booked = info.weekTotals[wk] || 0;
-        totalHours += booked;
-        if (45 - booked >= hoursNeeded) qualifyingWeeks++;
+        totalHours += info.weekTotals[wk] || 0;
       }
 
       const avgBooked          = totalHours / demandWeeks.length;
@@ -1189,24 +1184,13 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
         availableHours: Math.max(0, 45 - (info.weekTotals[wk] || 0)),
       }));
 
-      if (qualifyingWeeks > 0) {
+      if (availableHours >= hoursNeeded * 0.2) {
         matches.push({ employeeName: name, level: info.level, skillSet: info.skillSet,
                        availableHours, currentUtilization, weeklyBreakdown });
-        continue;
-      }
-
-      // Tier 2: consultant can cover at least 20% of the need on average
-      if (availableHours >= hoursNeeded * 0.2) {
-        partialMatches.push({ employeeName: name, level: info.level, skillSet: info.skillSet,
-                              availableHours, currentUtilization, weeklyBreakdown,
-                              partialCandidate: true });
       }
     }
 
-    // Tier 1 first (sorted by availableHours desc), then tier 2 (sorted by availableHours desc)
     matches.sort((a, b) => b.availableHours - a.availableHours);
-    partialMatches.sort((a, b) => b.availableHours - a.availableHours);
-    matches.push(...partialMatches);
 
     const topMatches = matches.slice(0, 5);
     let matchesWithReasoning = topMatches;
