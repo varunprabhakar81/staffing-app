@@ -100,7 +100,7 @@ const CONSULTANT_DEFS = [
   { name: 'Brad Baker',    level: 'Analyst',                             location: 'Detroit',       skills: ['Procure to Pay', 'NetSuite'] },
   { name: 'Chad Chen',     level: 'Analyst',                             location: 'New York',      skills: ['Record to Report', 'NetSuite'] },
   { name: 'Dana Davis',    level: 'Analyst',                             location: 'Dallas',        skills: ['Supply Chain', 'NetSuite'] },
-  { name: 'Emma Evans',    level: 'Consultant',                          location: 'Chicago',       skills: ['Order to Cash', 'NetSuite', 'Procure to Pay'] },
+  { name: 'Emma Evans',    level: 'Consultant',                          location: 'Chicago',       skills: ['Order to Cash', 'NetSuite', 'Procure to Pay', 'Record to Report'] },
   { name: 'Frank Fisher',  level: 'Consultant',                          location: 'Detroit',       skills: ['Procure to Pay', 'Supply Chain', 'NetSuite'] },
   { name: 'Grace Garcia',  level: 'Consultant',                          location: 'San Francisco', skills: ['Record to Report', 'NetSuite'] },
   { name: 'Henry Hall',    level: 'Consultant',                          location: 'New York',      skills: ['Supply Chain', 'NetSuite'] },
@@ -137,6 +137,8 @@ const ASSIGNMENT_DEFS = [
   { consultant: 'Pete Patel',   project: 'Delta Supply Chain',           hours: 20, weekRange: [1, 8],  is_billable: true  },
   // Partial Utilization
   { consultant: 'Emma Evans',   project: 'Echo Order Management',        hours: 30, weekRange: [1, 12], is_billable: true  },
+  // Emma Evans: 30h Echo + 5h Internal = 35h/wk → 10h avail → ~33% (coral) for Cascade Finance Consultant need
+  { consultant: 'Emma Evans',   project: 'Internal Training',            hours: 5,  weekRange: [1, 12], is_billable: false },
   { consultant: 'Frank Fisher', project: 'Bright P2P Implementation',    hours: 20, weekRange: [1, 12], is_billable: true  },
   // Grace Garcia: free weeks 1-6 (10h avail in later weeks) → partial match for Cascade Finance Consultant need
   { consultant: 'Grace Garcia', project: 'Cascade Finance Transform',    hours: 35, weekRange: [7, 12], is_billable: true  },
@@ -184,16 +186,24 @@ const NEED_DEFS = [
   { project: 'Delta Supply Chain',          level: 'Senior Manager',    skills: ['Supply Chain', 'Program Manager'],     hoursPerWeek: 30, startOff: 3,   endOff: 73   },
   // No Manager has both R2R + PM (Olivia/Rosa have R2R; Quinn has PM — no overlap)
   { project: 'Harbor NetSuite Migration',   level: 'Manager',           skills: ['Record to Report', 'Program Manager'], hoursPerWeek: 40, startOff: 10,  endOff: 87   },
-  // Abby Adams (O2C+NS) partially available vs 45h need
-  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],           hoursPerWeek: 45, startOff: 7,   endOff: 91   },
+  // Abby Adams (O2C+NS) fully available vs 40h need → green badge
+  { project: 'Echo Order Management',       level: 'Analyst',           skills: ['Order to Cash', 'NetSuite'],           hoursPerWeek: 40, startOff: 7,   endOff: 91   },
+  // Cascade Client 1 — Urgent: Senior Consultant, Supply Chain + NetSuite
+  { project: 'Cascade Finance Transform',   level: 'Senior Consultant', skills: ['Supply Chain', 'NetSuite'],            hoursPerWeek: 35, startOff: 5,   endOff: 68   },
+  // Acme Client 2 — Urgent: Analyst, Procure to Pay + NetSuite
+  { project: 'Acme ERP Rollout',            level: 'Analyst',           skills: ['Procure to Pay', 'NetSuite'],          hoursPerWeek: 40, startOff: 3,   endOff: 66   },
   // --- Soon tier (start 15-28 days from now) ---
   // Grace Garcia (R2R+NS, limited hours) vs 30h need
   { project: 'Cascade Finance Transform',   level: 'Consultant',        skills: ['Record to Report', 'NetSuite'],        hoursPerWeek: 30, startOff: 18,  endOff: 95   },
   // Henry Hall (SC+NS, partial hours) vs 45h need
   { project: 'Globe Inventory Optimization',level: 'Consultant',        skills: ['Supply Chain', 'NetSuite'],            hoursPerWeek: 45, startOff: 25,  endOff: 88   },
+  // Acme Client 2 — Soon: Senior Manager, Record to Report
+  { project: 'Acme ERP Rollout',            level: 'Senior Manager',    skills: ['Record to Report'],                    hoursPerWeek: 20, startOff: 25,  endOff: 88   },
   // --- Planned tier (start > 28 days from now) ---
   // No Senior Consultant has Program Manager skill
   { project: 'Falcon Procure-to-Pay',       level: 'Senior Consultant', skills: ['Program Manager'],                     hoursPerWeek: 40, startOff: 35,  endOff: 98   },
+  // Cascade Client 1 — Planned: Manager, Order to Cash + NetSuite
+  { project: 'Cascade Finance Transform',   level: 'Manager',           skills: ['Order to Cash', 'NetSuite'],           hoursPerWeek: 30, startOff: 35,  endOff: 98   },
   // No SM has both O2C + PM (Sam has O2C; Uma has PM — no overlap)
   { project: 'Acme Phase 2 Supply Chain',   level: 'Senior Manager',    skills: ['Order to Cash', 'Program Manager'],    hoursPerWeek: 35, startOff: 42,  endOff: 126  },
   // Brad Baker (P2P+NS, partial hours) vs 45h need
