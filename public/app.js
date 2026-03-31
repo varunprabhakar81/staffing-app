@@ -2142,8 +2142,9 @@ function renderNeedMatchPanel(roleIdx) {
 
   const cards = matches.map((m, mi) => {
     const isAccepted  = acceptedNames.has(m.employeeName);
-    const badgeClass  = m.availableHours >= hoursNeeded        ? 'badge-avail-green'
-                      : m.availableHours >= hoursNeeded - 10   ? 'badge-avail-yellow'
+    const coveragePct = Math.min(100, Math.round((m.availableHours / hoursNeeded) * 100));
+    const badgeClass  = coveragePct >= 100 ? 'badge-avail-green'
+                      : coveragePct >= 50  ? 'badge-avail-yellow'
                       : 'badge-avail-coral';
     return `
       <div class="match-card">
@@ -2153,8 +2154,7 @@ function renderNeedMatchPanel(roleIdx) {
           <div class="match-card-reasoning">${_esc(m.reasoning || '')}</div>
         </div>
         <div class="match-card-right">
-          <span class="match-avail-badge ${badgeClass}">${m.availableHours}h avail</span>
-          <span class="match-util">${m.currentUtilization}% utilized</span>
+          <span class="match-avail-badge ${badgeClass}">${m.availableHours}h of ${hoursNeeded}h (${coveragePct}%)</span>
           ${isAccepted
             ? '<button class="match-accept-btn accepted" disabled>Accepted</button>'
             : `<button class="match-accept-btn" onclick="acceptMatch(${roleIdx}, ${mi}, event)">Accept</button>`
