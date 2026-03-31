@@ -302,101 +302,24 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     };
   });
 
-  // ── d. Needs Coverage ────────────────────────────────────────────────────
-  // For each demand role, match employees by level+skillSet and check weekly
-  // availability against the demand's hoursPerWeek over its date range.
+  // ── d. Open Needs ────────────────────────────────────────────────────────
+  // Needs are simply open (closed_at IS NULL already filtered in readStaffingData).
+  // No coverage status computation — urgency is derived client-side from startDate.
+  const openRoles = demand.map(role => ({
+    _needId:      role._needId,
+    project:      role.projectName,
+    client:       role.clientName,
+    level:        role.resourceLevel,
+    skillSet:     role.skillSet,
+    allSkillSets: role.allSkillSets || [],
+    startDate:    role.startDate,
+    endDate:      role.endDate,
+    hoursPerWeek: Number(role.hoursPerWeek) || 45,
+  }));
 
-  // Build level map from Employee Master for candidate matching
-  const levelMap = {};
-  for (const emp of employees) levelMap[emp.employeeName] = emp.level;
+  const openNeeds = { openNeeds: openRoles.length, roles: openRoles };
 
-  // Parse a "Week ending M/D" key into a Date
-  function parseWeekKey(wk) {
-    const m = wk.match(/(\d+)\/(\d+)/);
-    return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
-  }
-
-  // Parse a demand date string "MM/DD/YYYY" into a Date
-  function parseDemandDate(str) {
-    if (!str) return null;
-    const parts = String(str).split('/');
-    if (parts.length !== 3) return null;
-    return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
-  }
-
-  // Pre-compute week dates once
-  const weekDateMap = {};
-  for (const wk of weekKeys) weekDateMap[wk] = parseWeekKey(wk);
-
-  const needsCoverageRoles = demand.map(role => {
-    const startDate    = parseDemandDate(role.startDate);
-    const endDate      = parseDemandDate(role.endDate);
-    const hoursNeeded  = Number(role.hoursPerWeek) || 45;
-
-    // Weeks in the supply data that fall within the demand date range
-    const demandWeeks = weekKeys.filter(wk => {
-      const d = weekDateMap[wk];
-      return d && startDate && endDate && d >= startDate && d <= endDate;
-    });
-    const totalWeeks = demandWeeks.length;
-
-    // Candidates: employees whose level AND primary skillSet match the role
-    const candidates = empAverages.filter(e =>
-      levelMap[e.name] === role.resourceLevel && e.skillSet === role.skillSet
-    );
-
-    let bestMatch  = null;
-    let roleStatus = 'unmet';
-
-    for (const emp of candidates) {
-      let coveredWeeks = 0;
-      for (const wk of demandWeeks) {
-        const booked    = emp.weekTotals[wk] || 0;
-        const available = Math.max(0, 45 - booked);
-        if (available >= hoursNeeded) coveredWeeks++;
-      }
-
-      const isFullMatch    = totalWeeks > 0 && coveredWeeks === totalWeeks;
-      const isPartialMatch = coveredWeeks > 0 && coveredWeeks < totalWeeks;
-
-      // Track best match (full > partial, then most covered weeks)
-      if (
-        !bestMatch ||
-        (isFullMatch && roleStatus !== 'fully_met') ||
-        (isPartialMatch && roleStatus === 'unmet' && coveredWeeks > (bestMatch.availableWeeks || 0))
-      ) {
-        bestMatch = { employeeName: emp.name, availableWeeks: coveredWeeks, totalWeeks };
-      }
-
-      if (isFullMatch)                                      roleStatus = 'fully_met';
-      else if (isPartialMatch && roleStatus === 'unmet')    roleStatus = 'partially_met';
-    }
-
-    return {
-      _needId:      role._needId,
-      project:      role.projectName,
-      client:       role.clientName,
-      level:        role.resourceLevel,
-      skillSet:     role.skillSet,
-      allSkillSets: role.allSkillSets || [],
-      startDate:    role.startDate,
-      endDate:      role.endDate,
-      hoursPerWeek: hoursNeeded,
-      status:       roleStatus,
-      bestMatch:    bestMatch,
-    };
-  });
-
-  const needsCoverage = {
-    summary: {
-      fully_met:    needsCoverageRoles.filter(r => r.status === 'fully_met').length,
-      partially_met: needsCoverageRoles.filter(r => r.status === 'partially_met').length,
-      unmet:        needsCoverageRoles.filter(r => r.status === 'unmet').length,
-    },
-    roles: needsCoverageRoles,
-  };
-
-  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, needsCoverage, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById) } });
+  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, openNeeds, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById) } });
 });
 
 // GET /api/heatmap

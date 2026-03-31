@@ -20,7 +20,7 @@ let currentUserCanViewRates = false;
 let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
-let _needsStatusFilter = null;    // active donut segment filter: 'partially_met' | 'unmet' | null
+let _needsClientFilter = null;    // active donut segment filter: client name string | null
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
 let _cpIsDirty = false;            // tracks unsaved changes in profile editor
 let _cpSnapshot = null;            // original field values for revert
@@ -418,7 +418,7 @@ function updateBellBadge() {
   const alertList = document.getElementById('bellAlertList');
   if (!badge || !alertList) return;
 
-  const unmetCount = (rawData.coverageRoles || []).filter(r => r.status === 'unmet').length;
+  const openCount = (rawData.coverageRoles || []).length;
 
   const empTotals = {};
   for (const row of rawData.supply || []) {
@@ -431,7 +431,7 @@ function updateBellBadge() {
     return avg > 45;
   }).length;
 
-  const total = unmetCount + overbookedCount;
+  const total = openCount + overbookedCount;
 
   // If data hasn't loaded yet keep the hardcoded fallback badge visible
   if (rawData.coverageRoles.length === 0 && rawData.supply.length === 0) return;
@@ -440,10 +440,10 @@ function updateBellBadge() {
   badge.style.display = total > 0 ? '' : 'none';
 
   let html = '';
-  if (unmetCount > 0) {
+  if (openCount > 0) {
     html += `<div class="hdr-alert-item">
       <span class="hdr-alert-icon">⚠️</span>
-      <span class="hdr-alert-text">${unmetCount} unmet staffing need${unmetCount !== 1 ? 's' : ''}</span>
+      <span class="hdr-alert-text">${openCount} open staffing need${openCount !== 1 ? 's' : ''}</span>
       <button class="hdr-alert-link" onclick="navigateTo('needs');closeBellDropdown()">View →</button>
     </div>`;
   }
@@ -541,7 +541,7 @@ async function loadDashboard() {
     rawData.supply        = supplyRes.ok    ? JSON.parse(supplyText)    : [];
     rawData.employees     = empRes.ok       ? JSON.parse(empText)       : [];
     rawData.cliffs        = data.cliffs     || [];
-    rawData.coverageRoles = (data.needsCoverage || {}).roles || [];
+    rawData.coverageRoles = (data.openNeeds || {}).roles || [];
     rawData.heatmap       = heatmapRes.ok   ? JSON.parse(heatmapText)   : null;
     rawData._meta         = data._meta      || {};
 
@@ -559,7 +559,7 @@ async function loadDashboard() {
 
     renderKPIs(data);
     renderOverviewStats(data, rawData.heatmap);
-    renderCoverageChart(data.needsCoverage);
+    renderCoverageChart(data.openNeeds);
     renderBenchReport(data.benchReport);
     if (rawData.heatmap) buildHeatmapTable(rawData.heatmap);
     loadSuggestedQuestions();
@@ -729,48 +729,61 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
 
-  // ── Card 3: Pipeline Coverage ─────────────────────────────────────
-  const summary    = (data.needsCoverage || {}).summary || {};
-  const unmet      = summary.unmet || 0;
-  const totalRoles = (summary.partially_met || 0) + unmet;
-  const needsColor = unmet > 0 ? '#FFB3B3' : '#A8E6CF';
-  const needsCard  = document.getElementById('overviewNeedsCard');
+  // ── Card 3: Open Needs ───────────────────────────────────────────
+  const openRolesOv = rawData.coverageRoles || [];
+  const totalRoles  = openRolesOv.length;
+  const needsColor  = totalRoles > 0 ? '#FFB3B3' : '#A8E6CF';
+  const needsCard   = document.getElementById('overviewNeedsCard');
   if (needsCard) needsCard.style.setProperty('--ov-accent', needsColor);
 
   const unmetEl = document.getElementById('overviewUnmet');
-  if (unmetEl) unmetEl.textContent = String(unmet);
+  if (unmetEl) unmetEl.textContent = String(totalRoles);
 
   const needsSecondary = document.getElementById('overviewNeedsSecondary');
   if (needsSecondary) {
+    const clientCount = new Set(openRolesOv.map(r => r.client).filter(Boolean)).size;
     needsSecondary.textContent = totalRoles > 0
-      ? `${unmet} unmet · ${summary.partially_met || 0} partial`
+      ? `across ${clientCount} client${clientCount !== 1 ? 's' : ''}`
       : 'no open needs';
   }
 
-  // Mini donut for Card 3
+  // Mini donut for Card 3 — segments by client
   if (charts.needsDonut) { try { charts.needsDonut.destroy(); } catch(e) {} charts.needsDonut = null; }
   const donutCanvas = document.getElementById('overviewNeedsDonut');
   if (donutCanvas && totalRoles > 0) {
+    const OV_COLORS = ['#A8C7FA', '#A8E6CF', '#FFB3B3', '#FFF3A3', '#C9B8FF'];
+    const ovClientCounts = {};
+    for (const r of openRolesOv) { const c = r.client || 'Unknown'; ovClientCounts[c] = (ovClientCounts[c] || 0) + 1; }
+    const ovEntries = Object.entries(ovClientCounts);
     charts.needsDonut = new Chart(donutCanvas, {
       type: 'doughnut',
-      data: { datasets: [{ data: [summary.partially_met || 0, unmet],
-        backgroundColor: ['#FFF3A3', '#FFB3B3'], borderWidth: 0, hoverOffset: 0 }] },
+      data: { datasets: [{ data: ovEntries.map(([,n]) => n),
+        backgroundColor: ovEntries.map((_, i) => OV_COLORS[i % OV_COLORS.length]),
+        borderWidth: 0, hoverOffset: 0 }] },
       options: { responsive: false, cutout: '60%',
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        animation: { duration: 600 },
-        onClick: (evt, activeElements) => {
-          if (!activeElements.length) return;
-          const statusMap = ['partially_met', 'unmet'];
-          drillNeedsByStatus(statusMap[activeElements[0].index]);
-        } }
+        animation: { duration: 600 } }
     });
   }
 
   const unmetTrendEl = document.getElementById('overviewUnmetTrend');
   if (unmetTrendEl) {
-    if (unmet > 0) {
-      unmetTrendEl.textContent = `⚠ ${unmet} role${unmet !== 1 ? 's' : ''} need attention`;
-      unmetTrendEl.className = 'ov-card-trend warn';
+    if (totalRoles > 0) {
+      const todayOv = new Date(); todayOv.setHours(0,0,0,0);
+      const urgentCount = openRolesOv.filter(r => {
+        if (!r.startDate) return false;
+        const p = String(r.startDate).split('/');
+        if (p.length < 3) return false;
+        const d = new Date(parseInt(p[2]), parseInt(p[0]) - 1, parseInt(p[1]));
+        return (d - todayOv) / 86400000 <= 14;
+      }).length;
+      if (urgentCount > 0) {
+        unmetTrendEl.textContent = `⚠ ${urgentCount} urgent (starting ≤2 wks)`;
+        unmetTrendEl.className = 'ov-card-trend warn';
+      } else {
+        unmetTrendEl.textContent = `${totalRoles} need${totalRoles !== 1 ? 's' : ''} to fill`;
+        unmetTrendEl.className = 'ov-card-trend';
+      }
     } else {
       unmetTrendEl.textContent = '✓ All needs covered';
       unmetTrendEl.className = 'ov-card-trend ok';
@@ -1854,35 +1867,51 @@ const _needs = {
   pending: [],            // [{ needIdx, need, consultant }]
 };
 
-// ── Needs Coverage ────────────────────────────────────────────────
-function renderCoverageChart(coverage) {
+// ── Open Needs ────────────────────────────────────────────────────
+const NEEDS_CLIENT_COLORS = ['#A8C7FA', '#A8E6CF', '#FFB3B3', '#FFF3A3', '#C9B8FF'];
+
+function _urgencyBadge(startDate) {
+  if (!startDate) return '<span class="urgency-planned">Planned</span>';
+  const p = String(startDate).split('/');
+  if (p.length < 3) return '<span class="urgency-planned">Planned</span>';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(parseInt(p[2]), parseInt(p[0]) - 1, parseInt(p[1]));
+  const daysOut = (d - today) / 86400000;
+  if (daysOut <= 14) return '<span class="urgency-urgent">Urgent</span>';
+  if (daysOut <= 28) return '<span class="urgency-soon">Soon</span>';
+  return '<span class="urgency-planned">Planned</span>';
+}
+
+function renderCoverageChart(openNeeds) {
   if (charts.coverage) charts.coverage.destroy();
-  if (!coverage) return;
+  if (!openNeeds) return;
 
   // Reset recommendations cache on data refresh (preserve pending)
   _needs.recommendations = null;
   _needs.loadState = 'idle';
   _needs.expanded.clear();
-  _needsStatusFilter = null;
+  _needsClientFilter = null;
 
-  const summary      = coverage.summary || {};
-  const partiallyMet = summary.partially_met || 0;
-  const unmet        = summary.unmet        || 0;
-  const total        = partiallyMet + unmet;
+  const roles = openNeeds.roles || [];
+  const total = roles.length;
 
   const badge = document.getElementById('coverageBadge');
   badge.textContent = total ? `${total} open needs` : 'No open needs';
-  badge.className   = 'chart-badge ' + (unmet === 0 ? 'ok' : unmet < total ? 'warn' : 'danger');
+  badge.className   = 'chart-badge ' + (total === 0 ? 'ok' : 'warn');
+
+  // Build client → count map for donut segments
+  const clientCounts = {};
+  for (const r of roles) { const c = r.client || 'Unknown'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
+  const clientEntries = Object.entries(clientCounts);
+  const clientColors  = clientEntries.map((_, i) => NEEDS_CLIENT_COLORS[i % NEEDS_CLIENT_COLORS.length]);
 
   charts.coverage = new Chart(document.getElementById('chartCoverage'), {
     type: 'doughnut',
     data: {
-      labels: ['Partially Met', 'Unmet'],
+      labels: clientEntries.map(([c]) => c),
       datasets: [{
-        data: total === 0 ? [1, 0] : [partiallyMet, unmet],
-        backgroundColor: total === 0
-          ? ['#2E3250', '#2E3250']
-          : ['#FFF3A3', '#FFB3B3'],
+        data: total === 0 ? [1] : clientEntries.map(([,n]) => n),
+        backgroundColor: total === 0 ? ['#2E3250'] : clientColors,
         borderWidth: 0,
         hoverOffset: 0,
       }],
@@ -1894,12 +1923,11 @@ function renderCoverageChart(coverage) {
       cutout: '62%',
       animation: { animateRotate: true, animateScale: false },
       onClick(evt, elements) {
-        const statusMap = ['partially_met', 'unmet'];
-        const clicked = elements.length ? statusMap[elements[0].index] : null;
-        if (!clicked || _needsStatusFilter === clicked) {
-          _needsStatusFilter = null;
+        const clicked = elements.length ? clientEntries[elements[0].index][0] : null;
+        if (!clicked || _needsClientFilter === clicked) {
+          _needsClientFilter = null;
         } else {
-          _needsStatusFilter = clicked;
+          _needsClientFilter = clicked;
         }
         applyNeedsFilter();
       },
@@ -1930,30 +1958,24 @@ function renderCoverageChart(coverage) {
 
   const legendEl = document.getElementById('coverageLegend');
   if (legendEl) {
-    const colors = total === 0 ? ['#2E3250', '#2E3250'] : ['#FFF3A3', '#FFB3B3'];
-    const items  = [
-      { label: 'Partially Met', count: partiallyMet, color: colors[0] },
-      { label: 'Unmet',         count: unmet,         color: colors[1] },
-    ];
-    const statusKeys = ['partially_met', 'unmet'];
-    legendEl.innerHTML = items.map((it, i) =>
-      `<div class="cov-legend-item" data-filter-status="${statusKeys[i]}" style="cursor:pointer" title="Click to filter">
-        <span class="cov-legend-dot" style="background:${it.color}"></span>
-        <span class="cov-legend-label">${it.label}</span>
-        <span class="cov-legend-count">${it.count}</span>
+    legendEl.innerHTML = clientEntries.map(([client, count], i) =>
+      `<div class="cov-legend-item" data-filter-client="${_esc(client)}" style="cursor:pointer" title="Click to filter">
+        <span class="cov-legend-dot" style="background:${clientColors[i]}"></span>
+        <span class="cov-legend-label">${_esc(client)}</span>
+        <span class="cov-legend-count">${count}</span>
       </div>`
     ).join('');
     legendEl.querySelectorAll('.cov-legend-item').forEach(el => {
       el.addEventListener('click', () => {
-        const s = el.dataset.filterStatus;
-        _needsStatusFilter = _needsStatusFilter === s ? null : s;
+        const c = el.dataset.filterClient;
+        _needsClientFilter = _needsClientFilter === c ? null : c;
         applyNeedsFilter();
       });
     });
   }
 
   const tableEl = document.getElementById('coverageTable');
-  if (!coverage.roles || !coverage.roles.length) {
+  if (!roles.length) {
     tableEl.innerHTML = '<p style="font-size:13px;color:#94a3b8;padding:8px 0">No open needs</p>';
     return;
   }
@@ -1966,13 +1988,7 @@ function renderCoverageChart(coverage) {
     return `${parseInt(p[0])}/${parseInt(p[1])}${yr}`;
   };
 
-  const statusBadge = (status) => {
-    if (status === 'fully_met')    return '<span class="badge-covered">Fully Met</span>';
-    if (status === 'partially_met') return '<span class="badge-partial">Partial</span>';
-    return '<span class="badge-uncovered">Unmet</span>';
-  };
-
-  const rows = coverage.roles.map((r, i) => {
+  const rows = roles.map((r, i) => {
     const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
     const editBtn = (_hmCanEdit() && r._needId)
       ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
@@ -1981,7 +1997,7 @@ function renderCoverageChart(coverage) {
       ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
       : '';
     return `
-    <tr class="dd-clickable need-row" data-status="${r.status || 'unmet'}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+    <tr class="dd-clickable need-row" data-client="${_esc(r.client || '')}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
       <td class="col-client">${r.client ? _esc(r.client) : '—'}</td>
       <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
       <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
@@ -1989,7 +2005,7 @@ function renderCoverageChart(coverage) {
       <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
       <td class="col-center">${fmtDate(r.startDate)}</td>
       <td class="col-center">${fmtDate(r.endDate)}</td>
-      <td>${statusBadge(r.status)}</td>
+      <td>${_urgencyBadge(r.startDate)}</td>
       <td class="col-actions">${editBtn}${abandonBtn}</td>
     </tr>
     <tr class="need-expansion-row hidden" id="need-exp-${i}">
@@ -2009,7 +2025,7 @@ function renderCoverageChart(coverage) {
         <th class="col-center">Hrs/Wk</th>
         <th class="col-center">Start</th>
         <th class="col-center">End</th>
-        <th>Status</th>
+        <th>Urgency</th>
         <th></th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -2024,13 +2040,13 @@ function onSkillPillClick(el) {
   openSkillSetModal(skillName, needContext);
 }
 
-// ── Needs donut filter ────────────────────────────────────────────
+// ── Needs donut filter (by client) ───────────────────────────────
 function applyNeedsFilter() {
   const chart = charts.coverage;
 
   // Show/hide table rows
   document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
-    const match = !_needsStatusFilter || tr.dataset.status === _needsStatusFilter;
+    const match = !_needsClientFilter || tr.dataset.client === _needsClientFilter;
     tr.style.display = match ? '' : 'none';
     // Also hide the paired expansion row when filtered out
     const exp = tr.nextElementSibling;
@@ -2042,26 +2058,19 @@ function applyNeedsFilter() {
   // Update filter label on legend
   const legendEl = document.getElementById('coverageLegend');
   if (legendEl) {
-    legendEl.querySelectorAll('.cov-legend-item').forEach((el, i) => {
-      const statuses = ['partially_met', 'unmet'];
-      const isActive = _needsStatusFilter === statuses[i];
-      el.style.opacity = _needsStatusFilter && !isActive ? '0.4' : '1';
+    legendEl.querySelectorAll('.cov-legend-item').forEach(el => {
+      const isActive = _needsClientFilter === el.dataset.filterClient;
+      el.style.opacity = _needsClientFilter && !isActive ? '0.4' : '1';
       el.style.fontWeight = isActive ? '600' : '';
-      el.style.cursor = 'pointer';
     });
   }
 
   // Outline active chart segment
   if (chart && chart.data && chart.data.datasets[0]) {
     const ds = chart.data.datasets[0];
-    const count = ds.data.length;
-    const statuses = ['partially_met', 'unmet'];
-    ds.borderColor = Array.from({ length: count }, (_, i) =>
-      _needsStatusFilter === statuses[i] ? '#FFFFFF' : 'transparent'
-    );
-    ds.borderWidth = Array.from({ length: count }, (_, i) =>
-      _needsStatusFilter === statuses[i] ? 3 : 0
-    );
+    const labels = chart.data.labels || [];
+    ds.borderColor = labels.map(l => _needsClientFilter === l ? '#FFFFFF' : 'transparent');
+    ds.borderWidth = labels.map(l => _needsClientFilter === l ? 3 : 0);
     chart.update('none');
   }
 }
@@ -2655,55 +2664,15 @@ function drillCliff(weekIndex) {
     </table>`);
 }
 
-// ── Drilldown 4a: Needs by Status (donut segment click) ────────────
-function drillNeedsByStatus(status) {
-  const roles = (rawData.coverageRoles || []).filter(r => r.status === status);
-  const labelMap = {
-    fully_met:     'Fully Met Needs',
-    partially_met: 'Partially Met Needs',
-    unmet:         'Unmet Needs',
-  };
-  const badgeMap = {
-    fully_met:     '<span class="dd-badge status-full">Fully Met</span>',
-    partially_met: '<span class="dd-badge status-under">Partially Met</span>',
-    unmet:         '<span class="dd-badge status-bench">Unmet</span>',
-  };
-  const title = `${labelMap[status] || status} — ${roles.length} role${roles.length !== 1 ? 's' : ''}`;
-  if (!roles.length) {
-    openDrilldown(title, '<p class="dd-empty">No roles with this status.</p>');
-    return;
-  }
-  const rows = roles.map((r, i) => {
-    const globalIdx = rawData.coverageRoles.indexOf(r);
-    return `<tr class="dd-clickable" onclick="drillCoverage(${globalIdx})" title="Click for detail">
-      <td>${r.project || '—'}</td>
-      <td style="color:#8892B0;font-size:12px">${r.level || '—'}</td>
-      <td style="font-size:12px">${r.skillSet || '—'}</td>
-      <td style="font-size:11px;color:#8892B0">${r.startDate || '—'} – ${r.endDate || '—'}</td>
-      <td>${badgeMap[r.status] || r.status}</td>
-    </tr>`;
-  }).join('');
-  openDrilldown(title, `
-    <table class="dd-table">
-      <thead><tr><th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Status</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`);
-}
-
-// ── Drilldown 4: Needs Coverage — Role Detail ─────────────────────
+// ── Drilldown 4: Open Need — Role Detail ─────────────────────────
 function drillCoverage(roleIdx) {
   const role = rawData.coverageRoles[roleIdx];
   if (!role) return;
 
-  const statusLabel = {
-    fully_met:    '<span class="badge-covered" style="font-size:13px;padding:4px 12px">Fully Met</span>',
-    partially_met: '<span style="background:#FFF3A3;color:#7a6500;padding:4px 12px;border-radius:10px;font-size:13px;font-weight:600">Partially Met</span>',
-    unmet:        '<span class="badge-uncovered" style="font-size:13px;padding:4px 12px">Unmet</span>',
-  }[role.status] || '—';
-
   const roleCard = `
     <div class="dd-role-card">
-      <div class="dd-role-row"><span>Status</span><b>${statusLabel}</b></div>
+      <div class="dd-role-row"><span>Urgency</span><b>${_urgencyBadge(role.startDate)}</b></div>
+      <div class="dd-role-row"><span>Client</span><b>${role.client || '—'}</b></div>
       <div class="dd-role-row"><span>Project</span><b>${role.project || '—'}</b></div>
       <div class="dd-role-row"><span>Level Needed</span><b>${role.level || '—'}</b></div>
       <div class="dd-role-row"><span>Skill Set</span><b>${role.skillSet || '—'}</b></div>
@@ -2711,29 +2680,9 @@ function drillCoverage(roleIdx) {
       <div class="dd-role-row"><span>Hours Per Week</span><b>${role.hoursPerWeek || '—'}h/wk</b></div>
     </div>`;
 
-  let matchSection = '';
-  if (role.bestMatch) {
-    const bm = role.bestMatch;
-    const coverageText = role.status === 'fully_met'
-      ? `Covers all ${bm.totalWeeks} weeks in range`
-      : `Covers ${bm.availableWeeks} of ${bm.totalWeeks} weeks at required ${role.hoursPerWeek}h/wk`;
-    matchSection = `
-      <h4 class="dd-section-title">Best Match</h4>
-      <table class="dd-table">
-        <thead><tr><th>Employee</th><th>Coverage</th></tr></thead>
-        <tbody><tr class="dd-best-match">
-          <td>${bm.employeeName} <span class="dd-badge status-full" style="margin-left:6px">Best Match</span></td>
-          <td style="color:#A8E6CF;font-weight:600">${coverageText}</td>
-        </tr></tbody>
-      </table>`;
-  } else {
-    const reason = `No ${role.level} with ${role.skillSet} available at ${role.hoursPerWeek}h/wk`;
-    matchSection = `<p class="dd-empty" style="color:#FFB3B3">${reason}</p>`;
-  }
-
   openDrilldown(
     `${role.level || '—'} — ${role.skillSet || '—'}`,
-    roleCard + matchSection
+    roleCard
   );
 }
 
@@ -3015,62 +2964,31 @@ function drillBenchKPI() {
     </table>`);
 }
 
-// ── KPI Drilldown 4: Open Demand Roles ───────────────────────────
+// ── KPI Drilldown 4: Open Needs ──────────────────────────────────
 function drillDemandKPI() {
   const roles = rawData.coverageRoles;
   if (!roles.length) {
-    openDrilldown('Open Projects — All Roles',
-      '<p class="dd-empty">No project data loaded yet.</p>');
+    openDrilldown('Open Needs',
+      '<p class="dd-empty">No open needs.</p>');
     return;
   }
 
-  const statusBadge = (status) => {
-    if (status === 'fully_met')    return '<span class="dd-badge status-full">Fully Met</span>';
-    if (status === 'partially_met') return '<span class="dd-badge status-under">Partially Met</span>';
-    return '<span class="dd-badge status-bench">Unmet</span>';
-  };
-
   const rows = roles.map((role, i) => {
-    const bm = role.bestMatch;
-    let matchCell = '—';
-    if (bm) {
-      const weeks = role.status === 'fully_met'
-        ? `all ${bm.totalWeeks} wks`
-        : `${bm.availableWeeks}/${bm.totalWeeks} wks`;
-      matchCell = `${bm.employeeName} <span style="font-size:11px;color:#8892B0">(${weeks})</span>`;
-    } else {
-      matchCell = `<span style="font-size:11px;color:#FFB3B3">No ${role.level} with ${role.skillSet}</span>`;
-    }
-    const rowStyle = role.status === 'fully_met'
-      ? 'style="background:rgba(168,230,207,0.05)"'
-      : role.status === 'unmet' ? 'style="background:rgba(255,179,179,0.05)"' : '';
-    return `<tr ${rowStyle} class="dd-clickable" onclick="drillCoverage(${i})" title="Click for detail">
+    return `<tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click for detail">
+      <td style="font-size:12px">${role.client || '—'}</td>
       <td style="font-size:12px">${role.project || '—'}</td>
       <td style="color:#8892B0;font-size:12px">${role.level || '—'}</td>
       <td style="font-size:12px">${role.skillSet || '—'}</td>
       <td style="font-size:11px;color:#8892B0">${role.startDate || '—'} – ${role.endDate || '—'}</td>
       <td style="font-size:12px">${role.hoursPerWeek || '—'}h/wk</td>
-      <td>${statusBadge(role.status)}</td>
-      <td style="font-size:12px">${matchCell}</td>
+      <td>${_urgencyBadge(role.startDate)}</td>
     </tr>`;
   }).join('');
 
-  const fullyMet    = roles.filter(r => r.status === 'fully_met').length;
-  const partiallyMet = roles.filter(r => r.status === 'partially_met').length;
-  const unmet       = roles.filter(r => r.status === 'unmet').length;
-
-  const summary = `
-    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-      <span class="dd-badge status-full">Fully Met: ${fullyMet}</span>
-      <span class="dd-badge status-under" style="background:#FFF3A380;color:#7a6500">Partially Met: ${partiallyMet}</span>
-      <span class="dd-badge status-bench">Unmet: ${unmet}</span>
-    </div>`;
-
-  openDrilldown(`Open Projects — All Roles (${roles.length})`,
-    summary + `
-    <table class="dd-table">
+  openDrilldown(`Open Needs (${roles.length})`,
+    `<table class="dd-table">
       <thead><tr>
-        <th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Hrs/Wk</th><th>Status</th><th>Best Match</th>
+        <th>Client</th><th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Hrs/Wk</th><th>Urgency</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`);
@@ -3079,7 +2997,7 @@ function drillDemandKPI() {
 // ── Ask Claude — Dynamic Suggested Questions ──────────────────────
 const STATIC_FALLBACK_QUESTIONS = [
   'Who has the most available capacity this week?',
-  'Which projects have unmet staffing needs?',
+  'Which projects have open staffing needs?',
   'Who is rolling off a project in the next 2 weeks?',
   'What is our current overall utilization rate?',
   'Which employees are overbooked right now?',

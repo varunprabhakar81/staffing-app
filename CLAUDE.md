@@ -221,7 +221,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
 - **Need lifecycle uses closed_at IS NULL** — `readStaffingData()` filters `.is('closed_at', null)`. Auto-close (reason='met') fires in `checkAndAutoCloseNeeds()` after every `acceptMatch()` write. Manual close (reason='abandoned') via `POST /api/needs/:id/close`. All close writes use `serviceClient`.
-- **Needs donut chart is 2 segments only** — Partially Met + Unmet. Fully Met is permanently removed. `statusMap`, `statuses`, legend, and `applyNeedsFilter` arrays are all 2-element. Do not add a third segment.
+- **Needs donut chart segments by client** — each segment = one client, sized by open need count. Urgency badges on rows (Urgent ≤2wk, Soon 2–4wk, Planned 4+wk) computed client-side from `startDate`. No coverage status computation on server or client. `_needsClientFilter` (not `_needsStatusFilter`) drives donut click filtering. Do not reintroduce partially_met/unmet/fully_met.
 - **Settings nav defaults to Consultants** — both admin and resource_manager see Consultants panel first. `_settingsActivePanel` persists across tab switches.
 
 ---
