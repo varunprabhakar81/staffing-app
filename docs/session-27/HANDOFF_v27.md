@@ -634,6 +634,10 @@ cp CLAUDE.md docs/session-XX/
 ## Build Order — Next Session
 
 V2 remaining (priority order):
-1. **#168 — Multi-user UAT suite** — synthetic data is now in place; run full UAT across all roles
-2. **#154 — Holistic UI/UX design pass** — after #168; absorbs SB-2, SB-4, SB-7 + Session 26 notes
-3. **#129 — Historical staffing snapshots** — time-travel view, effort:xl
+1. **#176 — Simplify coverage status model** — remove Partially Met/Fully Met distinction ← START HERE
+2. **#175 — Group needs by Client → Project hierarchy** — builds on simpler status model
+3. **#177 — AI recommendations partial availability** — fits after status rethink
+4. **#178 — Forward-looking time horizon control** — independent, pairs with #129
+5. **#129 — Historical staffing snapshots** — biggest feature, stable base needed
+6. **#154 — UI/UX design pass** — covers ALL new surfaces including #129
+7. **#168 — Multi-user UAT suite** — final gate

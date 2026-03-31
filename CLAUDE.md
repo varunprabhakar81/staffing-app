@@ -245,3 +245,16 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - No email notifications
 - TENANT_ID is hard-coded per deployment (not parameterized for multi-tenant SaaS)
 - Excel import script (`import-to-supabase.js`) is one-time only
+
+---
+
+## Build Order — Next Session
+
+V2 remaining (priority order):
+1. **#176 — Simplify coverage status model** — remove Partially Met/Fully Met distinction ← START HERE
+2. **#175 — Group needs by Client → Project hierarchy** — builds on simpler status model
+3. **#177 — AI recommendations partial availability** — fits after status rethink
+4. **#178 — Forward-looking time horizon control** — independent, pairs with #129
+5. **#129 — Historical staffing snapshots** — biggest feature, stable base needed
+6. **#154 — UI/UX design pass** — covers ALL new surfaces including #129
+7. **#168 — Multi-user UAT suite** — final gate
