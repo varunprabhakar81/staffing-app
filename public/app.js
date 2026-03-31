@@ -730,7 +730,7 @@ function renderOverviewStats(data, heatmapData) {
   }
 
   // ── Card 3: Open Needs ───────────────────────────────────────────
-  const openRolesOv = rawData.coverageRoles || [];
+  const openRolesOv = (rawData.openNeeds && rawData.openNeeds.roles) || [];
   const totalRoles  = openRolesOv.length;
   const needsColor  = totalRoles > 0 ? '#FFB3B3' : '#A8E6CF';
   const needsCard   = document.getElementById('overviewNeedsCard');
