@@ -631,11 +631,26 @@ cp CLAUDE.md docs/session-XX/
 
 ---
 
-## Build Order — Next Session
+## Build Order
 
-V2 remaining (5 open issues, priority order):
-1. **#175 — Group needs by Client → Project hierarchy** ← START HERE
-2. **#177 — AI recommendations partial availability** — fits after grouping rethink
-3. **#178 — Forward-looking time horizon control** — independent
-4. **#154 — UI/UX design pass** — covers ALL new surfaces
-5. **#168 — Multi-user UAT suite** — final gate
+### V2 — Ship it (5 issues)
+1. **#177 — AI recommendations partial availability** ← next
+2. **#175 — Group needs by Client → Project hierarchy**
+3. **#178 — Forward-looking time horizon control**
+4. **#154 — UI/UX design pass**
+5. **#168 — Multi-user UAT suite — final gate**
+
+### Pilot — Internal adoption (after V2)
+Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
+- In-app onboarding tour
+- Contextual tooltips
+- Admin getting-started checklist
+- In-app feedback button (Supabase-backed)
+- Switch prod to real data
+
+### V3 — First external customer (after Pilot)
+Gate: at least 3 unsolicited feature requests from pilot users.
+- #96 — Tenant onboarding
+- #97 — Extended roles
+- #118 — Audit log
+- #172 — Client hierarchy
