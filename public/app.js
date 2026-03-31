@@ -1988,40 +1988,71 @@ function renderCoverageChart(openNeeds) {
     return `${parseInt(p[0])}/${parseInt(p[1])}${yr}`;
   };
 
-  const rows = roles.map((r, i) => {
-    const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
-    const editBtn = (_hmCanEdit() && r._needId)
-      ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
-      : '';
-    const abandonBtn = (_hmCanEdit() && r._needId)
-      ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
-      : '';
-    return `
-    <tr class="dd-clickable need-row" data-client="${_esc(r.client || '')}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
-      <td class="col-client">${r.client ? _esc(r.client) : '—'}</td>
-      <td class="col-project"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
-      <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
-      <td>${r.level || '—'}</td>
-      <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
-      <td class="col-center">${fmtDate(r.startDate)}</td>
-      <td class="col-center">${fmtDate(r.endDate)}</td>
-      <td>${_urgencyBadge(r.startDate)}</td>
-      <td class="col-actions">${editBtn}${abandonBtn}</td>
-    </tr>
-    <tr class="need-expansion-row hidden" id="need-exp-${i}">
-      <td colspan="9" class="need-expansion-cell">
-        <div class="need-match-panel" id="need-match-panel-${i}">
-          <div class="need-match-loading">Finding matches…</div>
-        </div>
-      </td>
-    </tr>
-  `;
-  }).join('');
+  // Group roles by client, preserving original index for expansion
+  const grouped = {};
+  roles.forEach((r, i) => {
+    const client = r.client || 'Unassigned';
+    if (!grouped[client]) grouped[client] = [];
+    grouped[client].push({ r, i });
+  });
+  const sortedClients = Object.keys(grouped).sort((a, b) => {
+    if (a === 'Unassigned') return 1;
+    if (b === 'Unassigned') return -1;
+    return a.localeCompare(b);
+  });
+  const urgencyRank = (startDate) => {
+    if (!startDate) return 2;
+    const p = String(startDate).split('/');
+    if (p.length < 3) return 2;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const d = new Date(parseInt(p[2]), parseInt(p[0]) - 1, parseInt(p[1]));
+    const diffDays = (d - today) / 86400000;
+    if (diffDays <= 14) return 0;
+    if (diffDays <= 28) return 1;
+    return 2;
+  };
+
+  let rows = '';
+  for (const client of sortedClients) {
+    const group = grouped[client];
+    group.sort((a, b) => urgencyRank(a.r.startDate) - urgencyRank(b.r.startDate));
+    const count = group.length;
+    rows += `<tr class="needs-client-header" data-client-group="${_esc(client)}">
+      <td colspan="8"><span class="needs-client-name">${_esc(client)}</span><span class="needs-client-count">(${count} ${count === 1 ? 'need' : 'needs'})</span></td>
+    </tr>`;
+    for (const { r, i } of group) {
+      const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
+      const editBtn = (_hmCanEdit() && r._needId)
+        ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
+        : '';
+      const abandonBtn = (_hmCanEdit() && r._needId)
+        ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
+        : '';
+      rows += `
+      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+        <td class="col-project" style="padding-left:20px"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
+        <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
+        <td>${r.level || '—'}</td>
+        <td class="col-center">${r.hoursPerWeek ? r.hoursPerWeek + 'h' : '—'}</td>
+        <td class="col-center">${fmtDate(r.startDate)}</td>
+        <td class="col-center">${fmtDate(r.endDate)}</td>
+        <td>${_urgencyBadge(r.startDate)}</td>
+        <td class="col-actions">${editBtn}${abandonBtn}</td>
+      </tr>
+      <tr class="need-expansion-row hidden" id="need-exp-${i}">
+        <td colspan="8" class="need-expansion-cell">
+          <div class="need-match-panel" id="need-match-panel-${i}">
+            <div class="need-match-loading">Finding matches…</div>
+          </div>
+        </td>
+      </tr>`;
+    }
+  }
 
   tableEl.innerHTML = `
     <table>
       <thead><tr>
-        <th>Client</th><th>Project</th><th>Skill</th><th>Level</th>
+        <th>Project</th><th>Skill</th><th>Level</th>
         <th class="col-center">Hrs/Wk</th>
         <th class="col-center">Start</th>
         <th class="col-center">End</th>
@@ -2044,7 +2075,7 @@ function onSkillPillClick(el) {
 function applyNeedsFilter() {
   const chart = charts.coverage;
 
-  // Show/hide table rows
+  // Show/hide need rows
   document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
     const match = !_needsClientFilter || tr.dataset.client === _needsClientFilter;
     tr.style.display = match ? '' : 'none';
@@ -2053,6 +2084,11 @@ function applyNeedsFilter() {
     if (exp && exp.classList.contains('need-expansion-row') && !match) {
       exp.classList.add('hidden');
     }
+  });
+  // Show/hide client header rows
+  document.querySelectorAll('#coverageTable .needs-client-header').forEach(tr => {
+    const match = !_needsClientFilter || tr.dataset.clientGroup === _needsClientFilter;
+    tr.style.display = match ? '' : 'none';
   });
 
   // Update filter label on legend
