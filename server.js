@@ -1184,7 +1184,7 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
         availableHours: Math.max(0, 45 - (info.weekTotals[wk] || 0)),
       }));
 
-      if (availableHours >= hoursNeeded * 0.2) {
+      if (availableHours > 0) {
         matches.push({ employeeName: name, level: info.level, skillSet: info.skillSet,
                        availableHours, currentUtilization, weeklyBreakdown });
       }
