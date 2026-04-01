@@ -5,15 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Staffing Intelligence | Sign In</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg-page:    #0F0F10;
+      --bg-card:    #1E1E22;
+      --bg-surface: #18181B;
+      --accent:     #86EB22;
+      --accent-hover: #75D41E;
+      --accent-muted: rgba(134,235,34,0.15);
+      --text-primary:   #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --border-default: rgba(255,255,255,0.10);
+      --border-subtle:  rgba(255,255,255,0.06);
+    }
+
     body {
-      font-family: 'Inter', sans-serif;
-      background: #0F1117;
-      color: #FFFFFF;
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -21,9 +34,10 @@
     }
 
     .card {
-      background: #1A1D27;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-default);
+      border-top: 2px solid var(--accent);
+      border-radius: 12px;
       padding: 40px 40px 36px;
       width: 100%;
       max-width: 400px;
@@ -40,21 +54,22 @@
     .brand-text {
       font-size: 16px;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--text-primary);
       letter-spacing: -0.01em;
     }
 
     /* ── Heading ── */
     .heading {
       font-size: 22px;
-      font-weight: 700;
-      color: #FFFFFF;
+      font-weight: 600;
+      color: var(--text-primary);
       margin-bottom: 6px;
+      letter-spacing: -0.01em;
     }
 
     .subheading {
       font-size: 13px;
-      color: #8892B0;
+      color: var(--text-secondary);
       margin-bottom: 28px;
     }
 
@@ -66,8 +81,8 @@
     label {
       display: block;
       font-size: 12px;
-      font-weight: 500;
-      color: #8892B0;
+      font-weight: 600;
+      color: var(--text-secondary);
       margin-bottom: 6px;
       letter-spacing: 0.02em;
       text-transform: uppercase;
@@ -76,25 +91,25 @@
     input[type="email"],
     input[type="password"] {
       width: 100%;
-      background: #0F1117;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
       padding: 10px 14px;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Open Sans', -apple-system, sans-serif;
       font-size: 14px;
-      color: #FFFFFF;
+      color: var(--text-primary);
       outline: none;
       transition: border-color 0.15s;
     }
 
     input[type="email"]::placeholder,
     input[type="password"]::placeholder {
-      color: #4A5568;
+      color: rgba(255,255,255,0.25);
     }
 
     input[type="email"]:focus,
     input[type="password"]:focus {
-      border-color: #A8C7FA;
+      border-color: var(--accent);
     }
 
     /* ── Button ── */
@@ -102,18 +117,18 @@
       width: 100%;
       margin-top: 24px;
       padding: 11px;
-      background: #A8C7FA;
-      color: #0F1117;
+      background: var(--accent);
+      color: #0F0F10;
       border: none;
-      border-radius: 8px;
-      font-family: 'Inter', sans-serif;
+      border-radius: 6px;
+      font-family: 'Open Sans', -apple-system, sans-serif;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.15s;
+      transition: background 0.15s ease;
     }
 
-    .btn-login:hover:not(:disabled) { opacity: 0.88; }
+    .btn-login:hover:not(:disabled) { background: var(--accent-hover); }
 
     .btn-login:disabled {
       opacity: 0.5;
@@ -125,11 +140,11 @@
       display: none;
       margin-top: 14px;
       padding: 10px 14px;
-      background: rgba(255, 179, 179, 0.1);
-      border: 1px solid rgba(255, 179, 179, 0.25);
-      border-radius: 8px;
+      background: rgba(218,41,28,0.1);
+      border: 1px solid rgba(218,41,28,0.25);
+      border-radius: 6px;
       font-size: 13px;
-      color: #FFB3B3;
+      color: #DA291C;
       line-height: 1.4;
     }
 
@@ -140,11 +155,11 @@
       display: none;
       margin-top: 14px;
       padding: 10px 14px;
-      background: rgba(167, 243, 208, 0.1);
-      border: 1px solid rgba(167, 243, 208, 0.25);
-      border-radius: 8px;
+      background: rgba(134,188,37,0.1);
+      border: 1px solid rgba(134,188,37,0.25);
+      border-radius: 6px;
       font-size: 13px;
-      color: #A7F3D0;
+      color: #86BC25;
       line-height: 1.4;
     }
 
@@ -156,24 +171,24 @@
       margin-top: 12px;
       text-align: center;
       font-size: 13px;
-      color: #8892B0;
+      color: var(--accent);
       cursor: pointer;
       background: none;
       border: none;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Open Sans', -apple-system, sans-serif;
       text-decoration: underline;
       text-decoration-color: transparent;
       transition: color 0.15s, text-decoration-color 0.15s;
     }
 
-    .forgot-link:hover { color: #A8C7FA; text-decoration-color: #A8C7FA; }
+    .forgot-link:hover { color: var(--accent-hover); text-decoration-color: var(--accent-hover); }
 
     /* ── Forgot password inline form ── */
     .forgot-form {
       display: none;
       margin-top: 20px;
       padding-top: 20px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid rgba(255,255,255,0.06);
     }
 
     .forgot-form.visible { display: block; }
@@ -181,21 +196,37 @@
     .forgot-form .section-label {
       font-size: 12px;
       font-weight: 600;
-      color: #8892B0;
+      color: var(--text-secondary);
       letter-spacing: 0.04em;
       text-transform: uppercase;
       margin-bottom: 12px;
     }
+
+    /* ── "Back to sign in" link — clearly visible ── */
+    .back-link {
+      display: block;
+      margin-top: 14px;
+      text-align: center;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Open Sans', -apple-system, sans-serif;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent-hover); }
 
     .btn-reset {
       width: 100%;
       margin-top: 12px;
       padding: 11px;
       background: transparent;
-      color: #A8C7FA;
-      border: 1px solid rgba(168, 199, 250, 0.4);
-      border-radius: 8px;
-      font-family: 'Inter', sans-serif;
+      color: var(--accent);
+      border: 1px solid rgba(134,235,34,0.4);
+      border-radius: 6px;
+      font-family: 'Open Sans', -apple-system, sans-serif;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -203,8 +234,8 @@
     }
 
     .btn-reset:hover:not(:disabled) {
-      background: rgba(168, 199, 250, 0.08);
-      border-color: rgba(168, 199, 250, 0.7);
+      background: var(--accent-muted);
+      border-color: rgba(134,235,34,0.7);
     }
 
     .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -217,12 +248,12 @@
     <!-- Brand -->
     <div class="brand">
       <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
-        <circle cx="15" cy="8" r="3.8" fill="#A8C7FA"/>
-        <path d="M7.5 24c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="#A8C7FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="6" cy="10.5" r="2.6" fill="#A8C7FA" opacity="0.5"/>
-        <path d="M1 24c0-2.761 2.239-5 5-5" stroke="#A8C7FA" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
-        <circle cx="24" cy="10.5" r="2.6" fill="#A8C7FA" opacity="0.5"/>
-        <path d="M29 24c0-2.761-2.239-5-5-5" stroke="#A8C7FA" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        <circle cx="15" cy="8" r="3.8" fill="#86EB22"/>
+        <path d="M7.5 24c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="#86EB22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="6" cy="10.5" r="2.6" fill="#86EB22" opacity="0.5"/>
+        <path d="M1 24c0-2.761 2.239-5 5-5" stroke="#86EB22" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+        <circle cx="24" cy="10.5" r="2.6" fill="#86EB22" opacity="0.5"/>
+        <path d="M29 24c0-2.761-2.239-5-5-5" stroke="#86EB22" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
       </svg>
       <span class="brand-text">Staffing Intelligence</span>
     </div>

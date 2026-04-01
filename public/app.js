@@ -672,10 +672,6 @@ function renderOverviewStats(data, heatmapData) {
   const bookedCount = bookedSet.size || (totalConsultants - benchThisWeek);
 
   // ── Card 2: Utilization % ────────────────────────────────────────
-  const utilColor = avgUtil >= 80 ? '#A8E6CF' : avgUtil >= 60 ? '#FFF3A3' : '#FFB3B3';
-  const utilCard  = document.getElementById('overviewUtilCard');
-  if (utilCard) utilCard.style.setProperty('--ov-accent', utilColor);
-
   const utilEl = document.getElementById('overviewUtil');
   if (utilEl) utilEl.textContent = headcount ? String(avgUtil) : '—';
 
@@ -733,10 +729,6 @@ function renderOverviewStats(data, heatmapData) {
   // ── Card 3: Open Needs ───────────────────────────────────────────
   const openRolesOv = (rawData.openNeeds && rawData.openNeeds.roles) || [];
   const totalRoles  = openRolesOv.length;
-  const needsColor  = totalRoles > 0 ? '#FFB3B3' : '#A8E6CF';
-  const needsCard   = document.getElementById('overviewNeedsCard');
-  if (needsCard) needsCard.style.setProperty('--ov-accent', needsColor);
-
   const unmetEl = document.getElementById('overviewUnmet');
   if (unmetEl) unmetEl.textContent = String(totalRoles);
 
@@ -752,7 +744,7 @@ function renderOverviewStats(data, heatmapData) {
   if (charts.needsDonut) { try { charts.needsDonut.destroy(); } catch(e) {} charts.needsDonut = null; }
   const donutCanvas = document.getElementById('overviewNeedsDonut');
   if (donutCanvas && totalRoles > 0) {
-    const OV_COLORS = ['#A8C7FA', '#A8E6CF', '#FFB3B3', '#FFF3A3', '#C9B8FF'];
+    const OV_COLORS = ['#86BC25', '#00A3E0', '#86EB22', '#A0DCFF', '#005587', '#B7E320'];
     const ovClientCounts = {};
     for (const r of openRolesOv) { const c = r.client || 'Unknown'; ovClientCounts[c] = (ovClientCounts[c] || 0) + 1; }
     const ovEntries = Object.entries(ovClientCounts);
@@ -793,10 +785,6 @@ function renderOverviewStats(data, heatmapData) {
 
   // ── Card 4: On Bench ─────────────────────────────────────────────
   const benchCount = (data.benchReport || []).reduce((s, g) => s + g.employees.length, 0);
-  const benchColor = benchCount > 0 ? '#FFB3B3' : '#A8E6CF';
-  const benchCard  = document.getElementById('overviewBenchCard');
-  if (benchCard) benchCard.style.setProperty('--ov-accent', benchColor);
-
   const benchEl = document.getElementById('overviewBench');
   if (benchEl) benchEl.textContent = String(benchCount);
 
@@ -1869,7 +1857,7 @@ const _needs = {
 };
 
 // ── Open Needs ────────────────────────────────────────────────────
-const NEEDS_CLIENT_COLORS = ['#A8C7FA', '#A8E6CF', '#FFB3B3', '#FFF3A3', '#C9B8FF'];
+const NEEDS_CLIENT_COLORS = ['#86BC25', '#00A3E0', '#86EB22', '#A0DCFF', '#005587', '#B7E320'];
 
 function _urgencyBadge(startDate) {
   if (!startDate) return '<span class="urgency-planned">Planned</span>';
@@ -3615,11 +3603,11 @@ const UM_ROLE_LABELS = {
 };
 
 const UM_ROLE_COLORS = {
-  admin:            '#C9B8FF',
-  resource_manager: '#A8C7FA',
-  project_manager:  '#A8E6CF',
-  executive:        '#FFF3A3',
-  consultant:       '#FFD6B3',
+  admin:            '#86EB22',
+  resource_manager: '#00A3E0',
+  project_manager:  '#E8A317',
+  executive:        '#A0DCFF',
+  consultant:       'rgba(255,255,255,0.5)',
   finance:          '#B3E5FC',
   recruiter:        '#F8BBD9',
 };
