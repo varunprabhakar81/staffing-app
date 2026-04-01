@@ -5218,7 +5218,10 @@ function _baUpdateCount() {
   const label   = document.getElementById('ba-count-label');
   const btn     = document.getElementById('ba-assign-btn');
   if (label) label.textContent = `${checked.length} of ${total.length} selected`;
-  if (btn)   btn.disabled = checked.length === 0;
+  if (btn) {
+    btn.disabled = checked.length === 0;
+    btn.style.opacity = '';  // let CSS :disabled / :not(:disabled) rule take over
+  }
 }
 
 async function submitBulkAssign() {
