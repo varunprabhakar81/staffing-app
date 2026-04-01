@@ -2011,7 +2011,8 @@ function renderCoverageChart(openNeeds) {
     </tr>`;
     for (const { r, i } of group) {
       const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
-      const editBtn = (_hmCanEdit() && r._needId)
+      const canEditNeed = (_hmCanEdit() || currentUserRole === 'project_manager') && r._needId;
+      const editBtn = canEditNeed
         ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
         : '';
       const abandonBtn = (_hmCanEdit() && r._needId)
@@ -4386,6 +4387,30 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   // Track status for deactivate/reactivate button
   _editConsultantStatus = consultant.status;
 
+  // Linked user account (admin only)
+  const linkedUserRow = document.getElementById('cpLinkedUserRow');
+  const linkedUserSel = document.getElementById('cpLinkedUser');
+  if (currentUserRole === 'admin') {
+    linkedUserRow.classList.remove('hidden');
+    linkedUserSel.innerHTML = '<option value="">— None —</option>';
+    try {
+      const usersRes = await apiFetch('/api/admin/users');
+      if (usersRes.ok) {
+        const users = await usersRes.json();
+        for (const u of users) {
+          const opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = `${u.email} (${u.role || 'no role'})`;
+          if (u.id === consultant.user_id) opt.selected = true;
+          linkedUserSel.appendChild(opt);
+        }
+      }
+    } catch (_) { /* non-fatal */ }
+    linkedUserSel.disabled = readOnly;
+  } else {
+    linkedUserRow.classList.add('hidden');
+  }
+
   // Snapshot + dirty tracking (editable mode only)
   if (!readOnly) {
     _cpSnapshot = {
@@ -4395,6 +4420,7 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
       billRate: consultant.bill_rate_override != null ? String(consultant.bill_rate_override) : '',
       costRate: consultant.cost_rate_override != null ? String(consultant.cost_rate_override) : '',
       skillIds: new Set((skillSetIds || []).map(String)),
+      userId:   consultant.user_id || '',
     };
     _cpAbortController = new AbortController();
     const { signal } = _cpAbortController;
@@ -4404,6 +4430,9 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
     document.getElementById('cpLocation').addEventListener('input', markDirty, { signal });
     document.getElementById('cpBillRate').addEventListener('input', markDirty, { signal });
     document.getElementById('cpCostRate').addEventListener('input', markDirty, { signal });
+    if (currentUserRole === 'admin') {
+      document.getElementById('cpLinkedUser').addEventListener('change', markDirty, { signal });
+    }
   }
 
   // Wire strip buttons outside the AbortController scope so abort() can't interfere.
@@ -4521,6 +4550,12 @@ async function submitConsultantProfile(event) {
 
   if (!name) { showToast('Name is required.', 'error'); return; }
 
+  const patchBody = { name, level_id, location, bill_rate_override, cost_rate_override };
+  if (currentUserRole === 'admin') {
+    const linkedVal = document.getElementById('cpLinkedUser').value;
+    patchBody.user_id = linkedVal || null;
+  }
+
   const btn = document.getElementById('cpSubmitBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
@@ -4529,7 +4564,7 @@ async function submitConsultantProfile(event) {
       apiFetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, level_id, location, bill_rate_override, cost_rate_override }),
+        body: JSON.stringify(patchBody),
       }),
       apiFetch(`/api/consultants/${encodeURIComponent(_editConsultantId)}/skills`, {
         method: 'PUT',
@@ -5336,7 +5371,7 @@ async function _enSubmit() {
   };
 
   if (role === 'executive')       { hideTab('needs'); hideTab('settings'); } // staffing: read-only access granted
-  if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
+  if (role === 'project_manager') { hideTab('settings'); }
   // resource_manager: settings tab visible (Consultants panel), but User Management is hidden
   // admin: no tabs hidden
 
@@ -5345,7 +5380,16 @@ async function _enSubmit() {
     hideTab('overview'); hideTab('needs'); hideTab('ask'); hideTab('settings');
     apiFetch('/api/heatmap')
       .then(r => r.json())
-      .then(heatmap => { rawData.heatmap = heatmap; buildHeatmapTable(heatmap); navigateTo('staffing'); })
+      .then(heatmap => {
+        rawData.heatmap = heatmap;
+        navigateTo('staffing');
+        if (heatmap.consultantLinked === false) {
+          const container = document.getElementById('heatmapContainer');
+          if (container) container.innerHTML = '<p style="padding:2rem;color:var(--text-muted)">Your account hasn\'t been linked to a consultant profile yet. Please contact your admin.</p>';
+        } else {
+          buildHeatmapTable(heatmap);
+        }
+      })
       .catch(err => console.error('[Consultant heatmap]', err));
     initLocationTypeahead();
     setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);
@@ -5375,7 +5419,5 @@ async function _enSubmit() {
   if (role === 'executive' && activeTabName === 'needs') {
     navigateTo('overview');
   }
-  if (role === 'project_manager' && activeTabName === 'staffing') {
-    navigateTo('overview');
-  }
+  // project_manager can now see staffing tab — no redirect needed
 })();
