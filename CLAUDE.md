@@ -254,9 +254,9 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 ## Build Order
 
 ### V2 — Ship it (3 issues)
-1. **#168 — All roles verified before real users onboard** ← next
-2. **#154 — UI/UX polished for pilot launch**
-3. **#187 — AI recommendations load fast enough for daily use**
+1. **#154 — UI/UX polished for pilot launch** ← next
+2. **#187 — AI recommendations load fast enough for daily use**
+3. **#168 — All roles verified before real users onboard** (gate — final UAT sweep)
 
 ### Pilot — Internal adoption (after V2)
 Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
