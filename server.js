@@ -1146,11 +1146,26 @@ app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admi
   }
 });
 
+// Cache for /api/recommendations only — avoids paying the 4s Supabase fetch on every panel open
+const RECO_CACHE_TTL = 60_000; // 60 seconds
+const recoCache = { data: null, timestamp: 0 };
+
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const t0 = Date.now();
-  const freshData = await readStaffingData(null, serviceClient);
-  if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+  let freshData;
+  let cacheHit = false;
+  if (recoCache.data && (Date.now() - recoCache.timestamp) < RECO_CACHE_TTL) {
+    freshData = recoCache.data;
+    cacheHit = true;
+  } else {
+    freshData = await readStaffingData(null, serviceClient);
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+    recoCache.data = freshData;
+    recoCache.timestamp = Date.now();
+  }
+  const t1 = Date.now();
   staffingData = freshData;
 
   const { supply, demand, employees } = freshData;
@@ -1255,7 +1270,8 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
     }
   }));
 
-  console.log(`[recommendations] completed in ${Date.now() - t0}ms`);
+  const t2 = Date.now();
+  console.log(`[recommendations] cache ${cacheHit ? 'HIT' : 'MISS'}, readStaffingData: ${t1 - t0}ms, Claude: ${t2 - t1}ms, total: ${t2 - t0}ms`);
   res.json({ needs: needsWithMatches });
 });
 
