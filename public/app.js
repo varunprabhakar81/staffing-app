@@ -21,6 +21,7 @@ let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
 let _needsClientFilter = null;    // active donut segment filter: client name string | null
+let _bulkAssignNeedId  = null;    // need id currently open in the bulk-assign modal
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
 let _cpIsDirty = false;            // tracks unsaved changes in profile editor
 let _cpSnapshot = null;            // original field values for revert
@@ -87,7 +88,7 @@ function toggleSidebar() {
 // ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); return; }
+  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
@@ -2028,6 +2029,9 @@ function renderCoverageChart(openNeeds) {
       const abandonBtn = (_hmCanEdit() && r._needId)
         ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
         : '';
+      const assignBtn = (_hmCanEdit() && r._needId)
+        ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
+        : '';
       rows += `
       <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
         <td class="col-project" style="padding-left:20px"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
@@ -2037,7 +2041,7 @@ function renderCoverageChart(openNeeds) {
         <td class="col-center">${fmtDate(r.startDate)}</td>
         <td class="col-center">${fmtDate(r.endDate)}</td>
         <td>${_urgencyBadge(r.startDate)}</td>
-        <td class="col-actions">${editBtn}${abandonBtn}</td>
+        <td class="col-actions">${assignBtn}${editBtn}${abandonBtn}</td>
       </tr>
       <tr class="need-expansion-row hidden" id="need-exp-${i}">
         <td colspan="8" class="need-expansion-cell">
@@ -5110,6 +5114,145 @@ function openEditNeedModal(needId, event) {
 function closeEditNeedModal() {
   document.getElementById('edit-need-modal').classList.add('hidden');
   _enNeedId = null;
+}
+
+// ── Bulk Assign Modal (#189) ──────────────────────────────────────
+
+async function openBulkAssignModal(needId, event) {
+  if (event) event.stopPropagation();
+  _bulkAssignNeedId = needId;
+
+  const modal = document.getElementById('bulk-assign-modal');
+  const body  = document.getElementById('ba-body');
+  modal.classList.remove('hidden');
+  body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#8892B0;font-size:13px">Loading candidates…</div>';
+
+  let data;
+  try {
+    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/candidates`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    data = await res.json();
+  } catch (err) {
+    body.innerHTML = `<div style="text-align:center;padding:40px 0;color:#F87171;font-size:13px">Failed to load candidates: ${_esc(err.message)}</div>`;
+    return;
+  }
+
+  const { need, candidates } = data;
+
+  // Populate context header
+  const skillsText = (need.skills || []).join(', ') || '—';
+  const _fmt = s => { if (!s) return '—'; const p = String(s).split('/'); if (p.length < 2) return s; const yr = p[2] ? '/' + p[2].slice(-2) : ''; return `${parseInt(p[0])}/${parseInt(p[1])}${yr}`; };
+  const dateText   = `${_fmt(need.startDate)} – ${_fmt(need.endDate)}`;
+  document.getElementById('ba-context').innerHTML =
+    `<span style="color:#A8C7FA">${_esc(need.projectName || '—')}</span>` +
+    `<span style="color:#4A5168"> · </span>${_esc(need.clientName || '—')}` +
+    `<span style="color:#4A5168"> · </span>${_esc(need.level || '—')}` +
+    `<span style="color:#4A5168"> · </span>${_esc(skillsText)}` +
+    `<span style="color:#4A5168"> · </span>${_esc(need.hoursPerWeek || '—')}h/wk` +
+    `<span style="color:#4A5168"> · </span>${dateText}`;
+
+  if (!candidates.length) {
+    body.innerHTML = '<div class="ba-empty">No matching candidates available for this role.</div>';
+    _baUpdateCount();
+    return;
+  }
+
+  let rows = '';
+  for (const c of candidates) {
+    const skillTags = (c.matchingSkills || []).map(s => `<span class="ba-skill-tag">${_esc(s)}</span>`).join('');
+    const badgeCls  = `ba-badge-${c.badge}`;
+    const pct       = c.matchPct > 100 ? 100 : c.matchPct;
+    rows += `
+    <tr class="ba-candidate-row">
+      <td class="ba-col-check">
+        <input type="checkbox" class="ba-checkbox" value="${_esc(c.consultantId)}" onchange="_baUpdateCount()">
+      </td>
+      <td class="ba-col-name" data-cid="${_esc(c.consultantId)}">${_esc(c.name)}</td>
+      <td class="ba-col-level">${_esc(c.level)}</td>
+      <td class="ba-col-skills">${skillTags || '<span style="color:#4A5168">—</span>'}</td>
+      <td class="ba-col-avail">${c.avgAvailableHours}h</td>
+      <td class="ba-col-badge"><span class="${badgeCls}">${pct}%</span></td>
+    </tr>`;
+  }
+
+  body.innerHTML = `
+    <table class="ba-table">
+      <thead>
+        <tr>
+          <th class="ba-col-check"><input type="checkbox" id="ba-select-all" onchange="_baToggleSelectAll(this)" title="Select all"></th>
+          <th>Consultant</th>
+          <th>Level</th>
+          <th>Matching Skills</th>
+          <th class="ba-col-avail">Avg Avail</th>
+          <th class="ba-col-badge">Match</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  _baUpdateCount();
+}
+
+function closeBulkAssignModal() {
+  const modal = document.getElementById('bulk-assign-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  _bulkAssignNeedId = null;
+  const selectAll = document.getElementById('ba-select-all');
+  if (selectAll) selectAll.checked = false;
+  document.getElementById('ba-body').innerHTML = '';
+  _baUpdateCount();
+}
+
+function _baToggleSelectAll(cb) {
+  document.querySelectorAll('#ba-body .ba-checkbox').forEach(el => { el.checked = cb.checked; });
+  _baUpdateCount();
+}
+
+function _baUpdateCount() {
+  const checked = document.querySelectorAll('#ba-body .ba-checkbox:checked');
+  const total   = document.querySelectorAll('#ba-body .ba-checkbox');
+  const label   = document.getElementById('ba-count-label');
+  const btn     = document.getElementById('ba-assign-btn');
+  if (label) label.textContent = `${checked.length} of ${total.length} selected`;
+  if (btn)   btn.disabled = checked.length === 0;
+}
+
+async function submitBulkAssign() {
+  const needId = _bulkAssignNeedId;
+  if (!needId) return;
+
+  const checked = Array.from(document.querySelectorAll('#ba-body .ba-checkbox:checked'));
+  if (checked.length === 0) return;
+
+  const consultantIds = checked.map(cb => cb.value);
+
+  const btn = document.getElementById('ba-assign-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Assigning…'; }
+
+  // Identify the need for toast context
+  const need = ((rawData.openNeeds || {}).roles || []).find(r => r._needId === needId);
+  const label = need ? `${need.project || 'project'} — ${need.level || ''}` : 'need';
+
+  try {
+    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/bulk-assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consultantIds }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    closeBulkAssignModal();
+    showToast(`Assigned ${consultantIds.length} consultant${consultantIds.length !== 1 ? 's' : ''} to ${label}`, 'success');
+    loadDashboard();
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Assign Selected'; }
+    showToast(`Assignment failed: ${err.message}`, 'error');
+  }
 }
 
 function _enPopulateSkills(selectedNames) {

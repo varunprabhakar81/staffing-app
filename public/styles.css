@@ -3287,7 +3287,7 @@ td[data-cell-type="emp-total"]:hover {
 
 /* Open Needs table — Edit + Abandon actions (#164, #173) */
 .col-actions {
-  width: 140px;
+  width: 200px;
   text-align: right;
   padding-right: 12px !important;
   white-space: nowrap;
@@ -3374,4 +3374,101 @@ td[data-cell-type="emp-total"]:hover {
 .settings-content {
   flex: 1;
   min-width: 0;
+}
+
+/* ── Bulk Assign Button (Needs tab) ─────────────────────────────── */
+.need-assign-btn {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  color: #A8E6CF;
+  border: 1px solid rgba(168,230,207,0.2);
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  margin-right: 5px;
+}
+.need-assign-btn:hover {
+  color: #6EE7B7;
+  border-color: rgba(110,231,183,0.4);
+}
+
+/* ── Bulk Assign Modal (#189) ───────────────────────────────────── */
+.ba-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.ba-table thead th {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8892B0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  text-align: left;
+  white-space: nowrap;
+}
+.ba-table thead th.ba-col-check {
+  width: 36px;
+  text-align: center;
+  padding-left: 4px;
+}
+.ba-table thead th.ba-col-avail,
+.ba-table thead th.ba-col-badge {
+  text-align: right;
+}
+.ba-candidate-row td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #CDD9F5;
+  vertical-align: middle;
+}
+.ba-candidate-row:last-child td { border-bottom: none; }
+.ba-candidate-row:hover td { background: rgba(168,199,250,0.04); }
+.ba-col-check {
+  width: 36px;
+  text-align: center;
+  padding-left: 4px !important;
+}
+.ba-col-name  { font-weight: 500; }
+.ba-col-level { color: #8892B0; font-size: 12px; white-space: nowrap; }
+.ba-col-avail { text-align: right; color: #8892B0; font-size: 12px; white-space: nowrap; }
+.ba-col-badge { text-align: right; white-space: nowrap; }
+.ba-col-skills { font-size: 12px; }
+
+.ba-skill-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #CDD9F5;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.ba-badge-green  { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: rgba(168,230,207,0.15); color: #A8E6CF; }
+.ba-badge-yellow { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: rgba(255,243,163,0.15); color: #FFF3A3; }
+.ba-badge-coral  { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: rgba(255,179,179,0.15); color: #FFB3B3; }
+
+.ba-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: #8892B0;
+  font-size: 13px;
+}
+
+#ba-assign-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+#ba-assign-btn:not(:disabled) {
+  opacity: 1;
 }

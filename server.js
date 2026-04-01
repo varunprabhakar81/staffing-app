@@ -1216,6 +1216,210 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
   res.json({ needs: needsWithMatches });
 });
 
+// GET /api/needs/:id/candidates — ranked candidates for a single need (#189)
+app.get('/api/needs/:id/candidates', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  try {
+    const needId    = req.params.id;
+    const freshData = await readStaffingData(null, serviceClient);
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+    const { supply, demand, employees, _meta } = freshData;
+    const { weekKeyToDate, consultantByName }   = _meta;
+    const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
+
+    const need = demand.find(n => n._needId === needId);
+    if (!need) return res.status(404).json({ error: 'Need not found' });
+
+    function parseWeekKey(wk) {
+      const iso = weekKeyToDate[wk];
+      if (!iso) return null;
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    function parseDemandDate(str) {
+      if (!str) return null;
+      const parts = String(str).split('/');
+      if (parts.length !== 3) return null;
+      return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+    }
+
+    // Build level map
+    const levelMap = {};
+    for (const emp of employees) levelMap[emp.employeeName] = emp.level;
+
+    // Build per-employee weekly hour totals (supply rows only)
+    const empWeekMap = {};
+    for (const row of supply) {
+      const name = row.employeeName;
+      if (!empWeekMap[name]) {
+        empWeekMap[name] = { allSkillSets: row.allSkillSets || [], level: levelMap[name] || row.level || '', weekTotals: {} };
+      }
+      for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
+        empWeekMap[name].weekTotals[wk] = (empWeekMap[name].weekTotals[wk] || 0) + (hrs || 0);
+      }
+    }
+    // Include bench consultants (no assignments) so they appear as 100% available
+    for (const emp of employees) {
+      if (!empWeekMap[emp.employeeName]) {
+        const c = consultantByName[emp.employeeName];
+        empWeekMap[emp.employeeName] = {
+          allSkillSets: c ? (c.allSkillSets || []) : [],
+          level:        emp.level || '',
+          weekTotals:   {},
+        };
+      }
+    }
+
+    const startDate   = parseDemandDate(need.startDate);
+    const endDate     = parseDemandDate(need.endDate);
+    const hoursNeeded = Number(need.hoursPerWeek) || 45;
+
+    const weekDateMap = {};
+    for (const wk of weekKeys) weekDateMap[wk] = parseWeekKey(wk);
+
+    const demandWeeks = weekKeys.filter(wk => {
+      const d = weekDateMap[wk];
+      return d && startDate && endDate && d >= startDate && d <= endDate;
+    });
+
+    const candidates = [];
+    for (const [name, info] of Object.entries(empWeekMap)) {
+      if (info.level !== need.resourceLevel) continue;
+      if (!info.allSkillSets || !info.allSkillSets.includes(need.skillSet)) continue;
+      if (!demandWeeks.length) continue;
+
+      let totalHours = 0;
+      for (const wk of demandWeeks) totalHours += info.weekTotals[wk] || 0;
+
+      const avgBooked         = totalHours / demandWeeks.length;
+      const rawAvailable      = Math.round((45 - avgBooked) * 10) / 10;
+      const avgAvailableHours = Math.min(Math.max(rawAvailable, 0), hoursNeeded);
+
+      if (avgAvailableHours <= 0) continue;
+
+      const matchPct = Math.round((avgAvailableHours / hoursNeeded) * 100);
+      const badge    = matchPct >= 100 ? 'green' : matchPct >= 50 ? 'yellow' : 'coral';
+      const c        = consultantByName[name];
+
+      candidates.push({
+        consultantId:   c ? c.id : null,
+        name,
+        level:          info.level,
+        matchingSkills: info.allSkillSets.filter(s => (need.allSkillSets || []).includes(s)),
+        avgAvailableHours,
+        matchPct,
+        badge,
+      });
+    }
+
+    candidates.sort((a, b) => b.avgAvailableHours - a.avgAvailableHours);
+
+    res.json({
+      need: {
+        needId:       need._needId,
+        projectName:  need.projectName,
+        clientName:   need.clientName,
+        level:        need.resourceLevel,
+        skills:       need.allSkillSets || [],
+        hoursPerWeek: need.hoursPerWeek,
+        startDate:    need.startDate,
+        endDate:      need.endDate,
+      },
+      candidates,
+    });
+  } catch (err) {
+    console.error('[candidates] error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/needs/:id/bulk-assign — assign multiple consultants to a need (#189)
+app.post('/api/needs/:id/bulk-assign', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+  const { consultantIds } = req.body || {};
+  if (!Array.isArray(consultantIds) || consultantIds.length === 0) {
+    return res.status(400).json({ error: 'consultantIds must be a non-empty array' });
+  }
+
+  try {
+    const needId    = req.params.id;
+    const freshData = await readStaffingData(null, serviceClient);
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+
+    const { supply, demand, _meta } = freshData;
+    const { weekKeyToDate }         = _meta;
+
+    const need = demand.find(n => n._needId === needId);
+    if (!need) return res.status(404).json({ error: 'Need not found' });
+
+    const projectId    = need._projectId;
+    const hoursPerWeek = Number(need.hoursPerWeek) || 45;
+
+    function parseDemandDate(str) {
+      if (!str) return null;
+      const parts = String(str).split('/');
+      if (parts.length !== 3) return null;
+      return new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+    }
+    function parseWkDate(wk) {
+      const iso = weekKeyToDate[wk];
+      if (!iso) return null;
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    const startDate = parseDemandDate(need.startDate);
+    const endDate   = parseDemandDate(need.endDate);
+
+    if (!startDate || !endDate || !projectId) {
+      return res.status(400).json({ error: 'Need is missing required fields (startDate, endDate, or projectId)' });
+    }
+
+    // Collect ISO week_ending dates within the need's date range
+    const weekDates = Object.entries(weekKeyToDate)
+      .filter(([wk]) => { const d = parseWkDate(wk); return d && d >= startDate && d <= endDate; })
+      .map(([, iso]) => iso);
+
+    if (weekDates.length === 0) {
+      return res.status(400).json({ error: "No staffing weeks found in the need's date range" });
+    }
+
+    // Build current per-consultant per-week booked hours (for capacity capping)
+    const supplyMap = {};
+    for (const row of supply) {
+      if (!supplyMap[row._consultantId]) supplyMap[row._consultantId] = {};
+      for (const [wk, hrs] of Object.entries(row.weeklyHours)) {
+        const iso = weekKeyToDate[wk];
+        if (iso) supplyMap[row._consultantId][iso] = (supplyMap[row._consultantId][iso] || 0) + (hrs || 0);
+      }
+    }
+
+    // Write assignments for each selected consultant
+    for (const consultantId of consultantIds) {
+      for (const weekEnding of weekDates) {
+        const alreadyBooked = (supplyMap[consultantId] || {})[weekEnding] || 0;
+        const available     = Math.max(0, 45 - alreadyBooked);
+        const hours         = Math.min(hoursPerWeek, available);
+        if (hours <= 0) continue;
+        await upsertAssignment(null, { consultantId, projectId, weekEnding, hours, isBillable: true }, serviceClient);
+      }
+    }
+
+    // Reload data and auto-close need if now fully staffed
+    staffingData = await readStaffingData(null, serviceClient);
+    const closedIds = await checkAndAutoCloseNeeds([needId], staffingData);
+    if (closedIds.length) {
+      staffingData = await readStaffingData(null, serviceClient);
+    }
+
+    broadcastSSE({ type: 'staffing-updated', needId, closedNeedIds: closedIds });
+
+    res.json({ success: true, assignedCount: consultantIds.length, closedNeedIds: closedIds });
+  } catch (err) {
+    console.error('[bulk-assign] error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── SSE clients registry ─────────────────────────────────────────────────────
 const sseClients = new Set();
 
