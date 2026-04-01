@@ -5113,6 +5113,8 @@ async function openBulkAssignModal(needId, event) {
   const modal = document.getElementById('bulk-assign-modal');
   const body  = document.getElementById('ba-body');
   modal.classList.remove('hidden');
+  const _baBtn = document.getElementById('ba-assign-btn');
+  if (_baBtn) { _baBtn.textContent = 'Assign Selected'; _baBtn.disabled = true; }
   body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#8892B0;font-size:13px">Loading candidates…</div>';
 
   let data;
@@ -5237,6 +5239,7 @@ async function submitBulkAssign() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
+    if (btn) { btn.textContent = 'Assign Selected'; btn.disabled = true; }
     closeBulkAssignModal();
     showToast(`Assigned ${consultantIds.length} consultant${consultantIds.length !== 1 ? 's' : ''} to ${label}`, 'success');
     loadDashboard();
