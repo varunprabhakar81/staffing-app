@@ -370,15 +370,26 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
-  // Consultant: scope supply to own row only
+  // Consultant: scope supply to own row only (linked via user_id)
   let supply = freshData.supply;
+  let consultantLinked = true;
   if (req.session.role === 'consultant') {
-    const userName    = (req.session.user?.user_metadata?.name || '').toLowerCase();
-    const emailPrefix = (req.session.user?.email || '').split('@')[0].toLowerCase();
-    supply = supply.filter(row => {
-      const n = (row.employeeName || '').toLowerCase();
-      return (userName && n === userName) || n === emailPrefix;
-    });
+    const authUserId = req.session.user?.id;
+    let linkedName = null;
+    if (authUserId) {
+      const { data: linkedRow } = await serviceClient
+        .from('consultants')
+        .select('name')
+        .eq('user_id', authUserId)
+        .maybeSingle();
+      if (linkedRow) linkedName = linkedRow.name;
+    }
+    if (!linkedName) {
+      consultantLinked = false;
+      supply = [];
+    } else {
+      supply = supply.filter(row => row.employeeName === linkedName);
+    }
   }
   const { employees } = freshData;
 
@@ -459,7 +470,7 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
     return a.name.localeCompare(b.name);
   });
 
-  res.json({ weeks, employees: empList });
+  res.json({ weeks, employees: empList, consultantLinked });
 });
 
 // POST /api/suggested-questions
@@ -687,7 +698,7 @@ app.post('/api/needs/:id/close', requireAuth, requireRole('admin', 'resource_man
 });
 
 // PATCH /api/needs/:id — edit an existing open need (#173)
-app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
+app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const { level, skillSetIds, hoursPerWeek, startDate, endDate } = req.body || {};
   if (!level || !hoursPerWeek) {
     return res.status(400).json({ error: 'level and hoursPerWeek are required' });
@@ -800,17 +811,24 @@ app.patch('/api/consultants/:id/reactivate', requireAuth, requireRole('admin', '
 });
 
 // GET /api/consultants/:id — consultant profile + skill sets + available levels/skill sets
-app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
+app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive', 'consultant'), async (req, res) => {
   const { id } = req.params;
   const tenantId = process.env.TENANT_ID;
   try {
     const { data: consultant, error: cErr } = await serviceClient
       .from('consultants')
-      .select('id, name, level_id, location, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable')
+      .select('id, name, level_id, location, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable, user_id')
       .eq('tenant_id', tenantId)
       .eq('id', id)
       .single();
     if (cErr || !consultant) return res.status(404).json({ error: 'Consultant not found' });
+
+    // Consultants may only view their own profile
+    if (req.session.role === 'consultant') {
+      if (consultant.user_id !== req.session.user?.id) {
+        return res.status(403).json({ error: 'Forbidden: you may only view your own profile' });
+      }
+    }
 
     const [{ data: cssData, error: cssErr }, { data: levelsData, error: lErr }, { data: skillSetsData, error: ssErr }] = await Promise.all([
       serviceClient.from('consultant_skill_sets').select('skill_set_id').eq('tenant_id', tenantId).eq('consultant_id', id),
@@ -821,8 +839,14 @@ app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_mana
     if (lErr)   return res.status(500).json({ error: lErr.message });
     if (ssErr)  return res.status(500).json({ error: ssErr.message });
 
+    const consultantData = { ...consultant, levelName: levelsData.find(l => l.id === consultant.level_id)?.name || null };
+    if (req.session.role === 'consultant') {
+      delete consultantData.bill_rate_override;
+      delete consultantData.cost_rate_override;
+    }
+
     res.json({
-      consultant: { ...consultant, levelName: levelsData.find(l => l.id === consultant.level_id)?.name || null },
+      consultant: consultantData,
       skillSetIds: cssData.map(c => c.skill_set_id),
       levels: levelsData,
       allSkillSets: skillSetsData,
@@ -835,7 +859,7 @@ app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_mana
 // PATCH /api/consultants/:id — update consultant profile fields
 app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const { id } = req.params;
-  const { name, level_id, location, bill_rate_override, cost_rate_override } = req.body || {};
+  const { name, level_id, location, bill_rate_override, cost_rate_override, user_id } = req.body || {};
   const tenantId = process.env.TENANT_ID;
 
   const updates = {};
@@ -844,6 +868,7 @@ app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_ma
   if (location          !== undefined) updates.location           = location;
   if (bill_rate_override !== undefined) updates.bill_rate_override = bill_rate_override === '' ? null : bill_rate_override;
   if (cost_rate_override !== undefined) updates.cost_rate_override = cost_rate_override === '' ? null : cost_rate_override;
+  if (user_id           !== undefined) updates.user_id            = user_id === '' ? null : user_id;
 
   if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No fields to update' });
 
