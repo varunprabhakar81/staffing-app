@@ -150,6 +150,49 @@ app.get('/api/auth/me', (req, res) => {
   });
 });
 
+// POST /api/auth/forgot-password — send password reset email (no auth required)
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+  const origin     = req.headers.origin || `${req.protocol}://${req.headers.host}`;
+  const redirectTo = `${origin}/reset-password`;
+
+  try {
+    await supabaseAuth.auth.resetPasswordForEmail(email, { redirectTo });
+  } catch (err) {
+    console.error('forgot-password unexpected error:', err);
+  }
+  // Always return success to avoid email enumeration
+  res.json({ ok: true });
+});
+
+// POST /api/auth/reset-password — apply new password using recovery token (no auth required)
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { access_token, new_password } = req.body || {};
+  if (!access_token || !new_password) {
+    return res.status(400).json({ error: 'access_token and new_password are required.' });
+  }
+  if (new_password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  }
+
+  try {
+    const { data: { user }, error: userError } = await serviceClient.auth.getUser(access_token);
+    if (userError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+    }
+    const { error: updateError } = await serviceClient.auth.admin.updateUserById(user.id, { password: new_password });
+    if (updateError) {
+      return res.status(500).json({ error: 'Failed to update password. Please try again.' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('reset-password error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
+});
+
 // Apply requireAuth to all /api/* routes defined after this point
 app.use('/api', requireAuth);
 
@@ -1634,6 +1677,11 @@ app.get('/api/events', (req, res) => {
     clearInterval(heartbeat);
     sseClients.delete(res);
   });
+});
+
+// GET /reset-password — serve reset page (no auth required; tokens arrive in URL hash)
+app.get('/reset-password', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reset-password.html'));
 });
 
 // Serve static files after API routes so they don't shadow API paths

@@ -134,6 +134,80 @@
     }
 
     .error-msg.visible { display: block; }
+
+    /* ── Success message ── */
+    .success-msg {
+      display: none;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: rgba(167, 243, 208, 0.1);
+      border: 1px solid rgba(167, 243, 208, 0.25);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #A7F3D0;
+      line-height: 1.4;
+    }
+
+    .success-msg.visible { display: block; }
+
+    /* ── Forgot password link ── */
+    .forgot-link {
+      display: block;
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: #8892B0;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      text-decoration: underline;
+      text-decoration-color: transparent;
+      transition: color 0.15s, text-decoration-color 0.15s;
+    }
+
+    .forgot-link:hover { color: #A8C7FA; text-decoration-color: #A8C7FA; }
+
+    /* ── Forgot password inline form ── */
+    .forgot-form {
+      display: none;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .forgot-form.visible { display: block; }
+
+    .forgot-form .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8892B0;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .btn-reset {
+      width: 100%;
+      margin-top: 12px;
+      padding: 11px;
+      background: transparent;
+      color: #A8C7FA;
+      border: 1px solid rgba(168, 199, 250, 0.4);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-reset:hover:not(:disabled) {
+      background: rgba(168, 199, 250, 0.08);
+      border-color: rgba(168, 199, 250, 0.7);
+    }
+
+    .btn-reset:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -171,6 +245,19 @@
 
       <div class="error-msg" id="errorMsg"></div>
     </form>
+
+    <button class="forgot-link" id="forgotToggle">Forgot password?</button>
+
+    <div class="forgot-form" id="forgotForm">
+      <div class="section-label">Reset password</div>
+      <div class="field">
+        <label for="resetEmail">Email</label>
+        <input type="email" id="resetEmail" name="resetEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <button type="button" class="btn-reset" id="resetBtn">Send reset link</button>
+      <div class="success-msg" id="resetSuccess"></div>
+      <div class="error-msg" id="resetError"></div>
+    </div>
 
   </div>
 
@@ -231,6 +318,54 @@
         errorEl.classList.add('visible');
         btn.disabled    = false;
         btn.textContent = 'Sign in';
+      }
+    });
+    // ── Forgot password ───────────────────────────────────────────────────────
+    document.getElementById('forgotToggle').addEventListener('click', function () {
+      const form = document.getElementById('forgotForm');
+      const isVisible = form.classList.contains('visible');
+      form.classList.toggle('visible', !isVisible);
+      this.textContent = isVisible ? 'Forgot password?' : 'Back to sign in';
+      // Clear state when toggling
+      document.getElementById('resetSuccess').classList.remove('visible');
+      document.getElementById('resetError').classList.remove('visible');
+      document.getElementById('resetEmail').value = '';
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', async function () {
+      const email     = document.getElementById('resetEmail').value.trim();
+      const successEl = document.getElementById('resetSuccess');
+      const errorEl   = document.getElementById('resetError');
+
+      successEl.classList.remove('visible');
+      errorEl.classList.remove('visible');
+
+      if (!email) {
+        errorEl.textContent = 'Please enter your email address.';
+        errorEl.classList.add('visible');
+        return;
+      }
+
+      this.disabled    = true;
+      this.textContent = 'Sending…';
+
+      try {
+        const res = await fetch('/api/auth/forgot-password', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ email }),
+        });
+
+        // Always show generic success to avoid email enumeration
+        successEl.textContent = 'If an account exists for that email, a reset link has been sent.';
+        successEl.classList.add('visible');
+        this.disabled    = true;
+        this.textContent = 'Link sent';
+      } catch (err) {
+        errorEl.textContent = 'Could not send reset email. Please try again.';
+        errorEl.classList.add('visible');
+        this.disabled    = false;
+        this.textContent = 'Send reset link';
       }
     });
   </script>
