@@ -202,6 +202,7 @@ node server.js
 - **Week date math**: Use `_meta.weekKeyToDate` to convert display labels to ISO dates
 - **Inline edits**: Saved immediately on cell blur/Enter; `_pendingStaffing` tracks unsaved changes
 - **SSE broadcast**: Call `broadcast({ type: 'consultant-updated', ... })` after any consultant mutation
+- **GitHub project board**: Every new issue must be added to the project board immediately after creation. Use `gh project item-add <PROJECT_NUMBER> --owner varunprabhakar81 --url <ISSUE_URL>` after every `gh issue create`. Find the project number with `gh project list --owner varunprabhakar81` if needed. Never create an issue without adding it to the board.
 - **Claude context**: Built in `claudeService.js`; includes 12-week window, employee skills/levels, demand roles
 - **Sessions**: In-memory (MemoryStore) — lost on server restart in dev; acceptable for Railway single-instance
 - **Session docs**: At the end of each session, create `docs/session-XX/` containing `HANDOFF_vXX.md` (new handoff) and a snapshot copy of `CLAUDE.md`. The root `CLAUDE.md` is the live version read at session start; `docs/session-XX/CLAUDE.md` is the point-in-time archive.
