@@ -1148,6 +1148,7 @@ app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admi
 
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const t0 = Date.now();
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
   staffingData = freshData;
@@ -1190,6 +1191,7 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
   const weekDateMap = {};
   for (const wk of weekKeys) weekDateMap[wk] = parseWeekKey(wk);
 
+  // Pass 1: score and filter candidates for every need (pure CPU — no I/O)
   const needsWithMatches = [];
 
   for (const need of demand) {
@@ -1197,7 +1199,6 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
     const endDate     = parseDemandDate(need.endDate);
     const hoursNeeded = Number(need.hoursPerWeek) || 45;
 
-    // Weeks in the supply data that fall within the need's date range
     const demandWeeks = weekKeys.filter(wk => {
       const d = weekDateMap[wk];
       return d && startDate && endDate && d >= startDate && d <= endDate;
@@ -1235,27 +1236,26 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
     }
 
     matches.sort((a, b) => b.availableHours - a.availableHours);
-
-    const topMatches = matches.slice(0, 5);
-    let matchesWithReasoning = topMatches;
-
-    if (topMatches.length > 0) {
-      try {
-        const reasonings = await getMatchReasonings(need, topMatches);
-        matchesWithReasoning = topMatches.map((m, i) => ({
-          ...m, reasoning: reasonings[i] || 'Strong skill set and availability match.',
-        }));
-      } catch (err) {
-        console.warn('[recommendations] reasoning failed:', err.message);
-        matchesWithReasoning = topMatches.map(m => ({
-          ...m, reasoning: 'Available capacity meets requirement.',
-        }));
-      }
-    }
-
-    needsWithMatches.push({ need, matches: matchesWithReasoning });
+    needsWithMatches.push({ need, matches: matches.slice(0, 5) });
   }
 
+  // Pass 2: fire all Claude reasoning calls in parallel — one promise per need with candidates
+  await Promise.all(needsWithMatches.map(async (entry) => {
+    if (entry.matches.length === 0) return;
+    try {
+      const reasonings = await getMatchReasonings(entry.need, entry.matches);
+      entry.matches = entry.matches.map((m, i) => ({
+        ...m, reasoning: reasonings[i] || 'Strong skill set and availability match.',
+      }));
+    } catch (err) {
+      console.warn('[recommendations] reasoning failed for', entry.need.projectName, '—', err.message);
+      entry.matches = entry.matches.map(m => ({
+        ...m, reasoning: 'Available capacity meets requirement.',
+      }));
+    }
+  }));
+
+  console.log(`[recommendations] completed in ${Date.now() - t0}ms`);
   res.json({ needs: needsWithMatches });
 });
 
