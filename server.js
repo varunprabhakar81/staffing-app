@@ -146,7 +146,7 @@ app.get('/api/auth/me', (req, res) => {
     user:         req.session.user,
     role:         req.session.role,
     tenant_id:    req.session.tenant_id,
-    canViewRates: ['admin', 'finance'].includes(req.session.role),
+    canViewRates: ['admin', 'resource_manager'].includes(req.session.role),
   });
 });
 
@@ -366,7 +366,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 });
 
 // GET /api/heatmap
-app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
+app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'executive', 'consultant'), async (req, res) => {
   const freshData = await readStaffingData(null, serviceClient);
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
@@ -463,7 +463,7 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
 });
 
 // POST /api/suggested-questions
-app.post('/api/suggested-questions', async (req, res) => {
+app.post('/api/suggested-questions', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   try {
     const freshData = await readStaffingData(null, serviceClient);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
@@ -477,7 +477,7 @@ app.post('/api/suggested-questions', async (req, res) => {
 });
 
 // GET /api/ask?question=...
-app.get('/api/ask', async (req, res) => {
+app.get('/api/ask', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   if (!requireData(res)) return;
   const question = (req.query.question || '').trim();
   if (!question) {
@@ -999,18 +999,18 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
       const row = supply.find(r =>
         r.employeeName === ch.employeeName && r.projectAssigned === ch.project
       );
-      const consultantId = row?._consultantId ?? await resolveConsultantId(req.session.token, ch.employeeName);
+      const consultantId = row?._consultantId ?? await resolveConsultantId(null, ch.employeeName);
       if (!consultantId) {
         console.warn(`[supply/update] consultant not found: ${ch.employeeName}`);
         continue;
       }
 
       if (ch.type === 'delete') {
-        const projectId = row?._projectId ?? await resolveProjectId(req.session.token, ch.project);
-        if (projectId) await deleteAssignments(req.session.token, { consultantId, projectId });
+        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project);
+        if (projectId) await deleteAssignments(null, { consultantId, projectId });
 
       } else if (ch.type === 'update') {
-        const projectId = row?._projectId ?? await resolveProjectId(req.session.token, ch.project);
+        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project);
         if (!projectId) continue;
 
         if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
@@ -1025,12 +1025,12 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
           if (!matchingWks.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
           for (const wk of matchingWks) {
             const weekEnding = weekKeyToDate[wk];
-            if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
+            if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs }, serviceClient);
           }
         }
 
       } else if (ch.type === 'add') {
-        const projectId = await resolveProjectId(req.session.token, ch.project, true);
+        const projectId = await resolveProjectId(null, ch.project, true);
         if (!projectId) continue;
 
         const start = parseDateStr(ch.startDate);
@@ -1044,7 +1044,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
         if (!matchingWksAdd.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
         for (const wk of matchingWksAdd) {
           const weekEnding = weekKeyToDate[wk];
-          if (weekEnding) await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs });
+          if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs }, serviceClient);
         }
       }
     }

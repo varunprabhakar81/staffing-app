@@ -4350,9 +4350,8 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   costEl.value = consultant.cost_rate_override != null ? consultant.cost_rate_override : '';
   billEl.disabled = readOnly;
   costEl.disabled = readOnly;
-  // Hide rate fields for non-editors
-  const rateFields = billEl.closest('div').parentElement;
-  if (readOnly) {
+  // Hide rate fields for roles without rate visibility
+  if (!currentUserCanViewRates) {
     billEl.closest('div').style.display = 'none';
     costEl.closest('div').style.display = 'none';
   } else {
@@ -5340,6 +5339,18 @@ async function _enSubmit() {
   if (role === 'project_manager') { hideTab('staffing'); hideTab('settings'); }
   // resource_manager: settings tab visible (Consultants panel), but User Management is hidden
   // admin: no tabs hidden
+
+  // Consultant: sees only their own staffing row — skip full dashboard load
+  if (role === 'consultant') {
+    hideTab('overview'); hideTab('needs'); hideTab('ask'); hideTab('settings');
+    apiFetch('/api/heatmap')
+      .then(r => r.json())
+      .then(heatmap => { rawData.heatmap = heatmap; buildHeatmapTable(heatmap); navigateTo('staffing'); })
+      .catch(err => console.error('[Consultant heatmap]', err));
+    initLocationTypeahead();
+    setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);
+    return;
+  }
 
   // Show Create New Need button for roles that can create needs
   if (role === 'admin' || role === 'resource_manager' || role === 'project_manager') {
