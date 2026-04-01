@@ -2514,10 +2514,15 @@ td[data-cell-type="emp-total"]:hover {
 }
 
 /* ── Heatmap cell utilization classes ───────────────────────────── */
-.hm-bench    { background: rgba(218,41,28,0.80);  color: #FFFFFF; border-radius: 4px; }
-.hm-partial  { background: rgba(232,163,23,0.80); color: #1A1A1A; border-radius: 4px; }
-.hm-utilized { background: rgba(134,188,37,0.80); color: #1A1A1A; border-radius: 4px; }
-.hm-over     { background: rgba(0,163,224,0.80);  color: #FFFFFF; border-radius: 4px; }
+.hm-bench    { background: rgba(218,41,28,0.20);  color: #DA291C; border-radius: 3px; border: 1px solid var(--border-subtle); }
+.hm-partial  { background: rgba(232,163,23,0.15); color: #E8A317; border-radius: 3px; border: 1px solid var(--border-subtle); }
+.hm-utilized { background: rgba(134,188,37,0.12); color: #86BC25; border-radius: 3px; border: 1px solid var(--border-subtle); }
+.hm-over     { background: rgba(0,163,224,0.20);  color: #00A3E0; border-radius: 3px; border: 1px solid var(--border-subtle); }
+
+.hm-bench:hover    { background: rgba(218,41,28,0.30); }
+.hm-partial:hover  { background: rgba(232,163,23,0.25); }
+.hm-utilized:hover { background: rgba(134,188,37,0.22); }
+.hm-over:hover     { background: rgba(0,163,224,0.30); }
 
 .status-overbooked { background: rgba(255,179,179,0.18); color: var(--coral);  border: 1px solid rgba(255,179,179,.3); }
 .status-overalloc  { background: rgba(245,158,11,0.18);  color: var(--amber);  border: 1px solid rgba(245,158,11,.3); }

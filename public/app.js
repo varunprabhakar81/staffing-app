@@ -1629,10 +1629,10 @@ function buildHeatmapTable(data) {
   ).join('');
 
   const swatches = [
-    { color: '#EF4444', label: '0–10h — Underutilized' },
-    { color: '#FACC15', label: '11–44h — Partial' },
-    { color: '#10B981', label: '45h — Utilized' },
-    { color: '#F97316', label: '46h+ — Overbooked' },
+    { color: '#DA291C', label: '0–10h — Underutilized' },
+    { color: '#E8A317', label: '11–44h — Partial' },
+    { color: '#86BC25', label: '45h — Utilized' },
+    { color: '#00A3E0', label: '46h+ — Overbooked' },
   ].map(s => `<div class="hm-swatch-item"><span class="hm-swatch-bar" style="background:${s.color}"></span>${s.label}</div>`).join('');
 
   container.innerHTML = `
