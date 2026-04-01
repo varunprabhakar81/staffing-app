@@ -27,9 +27,9 @@ select:disabled { cursor: not-allowed; }
   --text-tertiary:  #71717A;
 
   /* Accent — Deloitte green, used sparingly */
-  --accent:       #86EB22;
-  --accent-muted: rgba(134,235,34,0.15);
-  --accent-hover: #75D41E;
+  --accent:       #86BC25;
+  --accent-muted: rgba(134,188,37,0.15);
+  --accent-hover: #75A521;
   --accent-text:  #86BC25;
 
   /* Borders */

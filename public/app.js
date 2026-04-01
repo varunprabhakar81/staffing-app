@@ -3603,7 +3603,7 @@ const UM_ROLE_LABELS = {
 };
 
 const UM_ROLE_COLORS = {
-  admin:            '#86EB22',
+  admin:            '#86BC25',
   resource_manager: '#00A3E0',
   project_manager:  '#E8A317',
   executive:        '#A0DCFF',
