@@ -38,7 +38,7 @@ Resource planning dashboard for a ~25-person NetSuite consulting practice. Track
 ```
 levels               — Consultant hierarchy (Analyst → Partner/MD), billing rates
 skill_sets           — Practice areas + technologies (P2P, O2C, NetSuite, etc.)
-consultants          — Employee master (name, level, location, capacity, rates)
+consultants          — Employee master (name, level, location, capacity, rates, user_id UUID nullable — links auth user to consultant row for RBAC)
 consultant_skill_sets — Many-to-many: consultant → skills
 clients              — Client names
 projects             — Engagements (name, status, probability, dates, client)
