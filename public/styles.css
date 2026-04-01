@@ -1642,7 +1642,7 @@ body {
 
 .quick-action-btn--primary:hover { background: #BDD5FC; border-color: #BDD5FC; color: #0F1117; }
 
-/* ── Staffing Tab ────────────────────────────────────────────────── */
+/* ── Resource Allocation Tab ─────────────────────────────────────── */
 .staffing-heatmap-card {
   flex: 1;
   min-height: 0;
@@ -2152,7 +2152,7 @@ body {
   color: #CCD6F6;
 }
 
-/* ── Staffing Inline Edit ────────────────────────────────────────── */
+/* ── Resource Allocation Inline Edit ────────────────────────────── */
 
 .hm-header-right {
   display: flex;

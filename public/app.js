@@ -909,7 +909,7 @@ function renderTopProjects(heatmapData) {
   }
   const maxHrs = sorted[0][1];
   el.innerHTML = sorted.map(([project, hours]) => `
-    <div class="ov-project-row dd-clickable" style="cursor:pointer" onclick="navigateToProject('${_esc(project)}')" title="Click to view in Staffing tab">
+    <div class="ov-project-row dd-clickable" style="cursor:pointer" onclick="navigateToProject('${_esc(project)}')" title="Click to view in Resource Allocation tab">
       <div class="ov-project-label">
         <span class="ov-project-name">${project}</span>
         <span class="ov-project-hours">${hours}h</span>
@@ -2419,7 +2419,7 @@ async function openSkillSetModal(skillName, needContext = null, source = 'needs'
     }
     const countLine = `<p style="font-size:12px;color:#8892B0;padding:0 0 4px 0">${data.length} consultant${data.length !== 1 ? 's' : ''} with this skill</p>`;
     const needLine  = needContext
-      ? `<p style="font-size:12px;color:#CDD9F5;padding:0 0 12px 0;opacity:0.8">Staffing for: <strong>${_esc(needContext.projectName)}</strong> · ${needContext.hoursPerWeek}h/wk</p>`
+      ? `<p style="font-size:12px;color:#CDD9F5;padding:0 0 12px 0;opacity:0.8">Resource Allocation for: <strong>${_esc(needContext.projectName)}</strong> · ${needContext.hoursPerWeek}h/wk</p>`
       : '';
     const subtitle  = countLine + needLine;
     if (!data.length) {
@@ -4677,7 +4677,7 @@ async function submitInvite(e) {
       errEl.textContent = data.error || 'Failed to create user.';
       errEl.classList.remove('hidden');
       btn.disabled    = false;
-      btn.textContent = 'Create User';
+      btn.textContent = 'Add User';
       return;
     }
 
@@ -4688,7 +4688,7 @@ async function submitInvite(e) {
     errEl.textContent = err.message || 'Network error.';
     errEl.classList.remove('hidden');
     btn.disabled    = false;
-    btn.textContent = 'Create User';
+    btn.textContent = 'Add User';
   }
 }
 
@@ -5095,7 +5095,7 @@ async function _cnSubmit() {
     showErr(e.message);
   } finally {
     createBtn.disabled    = false;
-    createBtn.textContent = 'Create Need';
+    createBtn.textContent = 'Add Need';
   }
 }
 

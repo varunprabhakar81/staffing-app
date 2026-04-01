@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=54">
+  <link rel="stylesheet" href="styles.css?v=55">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -240,14 +240,14 @@
 
     </div>
 
-    <!-- ── Staffing Tab ──────────────────────────────────────────────── -->
+    <!-- ── Resource Allocation Tab ─────────────────────────────────── -->
     <div class="tab-panel" id="tab-staffing">
 
       <!-- Availability Heatmap -->
       <div class="chart-card staffing-heatmap-card">
         <div class="chart-card-header">
           <div>
-            <h3 class="chart-title">Availability Heatmap</h3>
+            <h3 class="chart-title">Resource Allocation</h3>
             <p class="chart-sub">Weekly hours by employee · Click names, cells, or week headers for details</p>
           </div>
           <div class="hm-header-right">
@@ -299,7 +299,7 @@
             <p class="chart-sub">Click a row to see AI-matched consultants</p>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
-            <button id="createNeedBtn" class="create-need-btn hidden" onclick="openCreateNeedModal()">+ Create New Need</button>
+            <button id="createNeedBtn" class="create-need-btn hidden" onclick="openCreateNeedModal()">+ Add Need</button>
             <span class="chart-badge" id="coverageBadge">—</span>
           </div>
         </div>
@@ -325,7 +325,7 @@
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="15" stroke="currentColor" stroke-width="1.5"/><path d="M12 13a4 4 0 118 0c0 1.6-1 2.9-2.4 3.5L16 17.5V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="23.5" r="1.25" fill="currentColor"/></svg>
           </div>
           <h2>Ask Claude</h2>
-          <p>Instant answers about your staffing data — utilization, coverage gaps, bench talent, and project conflicts.</p>
+          <p>Instant answers about your resource data — utilization, coverage gaps, bench talent, and project conflicts.</p>
         </div>
 
         <div class="ask-examples">
@@ -345,7 +345,7 @@
           <textarea
             id="askInput"
             class="ask-textarea"
-            placeholder="Ask a question about your staffing data…"
+            placeholder="Ask a question about your resource data…"
             rows="3"
             onkeydown="handleAskKey(event)"
           ></textarea>
@@ -470,7 +470,7 @@
       </div><!-- /.settings-layout -->
     </div>
 
-  <!-- ── Staffing Inline Edit Save Bar ────────────────────────── -->
+  <!-- ── Resource Allocation Inline Edit Save Bar ─────────────── -->
   <div class="hm-save-bar hidden" id="hmSaveBar">
     <span class="hm-save-count" id="hmSaveCount">0 unsaved changes</span>
     <div class="hm-save-actions">
@@ -503,7 +503,7 @@
         <div class="shortcut-section">
           <div class="shortcut-section-title">Navigation</div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+1</span><span class="shortcut-desc">Overview</span></div>
-          <div class="shortcut-row"><span class="shortcut-key">Ctrl+2</span><span class="shortcut-desc">Staffing</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+2</span><span class="shortcut-desc">Resource Allocation</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+3</span><span class="shortcut-desc">Needs</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+4</span><span class="shortcut-desc">Ask Claude</span></div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+B</span><span class="shortcut-desc">Toggle sidebar</span></div>
@@ -612,7 +612,7 @@
           <button type="submit" id="inviteSubmitBtn" disabled
             style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:not-allowed;font-family:inherit;min-width:108px;opacity:0.45"
             onmouseover="if(!this.disabled)this.style.opacity='.85'" onmouseout="if(!this.disabled)this.style.opacity='1'">
-            Create User
+            Add User
           </button>
         </div>
 
@@ -844,7 +844,7 @@
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
-          <h3 style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">Create New Need</h3>
+          <h3 style="font-size:16px;font-weight:600;color:#E2E8F0;margin:0">Add Need</h3>
           <div id="cn-step-indicator" style="font-size:12px;color:#8892B0;margin-top:3px">Step 1 of 2 — Select Project</div>
         </div>
         <button type="button" onclick="closeCreateNeedModal()"
@@ -867,7 +867,7 @@
         <div style="margin-bottom:4px">
           <button type="button" id="cn-new-proj-toggle" onclick="_cnToggleNewProjectForm()"
             style="background:none;border:none;color:#A8C7FA;font-size:12px;cursor:pointer;padding:0;font-family:inherit;display:flex;align-items:center;gap:4px">
-            <span id="cn-new-proj-toggle-icon">＋</span> Create new project
+            <span id="cn-new-proj-toggle-icon">＋</span> Add new project
           </button>
         </div>
 
@@ -1000,7 +1000,7 @@
             onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Next</button>
           <button type="button" id="cn-create-btn" class="hidden" onclick="_cnSubmit()"
             style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit"
-            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Create Need</button>
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Add Need</button>
         </div>
       </div>
 
@@ -1123,6 +1123,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=104"></script>
+  <script src="app.js?v=105"></script>
 </body>
 </html>
