@@ -27,18 +27,6 @@ const tId = req => req.session?.tenant_id || process.env.TENANT_ID;
 
 app.set('trust proxy', 1); // Required for Railway reverse proxy + secure cookies in prod
 
-// ── Load staffing data at startup ───────────────────────────────────────────
-// Use serviceClient (bypasses RLS) so data is available immediately on cold start.
-let staffingData = null;
-readStaffingData(null, serviceClient).then(data => {
-  if (data.error) {
-    console.warn('Warning: could not load staffing data —', data.error);
-  } else {
-    staffingData = data;
-    console.log(`Data loaded: ${data.supply.length} supply rows, ${data.demand.length} demand rows`);
-  }
-});
-
 // ── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -53,15 +41,6 @@ app.use(session({
     maxAge:   8 * 60 * 60 * 1000, // 8 hours
   },
 }));
-
-// ── Helper: ensure data is loaded ──────────────────────────────────────────
-function requireData(res) {
-  if (!staffingData) {
-    res.status(503).json({ error: 'Staffing data not available. Check database connection.' });
-    return false;
-  }
-  return true;
-}
 
 // ── Helper: compute per-employee average weekly hours ──────────────────────
 function employeeWeeklyAverages(supply) {
