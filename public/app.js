@@ -961,7 +961,7 @@ function renderRollingOff(heatmapData) {
       <div class="ov-cliff-name">${r.name}</div>
       <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
-        <span style="color:${bc};font-size:11px">Week of ${r.weekLabel}</span>
+        <span style="color:${bc};font-size:11px">Wk ending ${r.weekLabel}</span>
         <span class="ov-cliff-hours">${r.fromH}h → ${r.toH}h</span>
       </div>
     </div>`;
@@ -1007,7 +1007,7 @@ function drillRollingOff(empName) {
     firstAvailHtml = `
       <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px">
         <div style="font-size:11px;color:#8892B0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">First Available</div>
-        <div style="font-size:20px;font-weight:700;color:#4ADE80">Week of ${dateLabel}</div>
+        <div style="font-size:20px;font-weight:700;color:#4ADE80">Wk ending ${dateLabel}</div>
         <div style="font-size:12px;color:#8892B0;margin-top:2px">${hrs}h booked that week</div>
       </div>`;
   } else {
@@ -1643,7 +1643,7 @@ function buildHeatmapTable(data) {
     </div>
     <div class="hm-scroll-wrap" onscroll="hmVsScroll()">
       <table class="hm-table">
-        <thead><tr><th class="hm-name-th">Employee</th>${wkThs}</tr></thead>
+        <thead><tr><th class="hm-name-th">Employee<span style="float:right;font-size:9px;color:#64748B;font-weight:400;letter-spacing:0.05em">WK ENDING →</span></th>${wkThs}</tr></thead>
         <tbody id="hmTbody"></tbody>
       </table>
     </div>
@@ -1750,7 +1750,7 @@ function drillHeatmapCell(empName, weekIdx) {
     ? projects.map(p => `<tr><td>${p.project}</td><td><b>${p.hours}h</b></td></tr>`).join('')
     : '<tr><td colspan="2" style="color:#8892B0;text-align:center">No bookings this week</td></tr>';
 
-  openDrilldown(`${empName} — Week of ${week}`, `
+  openDrilldown(`${empName} — Wk ending ${week}`, `
     <div class="dd-role-card">
       <div class="dd-role-row"><span>Employee</span><b>${empName}</b></div>
       <div class="dd-role-row"><span>Level</span><b>${emp.level}</b></div>
@@ -1840,7 +1840,7 @@ function drillHeatmapWeek(weekIdx) {
     </tr>`;
   }, 5);
 
-  openDrilldown(`Week of ${week} — Availability Summary`, `
+  openDrilldown(`Wk ending ${week} — Availability Summary`, `
     <div style="margin-bottom:16px"><span style="color:#A8E6CF;font-weight:700;font-size:15px">${totalAvail}h</span> <span style="color:#8892B0">total available across ${hm.employees.length} employees</span></div>
     <table class="dd-table">
       <thead><tr><th>Employee</th><th>Skill Set</th><th>Booked</th><th>Available</th><th>Status</th></tr></thead>
@@ -4199,7 +4199,7 @@ async function openAddProjectModal(empName) {
     const makeOpt = () => {
       const o = document.createElement('option');
       o.value = i;
-      o.textContent = `Week of ${weeks[i]}`;
+      o.textContent = `Wk ending ${weeks[i]}`;
       return o;
     };
     startSel.appendChild(makeOpt());

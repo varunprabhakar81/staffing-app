@@ -193,7 +193,7 @@ function buildDataSummary(data) {
       const curr = info.weekTotals[wk] || 0;
       if (prev >= 20 && prev - curr >= 20) {
         const wkLabel = wk.replace('Week ending ', '');
-        rolloffs.push(`${name} (${prev}h → ${curr}h week of ${wkLabel})`);
+        rolloffs.push(`${name} (${prev}h → ${curr}h wk ending ${wkLabel})`);
         break;
       }
     }
