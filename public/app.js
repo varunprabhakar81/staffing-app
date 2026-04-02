@@ -3631,13 +3631,38 @@ function switchSettingsPanel(panel) {
   document.querySelectorAll('.settings-subnav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.panel === panel);
   });
-  const panelMap = { users: 'settingsPanelUsers', consultants: 'settingsPanelConsultants' };
+  const panelMap = { users: 'settingsPanelUsers', consultants: 'settingsPanelConsultants', sandbox: 'settingsPanelSandbox' };
   for (const [key, id] of Object.entries(panelMap)) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('hidden', key !== panel);
   }
   if (panel === 'users' && currentUserRole === 'admin') loadUsers();
   if (panel === 'consultants' && _hmCanEdit()) loadConsultantsPanel();
+}
+
+// ── Sandbox reset ─────────────────────────────────────────────────
+async function resetSandbox() {
+  if (!confirm('Are you sure? This will erase all data and re-seed.')) return;
+  const btn = document.getElementById('resetSandboxBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Resetting…'; }
+  try {
+    const res = await apiFetch('/api/admin/reset-sandbox', { method: 'POST' });
+    if (res.status === 403) {
+      showToast('Cannot reset production environment', 'error');
+      return;
+    }
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      showToast(d.error || 'Reset failed', 'error');
+      return;
+    }
+    showToast('Sandbox reset complete', 'success');
+    setTimeout(() => location.reload(), 1500);
+  } catch (err) {
+    showToast('Reset failed: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reset sandbox'; }
+  }
 }
 
 // ── Settings panels: shared group header row ──────────────────────
@@ -5402,10 +5427,12 @@ async function _enSubmit() {
     if (btn) btn.classList.remove('hidden');
   }
 
-  // Hide Users nav item for non-admin roles
+  // Hide Users and Sandbox nav items for non-admin roles
   if (role !== 'admin') {
     const usersNavBtn = document.getElementById('settingsNavUsers');
     if (usersNavBtn) usersNavBtn.style.display = 'none';
+    const sandboxNavBtn = document.getElementById('settingsNavSandbox');
+    if (sandboxNavBtn) sandboxNavBtn.style.display = 'none';
   }
 
   loadDashboard();

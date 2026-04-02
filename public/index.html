@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=56">
+  <link rel="stylesheet" href="styles.css?v=57">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -382,6 +382,7 @@
         <nav class="settings-subnav">
           <button class="settings-subnav-item" id="settingsNavConsultants" data-panel="consultants" onclick="switchSettingsPanel('consultants')">Consultants</button>
           <button class="settings-subnav-item" id="settingsNavUsers" data-panel="users" onclick="switchSettingsPanel('users')">Users</button>
+          <button class="settings-subnav-item" id="settingsNavSandbox" data-panel="sandbox" onclick="switchSettingsPanel('sandbox')">Sandbox</button>
         </nav>
 
         <!-- Settings content area -->
@@ -463,6 +464,19 @@
                 </div>
                 <div id="inactiveConsultantsSection"></div>
               </div>
+            </div>
+          </div>
+
+          <!-- Sandbox panel (admin only) -->
+          <div id="settingsPanelSandbox" class="hidden">
+            <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem;max-width:520px">
+              <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px">Reset test data</h2>
+              <p style="font-size:13px;color:#8892B0;margin:0 0 24px;line-height:1.6">This will delete all data for your tenant and re-seed with fresh synthetic data. Other tenants are not affected.</p>
+              <button id="resetSandboxBtn" onclick="resetSandbox()"
+                style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#DC2626;color:#FFFFFF;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
+                onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                Reset sandbox
+              </button>
             </div>
           </div>
 
@@ -1123,6 +1137,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=109"></script>
+  <script src="app.js?v=110"></script>
 </body>
 </html>
