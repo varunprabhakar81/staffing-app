@@ -22,6 +22,9 @@ const PORT = process.env.PORT || 3000;
 // without scanning the entire MemoryStore.
 const userSessionMap = new Map();
 
+// Helper: resolve the calling user's tenant ID from session, fall back to env TENANT_ID.
+const tId = req => req.session?.tenant_id || process.env.TENANT_ID;
+
 app.set('trust proxy', 1); // Required for Railway reverse proxy + secure cookies in prod
 
 // ── Load staffing data at startup ───────────────────────────────────────────
@@ -208,25 +211,26 @@ app.get('/api/health', (req, res) => {
 });
 
 // GET /api/supply
-app.get('/api/supply', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
-  if (!requireData(res)) return;
-  res.json(staffingData.supply);
+app.get('/api/supply', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const freshData = await readStaffingData(null, serviceClient, tId(req));
+  if (freshData.error) return res.status(503).json({ error: freshData.error });
+  res.json(freshData.supply);
 });
 
 
 // GET /api/employees
-app.get('/api/employees', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
-  if (!requireData(res)) return;
-  res.json(staffingData.employees);
+app.get('/api/employees', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const freshData = await readStaffingData(null, serviceClient, tId(req));
+  if (freshData.error) return res.status(503).json({ error: freshData.error });
+  res.json(freshData.employees);
 });
 
 // GET /api/dashboard
 app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
-  const freshData = await readStaffingData(null, serviceClient);
+  const freshData = await readStaffingData(null, serviceClient, tId(req));
   if (freshData.error) {
     return res.status(503).json({ error: freshData.error });
   }
-  staffingData = freshData; // keep in-memory cache current too
 
   const { supply, demand, employees } = staffingData;
 
@@ -372,7 +376,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 
 // GET /api/heatmap
 app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manager', 'executive', 'consultant'), async (req, res) => {
-  const freshData = await readStaffingData(null, serviceClient);
+  const freshData = await readStaffingData(null, serviceClient, tId(req));
   if (freshData.error) return res.status(503).json({ error: freshData.error });
 
   // Consultant: scope supply to own row only (linked via user_id)
@@ -481,9 +485,8 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
 // POST /api/suggested-questions
 app.post('/api/suggested-questions', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   try {
-    const freshData = await readStaffingData(null, serviceClient);
+    const freshData = await readStaffingData(null, serviceClient, tId(req));
     if (freshData.error) return res.status(503).json({ error: freshData.error });
-    staffingData = freshData;
     const questions = await getSuggestedQuestions(freshData);
     if (!questions) return res.status(500).json({ error: 'Could not generate suggestions' });
     res.json({ questions });
@@ -494,13 +497,14 @@ app.post('/api/suggested-questions', requireRole('admin', 'resource_manager', 'p
 
 // GET /api/ask?question=...
 app.get('/api/ask', requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
-  if (!requireData(res)) return;
   const question = (req.query.question || '').trim();
   if (!question) {
     return res.status(400).json({ error: 'question query parameter is required' });
   }
   try {
-    const answer = await askClaude(question, staffingData);
+    const freshData = await readStaffingData(null, serviceClient, tId(req));
+    if (freshData.error) return res.status(503).json({ error: freshData.error });
+    const answer = await askClaude(question, freshData);
     res.json({ question, answer });
   } catch (err) {
     res.status(500).json({ error: `Claude API error: ${err.message}` });
@@ -518,7 +522,7 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
   try {
     let freshData;
     try {
-      freshData = await readStaffingData(null, serviceClient);
+      freshData = await readStaffingData(null, serviceClient, tId(req));
     } catch (err) {
       return res.status(500).json({ error: 'readStaffingData failed: ' + err.message });
     }
@@ -563,10 +567,10 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
           .single();
         isBillable = empRow?.is_billable ?? true;
       }
-      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable }, serviceClient);
+      await upsertAssignment(req.session.token, { consultantId, projectId, weekEnding, hours: hrs, isBillable, tenantId: tId(req) }, serviceClient);
     }
 
-    staffingData = await readStaffingData(null, serviceClient);
+    await readStaffingData(null, serviceClient, tId(req)); // refresh (no cache needed)
     res.json({ success: true, updatedRows: changes.length });
 
   } catch (err) {
@@ -576,15 +580,16 @@ app.post('/api/save-staffing', requireRole('admin', 'resource_manager'), async (
 });
 
 // GET /api/projects — projects list; optional ?status=Verbal+Commit,Sold to filter by status
-app.get('/api/projects', requireRole('admin', 'resource_manager', 'project_manager'), (req, res) => {
-  if (!staffingData || !staffingData.projects) return res.json([]);
+app.get('/api/projects', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
+  const freshData = await readStaffingData(null, serviceClient, tId(req));
+  if (freshData.error || !freshData.projects) return res.json([]);
   const statusFilter = req.query.status
     ? req.query.status.split(',').map(s => s.trim())
     : null;
-  const results = staffingData.projects
+  const results = freshData.projects
     .filter(p => statusFilter ? statusFilter.includes(p.status) : (p.status === 'Verbal Commit' || p.status === 'Sold'))
     .map(p => {
-      const meta = staffingData._meta?.projectById?.[p.projectId] || {};
+      const meta = freshData._meta?.projectById?.[p.projectId] || {};
       return { id: p.projectId, name: p.projectName, status: p.status, clientName: p.clientName, startDate: meta.start_date || null, endDate: meta.end_date || null };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -597,7 +602,7 @@ app.post('/api/projects', requireAuth, requireRole('admin', 'resource_manager', 
   if (!name || !status) return res.status(400).json({ error: 'name and status are required' });
 
   try {
-    const tenantId = process.env.TENANT_ID;
+    const tenantId = tId(req);
 
     // Resolve or create client
     let clientId = null;
@@ -632,7 +637,6 @@ app.post('/api/projects', requireAuth, requireRole('admin', 'resource_manager', 
       end_date:        endDate   || null,
     }, tenantId);
 
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'project-created', id: project.id });
     res.status(201).json(project);
   } catch (err) {
@@ -649,10 +653,14 @@ app.post('/api/needs', requireAuth, requireRole('admin', 'resource_manager', 'pr
   }
 
   try {
-    const tenantId = process.env.TENANT_ID;
+    const tenantId = tId(req);
+
+    // Fetch fresh meta for this tenant to validate project + resolve level
+    const metaData = await readStaffingData(null, serviceClient, tenantId);
+    if (metaData.error) return res.status(503).json({ error: metaData.error });
 
     // Validate need dates fall within project dates
-    const project = staffingData?._meta?.projectById?.[projectId];
+    const project = metaData._meta?.projectById?.[projectId];
     if (!project) return res.status(400).json({ error: 'Project not found' });
 
     if (project.start_date && startDate && startDate < project.start_date) {
@@ -663,7 +671,7 @@ app.post('/api/needs', requireAuth, requireRole('admin', 'resource_manager', 'pr
     }
 
     // Resolve level name → level_id
-    const levelById = staffingData._meta.levelById;
+    const levelById = metaData._meta.levelById;
     const levelId = Object.keys(levelById).find(id => levelById[id] === level);
     if (!levelId) return res.status(400).json({ error: `Unknown level: ${level}` });
 
@@ -676,7 +684,6 @@ app.post('/api/needs', requireAuth, requireRole('admin', 'resource_manager', 'pr
       skill_set_ids:  Array.isArray(skillSetIds) ? skillSetIds : [],
     }, tenantId);
 
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'need-created', id: need.id });
     res.status(201).json(need);
   } catch (err) {
@@ -693,7 +700,6 @@ app.post('/api/needs/:id/close', requireAuth, requireRole('admin', 'resource_man
   }
   try {
     await closeNeed(req.params.id, reason);
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'need-closed', id: req.params.id, reason });
     res.json({ success: true });
   } catch (err) {
@@ -710,10 +716,14 @@ app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'
   }
 
   try {
-    const tenantId = process.env.TENANT_ID;
+    const tenantId = tId(req);
+
+    // Fetch fresh meta for this tenant to resolve level
+    const metaData = await readStaffingData(null, serviceClient, tenantId);
+    if (metaData.error) return res.status(503).json({ error: metaData.error });
 
     // Resolve level name → level_id
-    const levelById = staffingData._meta.levelById;
+    const levelById = metaData._meta.levelById;
     const levelId = Object.keys(levelById).find(id => levelById[id] === level);
     if (!levelId) return res.status(400).json({ error: `Unknown level: ${level}` });
 
@@ -726,7 +736,6 @@ app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'
 
     await replaceNeedSkillSets(req.params.id, Array.isArray(skillSetIds) ? skillSetIds : [], tenantId);
 
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'need-updated', id: req.params.id });
     res.json({ success: true });
   } catch (err) {
@@ -737,7 +746,7 @@ app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'
 
 // GET /api/consultants — list all consultants for the Consultants Management panel (#126)
 app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
   try {
     const [{ data: consultants, error: cErr }, { data: levels, error: lErr },
            { data: css, error: cssErr }, { data: skillSets, error: ssErr }] = await Promise.all([
@@ -789,11 +798,10 @@ app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'
 
 // PATCH /api/consultants/:id/deactivate — set is_active = false
 app.patch('/api/consultants/:id/deactivate', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
   try {
     const { error } = await serviceClient.from('consultants').update({ is_active: false }).eq('tenant_id', tenantId).eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'consultant-updated', id: req.params.id });
     res.json({ success: true });
   } catch (err) {
@@ -803,11 +811,10 @@ app.patch('/api/consultants/:id/deactivate', requireAuth, requireRole('admin', '
 
 // PATCH /api/consultants/:id/reactivate — set is_active = true
 app.patch('/api/consultants/:id/reactivate', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
   try {
     const { error } = await serviceClient.from('consultants').update({ is_active: true }).eq('tenant_id', tenantId).eq('id', req.params.id);
     if (error) return res.status(500).json({ error: error.message });
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'consultant-updated', id: req.params.id });
     res.json({ success: true });
   } catch (err) {
@@ -818,7 +825,7 @@ app.patch('/api/consultants/:id/reactivate', requireAuth, requireRole('admin', '
 // GET /api/consultants/:id — consultant profile + skill sets + available levels/skill sets
 app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive', 'consultant'), async (req, res) => {
   const { id } = req.params;
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
   try {
     const { data: consultant, error: cErr } = await serviceClient
       .from('consultants')
@@ -865,7 +872,7 @@ app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_mana
 app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const { id } = req.params;
   const { name, level_id, location, bill_rate_override, cost_rate_override, user_id } = req.body || {};
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
 
   const updates = {};
   if (name              !== undefined) updates.name               = name;
@@ -880,7 +887,6 @@ app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_ma
   try {
     const { error } = await serviceClient.from('consultants').update(updates).eq('tenant_id', tenantId).eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'consultant-updated', id });
     res.json({ success: true });
   } catch (err) {
@@ -892,7 +898,7 @@ app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_ma
 app.put('/api/consultants/:id/skills', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const { id } = req.params;
   const { skillSetIds } = req.body || {};
-  const tenantId = process.env.TENANT_ID;
+  const tenantId = tId(req);
 
   if (!Array.isArray(skillSetIds)) return res.status(400).json({ error: 'skillSetIds must be an array' });
 
@@ -906,7 +912,6 @@ app.put('/api/consultants/:id/skills', requireAuth, requireRole('admin', 'resour
       if (insErr) return res.status(500).json({ error: insErr.message });
     }
 
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'consultant-updated', id });
     res.json({ success: true });
   } catch (err) {
@@ -999,7 +1004,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 
   try {
     // 1. Read current supply data fresh
-    const freshData = await readStaffingData(null, serviceClient);
+    const freshData = await readStaffingData(null, serviceClient, tId(req));
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply } = freshData;
@@ -1029,18 +1034,18 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
       const row = supply.find(r =>
         r.employeeName === ch.employeeName && r.projectAssigned === ch.project
       );
-      const consultantId = row?._consultantId ?? await resolveConsultantId(null, ch.employeeName);
+      const consultantId = row?._consultantId ?? await resolveConsultantId(null, ch.employeeName, tId(req));
       if (!consultantId) {
         console.warn(`[supply/update] consultant not found: ${ch.employeeName}`);
         continue;
       }
 
       if (ch.type === 'delete') {
-        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project);
-        if (projectId) await deleteAssignments(null, { consultantId, projectId });
+        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project, false, tId(req));
+        if (projectId) await deleteAssignments(null, { consultantId, projectId, tenantId: tId(req) });
 
       } else if (ch.type === 'update') {
-        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project);
+        const projectId = row?._projectId ?? await resolveProjectId(null, ch.project, false, tId(req));
         if (!projectId) continue;
 
         if (ch.startDate !== undefined && ch.endDate !== undefined && ch.hoursPerWeek !== undefined) {
@@ -1055,12 +1060,12 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
           if (!matchingWks.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
           for (const wk of matchingWks) {
             const weekEnding = weekKeyToDate[wk];
-            if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs }, serviceClient);
+            if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs, tenantId: tId(req) }, serviceClient);
           }
         }
 
       } else if (ch.type === 'add') {
-        const projectId = await resolveProjectId(null, ch.project, true);
+        const projectId = await resolveProjectId(null, ch.project, true, tId(req));
         if (!projectId) continue;
 
         const start = parseDateStr(ch.startDate);
@@ -1074,22 +1079,19 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
         if (!matchingWksAdd.length) return res.status(400).json({ error: 'No weeks fall within the specified date range' });
         for (const wk of matchingWksAdd) {
           const weekEnding = weekKeyToDate[wk];
-          if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs }, serviceClient);
+          if (weekEnding) await upsertAssignment(null, { consultantId, projectId, weekEnding, hours: hrs, tenantId: tId(req) }, serviceClient);
         }
       }
     }
 
-    // 3. Reload cached data
-    staffingData = await readStaffingData(null, serviceClient);
-
-    // 4. Auto-close any needs that are now fully covered by accepted assignments
+    // 3. Auto-close any needs that are now fully covered by accepted assignments
+    const freshData2 = await readStaffingData(null, serviceClient, tId(req));
     const affectedNeedIds = [...new Set(changes.filter(c => c.needId).map(c => c.needId))];
     const closedNeedIds = affectedNeedIds.length
-      ? await checkAndAutoCloseNeeds(affectedNeedIds, staffingData)
+      ? await checkAndAutoCloseNeeds(affectedNeedIds, freshData2)
       : [];
 
     if (closedNeedIds.length) {
-      staffingData = await readStaffingData(null, serviceClient);
       broadcastSSE({ type: 'need-closed', ids: closedNeedIds, reason: 'met', autoClose: true });
     }
 
@@ -1104,7 +1106,7 @@ app.post('/api/supply/update', requireRole('admin', 'resource_manager'), async (
 // GET /api/skill-sets/:skillName/consultants — all active consultants with that skill + current week booked hours
 app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admin', 'resource_manager', 'project_manager', 'executive'), async (req, res) => {
   const skillName = req.params.skillName;
-  const tenantId  = process.env.TENANT_ID;
+  const tenantId  = tId(req);
   try {
     // 1. Find skill set by name
     const { data: ssRows, error: ssErr } = await serviceClient
@@ -1140,10 +1142,10 @@ app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admi
 
     const levelMap = Object.fromEntries((levels || []).map(l => [l.id, l.name]));
 
-    // 4. Current week booked hours from cache
+    // 4. Current week booked hours from fresh data
     const currentWeekHours = {};
-    const sd = staffingData;
-    if (sd && sd.supply && sd.supply.length && sd._meta?.weekKeyToDate) {
+    const sd = await readStaffingData(null, serviceClient, tenantId);
+    if (sd && !sd.error && sd.supply && sd.supply.length && sd._meta?.weekKeyToDate) {
       const weekKeys = Object.keys(sd.supply[0].weeklyHours);
       const { weekKeyToDate } = sd._meta;
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1178,25 +1180,25 @@ app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admi
 
 // Cache for /api/recommendations only — avoids paying the 4s Supabase fetch on every panel open
 const RECO_CACHE_TTL = 60_000; // 60 seconds
-const recoCache = { data: null, timestamp: 0 };
+const recoCacheMap = new Map(); // tenantId → { data, timestamp }
 
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const t0 = Date.now();
 
+  const tenantId = tId(req);
   let freshData;
   let cacheHit = false;
-  if (recoCache.data && (Date.now() - recoCache.timestamp) < RECO_CACHE_TTL) {
-    freshData = recoCache.data;
+  const cached = recoCacheMap.get(tenantId);
+  if (cached && (Date.now() - cached.timestamp) < RECO_CACHE_TTL) {
+    freshData = cached.data;
     cacheHit = true;
   } else {
-    freshData = await readStaffingData(null, serviceClient);
+    freshData = await readStaffingData(null, serviceClient, tenantId);
     if (freshData.error) return res.status(503).json({ error: freshData.error });
-    recoCache.data = freshData;
-    recoCache.timestamp = Date.now();
+    recoCacheMap.set(tenantId, { data: freshData, timestamp: Date.now() });
   }
   const t1 = Date.now();
-  staffingData = freshData;
 
   const { supply, demand, employees } = freshData;
   const { weekKeyToDate } = freshData._meta;
@@ -1309,7 +1311,7 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
 app.get('/api/needs/:id/candidates', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   try {
     const needId    = req.params.id;
-    const freshData = await readStaffingData(null, serviceClient);
+    const freshData = await readStaffingData(null, serviceClient, tId(req));
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply, demand, employees, _meta } = freshData;
@@ -1431,7 +1433,7 @@ app.post('/api/needs/:id/bulk-assign', requireAuth, requireRole('admin', 'resour
 
   try {
     const needId    = req.params.id;
-    const freshData = await readStaffingData(null, serviceClient);
+    const freshData = await readStaffingData(null, serviceClient, tId(req));
     if (freshData.error) return res.status(503).json({ error: freshData.error });
 
     const { supply, demand, _meta } = freshData;
@@ -1489,16 +1491,13 @@ app.post('/api/needs/:id/bulk-assign', requireAuth, requireRole('admin', 'resour
         const available     = Math.max(0, 45 - alreadyBooked);
         const hours         = Math.min(hoursPerWeek, available);
         if (hours <= 0) continue;
-        await upsertAssignment(null, { consultantId, projectId, weekEnding, hours, isBillable: true }, serviceClient);
+        await upsertAssignment(null, { consultantId, projectId, weekEnding, hours, isBillable: true, tenantId: tId(req) }, serviceClient);
       }
     }
 
     // Reload data and auto-close need if now fully staffed
-    staffingData = await readStaffingData(null, serviceClient);
-    const closedIds = await checkAndAutoCloseNeeds([needId], staffingData);
-    if (closedIds.length) {
-      staffingData = await readStaffingData(null, serviceClient);
-    }
+    const freshData2 = await readStaffingData(null, serviceClient, tId(req));
+    const closedIds  = await checkAndAutoCloseNeeds([needId], freshData2);
 
     broadcastSSE({ type: 'staffing-updated', needId, closedNeedIds: closedIds });
 
@@ -1716,7 +1715,6 @@ app.post('/api/admin/reset-sandbox', requireAuth, requireRole('admin'), async (r
   }
   try {
     await seedTenant(tenantId, serviceClient, { skipConfirm: true });
-    staffingData = await readStaffingData(null, serviceClient);
     broadcastSSE({ type: 'data-reset' });
     res.json({ success: true, message: 'Sandbox reset complete' });
   } catch (err) {

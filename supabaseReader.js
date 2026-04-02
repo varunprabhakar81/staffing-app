@@ -67,15 +67,16 @@ function toWeekKey(dateStr) {
 
 // ─── MAIN READ ────────────────────────────────────────────────────────────────
 
-async function readStaffingData(userToken, _client = null) {
+async function readStaffingData(userToken, _client = null, tenantId = null) {
   const supabase = _client || getClient(userToken);
+  const tid = tenantId || TENANT_ID;
   try {
 
     // ── 1. Levels ─────────────────────────────────────────────────────────────
     const { data: levelsData, error: levelsErr } = await supabase
       .from('levels')
       .select('id, name, sort_order, default_cost_rate, default_bill_rate, target_billable_pct')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tid)
       .order('sort_order');
     if (levelsErr) throw levelsErr;
 
@@ -88,7 +89,7 @@ async function readStaffingData(userToken, _client = null) {
     const { data: skillSetsData, error: skillSetsErr } = await supabase
       .from('skill_sets')
       .select('id, name, type')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (skillSetsErr) throw skillSetsErr;
 
     const skillSetById = {};
@@ -100,13 +101,13 @@ async function readStaffingData(userToken, _client = null) {
     const { data: consultantsData, error: consultantsErr } = await supabase
       .from('consultants')
       .select('id, name, level_id, location, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (consultantsErr) throw consultantsErr;
 
     const { data: cssData, error: cssErr } = await supabase
       .from('consultant_skill_sets')
       .select('consultant_id, skill_set_id')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (cssErr) throw cssErr;
 
     // Build consultant skill set map: consultantId → { practiceAreas: [], technologies: [] }
@@ -153,13 +154,13 @@ async function readStaffingData(userToken, _client = null) {
     const { data: projectsData, error: projectsErr } = await supabase
       .from('projects')
       .select('id, name, status, probability_pct, start_date, end_date, client_id')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (projectsErr) throw projectsErr;
 
     const { data: clientsData, error: clientsErr } = await supabase
       .from('clients')
       .select('id, name')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (clientsErr) throw clientsErr;
 
     const clientById = {};
@@ -189,7 +190,7 @@ async function readStaffingData(userToken, _client = null) {
     const { data: assignmentsData, error: assignmentsErr } = await supabase
       .from('resource_assignments')
       .select('id, consultant_id, project_id, week_ending, hours, is_billable')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tid)
       .order('consultant_id')
       .order('project_id')
       .order('week_ending');
@@ -240,14 +241,14 @@ async function readStaffingData(userToken, _client = null) {
     const { data: needsData, error: needsErr } = await supabase
       .from('needs')
       .select('id, project_id, level_id, hours_per_week, start_date, end_date')
-      .eq('tenant_id', TENANT_ID)
+      .eq('tenant_id', tid)
       .is('closed_at', null);
     if (needsErr) throw needsErr;
 
     const { data: nssData, error: nssErr } = await supabase
       .from('need_skill_sets')
       .select('need_id, skill_set_id')
-      .eq('tenant_id', TENANT_ID);
+      .eq('tenant_id', tid);
     if (nssErr) throw nssErr;
 
     // Build need skill set map: needId → { practiceAreas: [], technologies: [], all: [] }
@@ -303,7 +304,7 @@ async function readStaffingData(userToken, _client = null) {
         consultantByName,
         projectById,
         projectByName,
-        tenantId: TENANT_ID,
+        tenantId: tid,
       },
     };
 
@@ -320,14 +321,14 @@ async function readStaffingData(userToken, _client = null) {
  * Finds or creates the assignment row for consultant+project, then sets hours
  * for the given week.
  */
-async function upsertAssignment(userToken, { consultantId, projectId, weekEnding, hours, isBillable }, _client = null) {
+async function upsertAssignment(userToken, { consultantId, projectId, weekEnding, hours, isBillable, tenantId }, _client = null) {
   const supabase = _client || serviceClient;
 
   const { error } = await supabase
     .from('resource_assignments')
     .upsert(
       {
-        tenant_id:     TENANT_ID,
+        tenant_id:     tenantId || TENANT_ID,
         consultant_id: consultantId,
         project_id:    projectId,
         week_ending:   weekEnding,
@@ -343,12 +344,12 @@ async function upsertAssignment(userToken, { consultantId, projectId, weekEnding
  * Delete all assignment rows for a consultant+project combination.
  * Used by /api/supply/update delete operations.
  */
-async function deleteAssignments(userToken, { consultantId, projectId }) {
+async function deleteAssignments(userToken, { consultantId, projectId, tenantId }) {
   const supabase = serviceClient;
   const { error } = await supabase
     .from('resource_assignments')
     .delete()
-    .eq('tenant_id',     TENANT_ID)
+    .eq('tenant_id',     tenantId || TENANT_ID)
     .eq('consultant_id', consultantId)
     .eq('project_id',    projectId);
   if (error) throw error;
@@ -358,12 +359,12 @@ async function deleteAssignments(userToken, { consultantId, projectId }) {
  * Resolve a consultant name → id. Returns null if not found.
  * Uses serviceClient to bypass RLS — name resolution is a server-side op.
  */
-async function resolveConsultantId(userToken, name) {
+async function resolveConsultantId(userToken, name, tenantId = null) {
   const supabase = serviceClient;
   const { data, error } = await supabase
     .from('consultants')
     .select('id')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId || TENANT_ID)
     .eq('name', name)
     .maybeSingle();
   if (error) throw error;
@@ -375,12 +376,13 @@ async function resolveConsultantId(userToken, name) {
  * Creates the project if createIfMissing = true.
  * Uses serviceClient to bypass RLS — name resolution and project creation are server-side ops.
  */
-async function resolveProjectId(userToken, name, createIfMissing = false) {
+async function resolveProjectId(userToken, name, createIfMissing = false, tenantId = null) {
   const supabase = serviceClient;
+  const tid = tenantId || TENANT_ID;
   const { data, error } = await supabase
     .from('projects')
     .select('id')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tid)
     .eq('name', name)
     .maybeSingle();
   if (error) throw error;
@@ -389,7 +391,7 @@ async function resolveProjectId(userToken, name, createIfMissing = false) {
   if (createIfMissing) {
     const { data: created, error: createErr } = await supabase
       .from('projects')
-      .insert({ tenant_id: TENANT_ID, name, status: 'Sold' })
+      .insert({ tenant_id: tid, name, status: 'Sold' })
       .select('id')
       .single();
     if (createErr) throw createErr;
