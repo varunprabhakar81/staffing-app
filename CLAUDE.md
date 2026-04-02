@@ -36,6 +36,7 @@ Resource planning dashboard for a ~25-person NetSuite consulting practice. Track
 ## Database Tables (Supabase)
 
 ```
+tenants              — Tenant registry (id UUID, name TEXT — e.g. "Meridian Consulting")
 levels               — Consultant hierarchy (Analyst → Partner/MD), billing rates
 skill_sets           — Practice areas + technologies (P2P, O2C, NetSuite, etc.)
 consultants          — Employee master (name, level, location, capacity, rates, user_id UUID nullable — links auth user to consultant row for RBAC)
@@ -104,9 +105,9 @@ GET  /api/events                      — SSE stream (real-time updates)
 
 | Role | Capabilities |
 |------|-------------|
-| `admin` | Full access including user management |
+| `admin` | Full access including user management and sandbox reset |
 | `resource_manager` | Full data access, edit staffing/consultants, no user management |
-| `project_manager` | Staffing tab read-only; can create/edit needs; can view consultant profiles |
+| `project_manager` | Resource Allocation tab read-only; can create/edit needs (not close/assign); can view consultant profiles (no rates) |
 | `executive` | Read-only dashboard + heatmap + Ask Claude |
 | `consultant` | Sees only own heatmap row + own profile (no rates) |
 
@@ -219,7 +220,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=112`, `styles.css?v=59`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=113`, `styles.css?v=59`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -227,6 +228,8 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Needs donut chart segments by client** — each segment = one client, sized by open need count. Urgency badges on rows (Urgent ≤2wk, Soon 2-4wk, Planned 4+wk) computed client-side from `startDate`. No coverage status computation on server or client. `_needsClientFilter` (not `_needsStatusFilter`) drives donut click filtering. Do not reintroduce partially_met/unmet/fully_met.
 - **Settings nav defaults to Consultants** — both admin and resource_manager see Consultants panel first. `_settingsActivePanel` persists across tab switches.
 - **Quick Fill always uses API path (POST /api/save-staffing)** — DOM fast path was removed. Never reintroduce DOM cell matching for Quick Fill.
+- **No global staffingData — every route fetches fresh via tId(req)** — `readStaffingData(null, serviceClient, tId(req))` is called per-request. Never cache staffing data in a module-level variable. The only cache is `recoCacheMap` (per-tenant Map keyed by `tenantId`, 60s TTL). If you see `let staffingData` at module level, delete it — it was removed in Session 31 and must not return.
+- **tId(req) for all tenant-scoped calls** — `const tId = req => req.session?.tenant_id || process.env.TENANT_ID`. All Supabase reads and writes must use `tId(req)`, never `process.env.TENANT_ID` directly inside a route handler.
 
 ---
 
@@ -254,19 +257,21 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 
 ## Build Order
 
-### Pilot — Internal adoption ← next
+### Pilot — Internal adoption ← active
 Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
-- #182 — In-app onboarding tour
+- #185 — In-app feedback button (Supabase-backed) ← next
 - #183 — Contextual tooltips
 - #184 — Admin getting-started checklist
-- #185 — In-app feedback button (Supabase-backed)
+- #182 — In-app onboarding tour
 - #186 — Switch prod to real data
-- #194 — UAT portal for real testers
-- #195 — Second tenant + Railway instance for Tester 2
-- #196 — Rename Staffing → Resource Allocation
-- #197 — Open needs modal — group by project, collapsed
-- #198 — Needs tab — expand all / collapse all
-- #199 — Button terminology audit
+
+Completed in Pilot:
+- #194 — UAT portal for real testers ✓ (docs/tester-setup.md)
+- #195 — Per-tenant sandboxes + personalization ✓
+- #196 — Rename Staffing → Resource Allocation ✓
+- #197 — Open needs modal — group by project, collapsed ✓
+- #198 — Needs tab — expand all / collapse all ✓
+- #199 — Button terminology audit ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
