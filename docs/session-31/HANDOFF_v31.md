@@ -129,27 +129,30 @@ Tested against live dev server. Zero data leakage between tenants:
 
 Active. Gate: 2–4 weeks of pilot feedback before V3 starts.
 
-**Remaining open issues (priority order for Session 32):**
+**8 open issues (priority order for Session 32):**
 1. #185 — In-app feedback button (so testers can report issues)
 2. #183 — Contextual tooltips
 3. #184 — Admin getting-started checklist
 4. #182 — In-app onboarding tour (builds on welcome modal already shipped)
-5. #186 — Switch prod to real data
+5. #188 — Consultant master data: add Industry and Country fields
+6. #194 — UAT portal for real testers (tester-setup.md covers manual process)
+7. #197 — Open needs modal — group by project, collapsed
+8. #198 — Needs tab — expand all / collapse all
 
-**Completed:**
-- #194 — UAT portal ✓ (tester-setup.md documents the manual process)
-- #195 — Sandboxes ✓
-- #196 — Rename ✓
-- #197 — Needs modal grouping ✓
-- #198 — Expand/collapse ✓
-- #199 — Button terminology ✓
+Note: #186 (Switch prod to real data) is **Parked**, not in Pilot.
+
+**Completed in Pilot:**
+- #195 — Per-tenant sandboxes + personalization ✓
+- #196 — Rename Staffing → Resource Allocation ✓
+- #199 — Button terminology audit ✓
+- #192 — Week alignment ✓
 
 ---
 
 ## Session Backlog Notes
 
-- **B4**: #194 UAT portal — covered by tester-setup.md; no code issue remaining
-- **B5**: superseded by #195 (per-tenant sandboxes on shared instance)
+- **B4**: #194 UAT portal — DONE; tester-setup.md is the deliverable, no code remaining
+- **B5**: superseded by #195 (per-tenant sandboxes on shared instance, no second Railway needed)
 - **B6**: UAT widget template enforcement — doc-only, not a code issue
 
 **UAT widget standard (carried forward):**
@@ -160,6 +163,32 @@ Active. Gate: 2–4 weeks of pilot feedback before V3 starts.
 
 ---
 
+## GitHub Operations Note
+
+**`gh project item-add` CLI silently fails** (returns empty output, no error, no confirmation) when adding issues to project board #4. Use GraphQL instead:
+
+```bash
+# Get issue node ID
+node_id=$(gh api repos/varunprabhakar81/staffing-app/issues/NNN --jq '.node_id')
+
+# Add to board
+gh api graphql -f query="mutation {
+  addProjectV2ItemById(input: {
+    projectId: \"PVT_kwHOAiRn_s4BTGRI\"
+    contentId: \"$node_id\"
+  }) { item { id } }
+}"
+```
+
+Project ID: `PVT_kwHOAiRn_s4BTGRI` (board #4, Staffing Intelligence Build Board).
+
+---
+
 ## Where to Pick Up (Session 32)
 
-Start with **#185 — In-app feedback button** so testers have a channel to report issues during the pilot. Then #183, #184, #182. Hold #186 (real data) until pilot feedback confirms the data model is stable.
+1. **#185** — In-app feedback button (testers need a reporting channel)
+2. **#183** — Contextual tooltips
+3. **#184** — Admin getting-started checklist
+4. **#182** — Onboarding tour (builds on welcome modal already shipped)
+
+Hold #186 (real data) until pilot feedback confirms the data model is stable.

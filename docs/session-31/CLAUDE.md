@@ -203,7 +203,7 @@ node server.js
 - **Week date math**: Use `_meta.weekKeyToDate` to convert display labels to ISO dates
 - **Inline edits**: Saved immediately on cell blur/Enter; `_pendingStaffing` tracks unsaved changes
 - **SSE broadcast**: Call `broadcast({ type: 'consultant-updated', ... })` after any consultant mutation
-- **GitHub project board**: Every new issue must be added to the project board immediately after creation. Use `gh project item-add <PROJECT_NUMBER> --owner varunprabhakar81 --url <ISSUE_URL>` after every `gh issue create`. Find the project number with `gh project list --owner varunprabhakar81` if needed. Never create an issue without adding it to the board.
+- **GitHub project board**: Every new issue must be added to the project board immediately after creation. `gh project item-add` CLI silently fails — use GraphQL instead: get the issue node_id via `gh api repos/varunprabhakar81/staffing-app/issues/NNN --jq '.node_id'`, then call `addProjectV2ItemById` mutation with project ID `PVT_kwHOAiRn_s4BTGRI`. Never create an issue without adding it to the board.
 - **Claude context**: Built in `claudeService.js`; includes 12-week window, employee skills/levels, demand roles
 - **Sessions**: In-memory (MemoryStore) — lost on server restart in dev; acceptable for Railway single-instance
 - **Session docs**: At the end of each session, create `docs/session-XX/` containing `HANDOFF_vXX.md` (new handoff) and a snapshot copy of `CLAUDE.md`. The root `CLAUDE.md` is the live version read at session start; `docs/session-XX/CLAUDE.md` is the point-in-time archive.
@@ -263,15 +263,16 @@ Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
 - #183 — Contextual tooltips
 - #184 — Admin getting-started checklist
 - #182 — In-app onboarding tour
-- #186 — Switch prod to real data
+- #188 — Consultant master data: Industry and Country fields
+- #194 — UAT portal (tester-setup.md is the deliverable)
+- #197 — Open needs modal — group by project, collapsed
+- #198 — Needs tab — expand all / collapse all
 
 Completed in Pilot:
-- #194 — UAT portal for real testers ✓ (docs/tester-setup.md)
 - #195 — Per-tenant sandboxes + personalization ✓
 - #196 — Rename Staffing → Resource Allocation ✓
-- #197 — Open needs modal — group by project, collapsed ✓
-- #198 — Needs tab — expand all / collapse all ✓
 - #199 — Button terminology audit ✓
+- #192 — Week alignment ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
