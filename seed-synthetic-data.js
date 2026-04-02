@@ -18,16 +18,16 @@ const TENANT = process.env.TENANT_ID;
 
 function getWeekEndings(count = 12) {
   const today = new Date();
-  const day = today.getDay(); // 0=Sun, 6=Sat, 5=Fri
-  const friday = new Date(today);
-  // If today is Saturday (6), back up 1 day to Friday. Otherwise advance to Friday.
-  const diff = day <= 5 ? 5 - day : -(day - 5);
-  friday.setDate(today.getDate() + diff);
+  const day = today.getDay(); // 0=Sun … 6=Sat
+  const saturday = new Date(today);
+  // Advance to the current or next Saturday (Deloitte weeks run Sun–Sat)
+  const diff = (6 - day + 7) % 7;
+  saturday.setDate(today.getDate() + diff);
 
   const weeks = [];
   for (let i = 0; i < count; i++) {
-    const d = new Date(friday);
-    d.setDate(friday.getDate() + i * 7);
+    const d = new Date(saturday);
+    d.setDate(saturday.getDate() + i * 7);
     weeks.push(d.toISOString().split('T')[0]); // YYYY-MM-DD
   }
   return weeks;
@@ -75,8 +75,8 @@ const CLIENT_NAMES = [
   'Harbor Health',
 ];
 
-// Projects: date offsets relative to week[0] (the first Friday week_ending).
-// "week 1 Monday" ≈ week_ending[0] - 4 days (the Monday of that week).
+// Projects: date offsets relative to week[0] (the first Saturday week_ending).
+// "week 1 Sunday" ≈ week_ending[0] - 6 days (the Sunday that opens that week).
 // We compute start/end as offsets from that Monday.
 const PROJECT_DEFS = [
   { name: 'Acme ERP Rollout',            client: 'Acme Corp',           status: 'Sold',          is_billable: true,  startOff: -14, endOff: 84  },

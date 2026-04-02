@@ -405,8 +405,8 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
     return m ? new Date(today.getFullYear(), parseInt(m[1]) - 1, parseInt(m[2])) : null;
   }
 
-  // Filter: from current week (first week-ending >= today) through a rolling 13-week window (~90 days)
-  // Round up to the next Saturday (week_ending is always Saturday in this app)
+  // Filter: from current week (first week-ending >= today) through a rolling ~13-week window (90 days)
+  // Week endings are always Saturday (Deloitte Sun–Sat fiscal weeks)
   const rawEnd = new Date(today); rawEnd.setDate(rawEnd.getDate() + 90);
   const dayOfWeek = rawEnd.getDay(); // 0=Sun … 6=Sat
   const daysToSat = dayOfWeek === 6 ? 0 : 6 - dayOfWeek;
