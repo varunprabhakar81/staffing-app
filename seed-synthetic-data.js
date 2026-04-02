@@ -2,15 +2,22 @@
  * seed-synthetic-data.js
  * Replaces all tenant staffing data with a synthetic dataset for demos and UAT.
  * Does NOT touch: levels, skill_sets, auth users, tenants table.
- * Usage: node seed-synthetic-data.js
+ *
+ * CLI usage:
+ *   node seed-synthetic-data.js                         # uses TENANT_ID from .env
+ *   node seed-synthetic-data.js --tenant-id <uuid>      # seeds a specific tenant
+ *
+ * Programmatic usage (from server.js):
+ *   const { seedTenant } = require('./seed-synthetic-data');
+ *   await seedTenant(tenantId, serviceClient, { skipConfirm: true });
  */
 
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const readline = require('readline');
 
+// Module-level client for CLI use only
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const TENANT = process.env.TENANT_ID;
 
 // ---------------------------------------------------------------------------
 // Week date helpers
@@ -211,54 +218,52 @@ const NEED_DEFS = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Core seed function — exported for programmatic use from server.js
 // ---------------------------------------------------------------------------
 
-async function query(table, select = '*') {
-  const { data, error } = await supabase.from(table).select(select).eq('tenant_id', TENANT);
-  if (error) throw new Error(`Query ${table}: ${error.message}`);
-  return data;
-}
+/**
+ * Seeds synthetic staffing data for a given tenant.
+ *
+ * @param {string} tenantId    - The tenant UUID to seed
+ * @param {object} client      - Supabase client (must have service role access)
+ * @param {object} opts
+ * @param {boolean} opts.skipConfirm - Skip interactive confirmation prompt (default: false)
+ */
+async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
+  if (!tenantId) throw new Error('tenantId is required');
 
-async function deleteWhere(table) {
-  const { error } = await supabase.from(table).delete().eq('tenant_id', TENANT);
-  if (error) throw new Error(`Delete ${table}: ${error.message}`);
-}
-
-async function insert(table, rows) {
-  if (rows.length === 0) return [];
-  const { data, error } = await supabase.from(table).insert(rows).select();
-  if (error) throw new Error(`Insert ${table}: ${error.message}`);
-  return data;
-}
-
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
-async function seed() {
-  if (!TENANT) {
-    console.error('ERROR: TENANT_ID not set in .env');
-    process.exit(1);
+  // Helpers scoped to this invocation's tenant + client
+  async function deleteWhere(table) {
+    const { error } = await client.from(table).delete().eq('tenant_id', tenantId);
+    if (error) throw new Error(`Delete ${table}: ${error.message}`);
   }
 
-  const answer = await confirm(
-    `\nThis will delete all staffing data for tenant ${TENANT}.\nContinue? (y/N) `
-  );
-  if (answer !== 'y' && answer !== 'yes') {
-    console.log('Aborted.');
-    process.exit(0);
+  async function insert(table, rows) {
+    if (rows.length === 0) return [];
+    const { data, error } = await client.from(table).insert(rows).select();
+    if (error) throw new Error(`Insert ${table}: ${error.message}`);
+    return data;
+  }
+
+  if (!skipConfirm) {
+    const answer = await confirm(
+      `\nThis will delete all staffing data for tenant ${tenantId}.\nContinue? (y/N) `
+    );
+    if (answer !== 'y' && answer !== 'yes') {
+      console.log('Aborted.');
+      return { aborted: true };
+    }
   }
 
   console.log('\n--- Seeding synthetic data ---\n');
 
-  // 1. Query lookup tables
-  const levelsRaw = await supabase.from('levels').select('id, name').eq('tenant_id', TENANT);
+  // 1. Query lookup tables (levels + skill_sets are shared across tenants)
+  const levelsRaw = await client.from('levels').select('id, name').eq('tenant_id', tenantId);
   if (levelsRaw.error) throw new Error(`Query levels: ${levelsRaw.error.message}`);
   const levelByName = Object.fromEntries(levelsRaw.data.map(r => [r.name, r.id]));
   console.log(`Loaded ${levelsRaw.data.length} levels`);
 
-  const skillsRaw = await supabase.from('skill_sets').select('id, name').eq('tenant_id', TENANT);
+  const skillsRaw = await client.from('skill_sets').select('id, name').eq('tenant_id', tenantId);
   if (skillsRaw.error) throw new Error(`Query skill_sets: ${skillsRaw.error.message}`);
   const skillByName = Object.fromEntries(skillsRaw.data.map(r => [r.name, r.id]));
   console.log(`Loaded ${skillsRaw.data.length} skill sets`);
@@ -275,7 +280,7 @@ async function seed() {
 
   // 3. Insert clients
   console.log('\nInserting clients...');
-  const clientRows = CLIENT_NAMES.map(name => ({ name, tenant_id: TENANT }));
+  const clientRows = CLIENT_NAMES.map(name => ({ name, tenant_id: tenantId }));
   const insertedClients = await insert('clients', clientRows);
   const clientByName = Object.fromEntries(insertedClients.map(r => [r.name, r.id]));
   console.log(`  Inserted ${insertedClients.length} clients`);
@@ -283,7 +288,6 @@ async function seed() {
   // 4. Insert projects
   console.log('Inserting projects...');
   const weeks = getWeekEndings(12);
-  // week 1 Monday = weeks[0] - 4 days
   const week1Monday = addDays(weeks[0], -4);
 
   const projectRows = PROJECT_DEFS.map(p => ({
@@ -294,7 +298,7 @@ async function seed() {
     is_billable: p.is_billable,
     start_date: addDays(week1Monday, p.startOff),
     end_date: addDays(week1Monday, p.endOff),
-    tenant_id: TENANT,
+    tenant_id: tenantId,
   }));
   const insertedProjects = await insert('projects', projectRows);
   const projectByName = Object.fromEntries(insertedProjects.map(r => [r.name, r.id]));
@@ -310,7 +314,7 @@ async function seed() {
     is_active: true,
     bill_rate_override: null,
     cost_rate_override: null,
-    tenant_id: TENANT,
+    tenant_id: tenantId,
   }));
   const insertedConsultants = await insert('consultants', consultantRows);
   const consultantByName = Object.fromEntries(insertedConsultants.map(r => [r.name, r.id]));
@@ -327,7 +331,7 @@ async function seed() {
       if (!sid) throw new Error(`Unknown skill: ${skillName}`);
       if (seen.has(sid)) continue;
       seen.add(sid);
-      cssRows.push({ consultant_id: cid, skill_set_id: sid, tenant_id: TENANT });
+      cssRows.push({ consultant_id: cid, skill_set_id: sid, tenant_id: tenantId });
     }
   }
   const insertedCss = await insert('consultant_skill_sets', cssRows);
@@ -341,7 +345,6 @@ async function seed() {
     const pid = projectByName[a.project];
     if (!cid) throw new Error(`Unknown consultant: ${a.consultant}`);
     if (!pid) throw new Error(`Unknown project: ${a.project}`);
-    // weekRange is 1-based
     for (let wi = a.weekRange[0] - 1; wi < a.weekRange[1]; wi++) {
       assignmentRows.push({
         consultant_id: cid,
@@ -349,7 +352,7 @@ async function seed() {
         week_ending: weeks[wi],
         hours: a.hours,
         is_billable: a.is_billable,
-        tenant_id: TENANT,
+        tenant_id: tenantId,
       });
     }
   }
@@ -358,7 +361,6 @@ async function seed() {
 
   // 8. Insert needs
   console.log('Inserting needs...');
-  // Validate all FK lookups first — undefined project_id/level_id fails silently
   for (const n of NEED_DEFS) {
     const pid = projectByName[n.project];
     const lid = levelByName[n.level];
@@ -374,7 +376,7 @@ async function seed() {
     end_date: daysFromNow(n.endOff),
     closed_at: null,
     closed_reason: null,
-    tenant_id: TENANT,
+    tenant_id: tenantId,
   }));
   const insertedNeeds = await insert('needs', needRows);
   if (insertedNeeds.length !== NEED_DEFS.length) {
@@ -390,7 +392,7 @@ async function seed() {
     for (const skillName of NEED_DEFS[i].skills) {
       const sid = skillByName[skillName];
       if (!sid) throw new Error(`Unknown skill: ${skillName}`);
-      nssRows.push({ need_id: needId, skill_set_id: sid, tenant_id: TENANT });
+      nssRows.push({ need_id: needId, skill_set_id: sid, tenant_id: tenantId });
     }
   }
   const insertedNss = await insert('need_skill_sets', nssRows);
@@ -407,9 +409,38 @@ async function seed() {
   console.log(`  Need skill sets:       ${insertedNss.length}`);
   console.log(`\n  Week window: ${weeks[0]} → ${weeks[11]}`);
   console.log('\nDone. Start the app and verify all tabs load correctly.\n');
+
+  return { success: true };
 }
 
-seed().catch(err => {
-  console.error('\nERROR:', err.message);
-  process.exit(1);
-});
+// ---------------------------------------------------------------------------
+// CLI entry point
+// ---------------------------------------------------------------------------
+
+function getCliArg(flag) {
+  const idx = process.argv.indexOf(flag);
+  return idx !== -1 && process.argv[idx + 1] ? process.argv[idx + 1] : null;
+}
+
+async function seed() {
+  const tenantId = getCliArg('--tenant-id') || process.env.TENANT_ID;
+  if (!tenantId) {
+    console.error('ERROR: TENANT_ID not set in .env and no --tenant-id argument provided');
+    process.exit(1);
+  }
+  await seedTenant(tenantId, supabase);
+}
+
+// ---------------------------------------------------------------------------
+// Exports
+// ---------------------------------------------------------------------------
+
+module.exports = { seedTenant };
+
+// Run when invoked directly (not when required by server.js)
+if (require.main === module) {
+  seed().catch(err => {
+    console.error('\nERROR:', err.message);
+    process.exit(1);
+  });
+}

@@ -8,6 +8,7 @@ const path                 = require('path');
 const { createClient }     = require('@supabase/supabase-js');
 const { readStaffingData, upsertAssignment, deleteAssignments, resolveConsultantId, resolveProjectId, serviceClient, createProject, createNeed, closeNeed, updateNeed, replaceNeedSkillSets } = require('./supabaseReader');
 const { askClaude, getSuggestedQuestions, getMatchReasonings } = require('./claudeService');
+const { seedTenant } = require('./seed-synthetic-data');
 
 // Anon client used only for auth operations (login). Data queries go through
 // supabaseReader.js functions which receive the per-request userToken.
@@ -1696,6 +1697,26 @@ app.delete('/api/admin/users/:id/invite', requireAuth, requireRole('admin'), asy
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/reset-sandbox — reseed this tenant's data with fresh synthetic data
+// Safety: rejects requests from the production tenant to prevent accidental data wipe.
+// Tenant is read from session — a user can only reset their own tenant.
+app.post('/api/admin/reset-sandbox', requireAuth, requireRole('admin'), async (req, res) => {
+  const tenantId = req.session.tenant_id;
+  if (!tenantId) return res.status(400).json({ error: 'No tenant_id in session' });
+  if (tenantId === process.env.TENANT_ID) {
+    return res.status(403).json({ error: 'Cannot reset the production tenant' });
+  }
+  try {
+    await seedTenant(tenantId, serviceClient, { skipConfirm: true });
+    staffingData = await readStaffingData(null, serviceClient);
+    broadcastSSE({ type: 'data-reset' });
+    res.json({ success: true, message: 'Sandbox reset complete' });
+  } catch (err) {
+    console.error('[reset-sandbox] error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
