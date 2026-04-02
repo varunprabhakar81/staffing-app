@@ -1,124 +1,124 @@
 # Tester Sandbox Setup Guide
 
-Each tester gets their own isolated tenant on the same Supabase project and Railway instance. RLS enforces complete data isolation — testers can never see each other's data. Each tester tenant has its own admin user who can reset their sandbox at any time via `POST /api/admin/reset-sandbox`.
+Each tester gets their own isolated tenant on the same Supabase project and Railway instance. RLS enforces complete data isolation — testers can never see each other's data. Each tester tenant has its own admin or resource_manager user who can reset their sandbox at any time via Settings → Sandbox.
+
+Synthetic data is **deterministic per tenant**: the same tenant UUID always produces the same names on every reset, but different tenants get different names. So Tim's sandbox always has the same 25 consultants, Shreyas's sandbox has a different set, etc.
 
 ---
 
-## Step 1 — Generate a new tenant UUID
+## Active Tester Accounts
+
+| Tester | Email | Password | Role | Tenant UUID |
+|--------|-------|----------|------|-------------|
+| Tim Callesen | tcallesen@deloitte.com | TestAdmin_2026! | admin | af54e202-0cf5-4704-99f0-c9d5cbace9fe |
+| Shreyas Sampath | ssampath@deloitte.com | TestRM_2026! | resource_manager | 860c55be-94cf-4ae6-9508-2dc2909e7829 |
+| Nick Kolbow | nkolbow@deloitte.com | TestRM_2026! | resource_manager | 06b61e91-6a2c-43b0-bb39-2aeb56d8f244 |
+
+> **Security note:** Ask testers to change their password on first login.
+
+---
+
+## Resetting a Sandbox
+
+### Via the app (recommended)
+
+1. Log in as the tester
+2. Go to **Settings → Sandbox**
+3. Click **Reset sandbox** and confirm
+4. Data resets in ~5 seconds; page reloads automatically via SSE
+
+### Via CLI (dev/local)
+
+```bash
+node seed-synthetic-data.js --tenant-id <TENANT_UUID>
+```
+
+The reset endpoint and seed script:
+- Delete all staffing data for the tenant (consultants, projects, assignments, needs)
+- Re-insert 25 consultants, 12 projects, 302 assignments, 12 open needs
+- Use deterministic RNG seeded by the tenant UUID — same tenant always gets the same names
+- **Reject** requests targeting the production tenant UUID (safety guard)
+
+---
+
+## Provisioning a New Tester Sandbox
+
+### Step 1 — Generate a new tenant UUID
 
 ```bash
 node -e "const { randomUUID } = require('crypto'); console.log(randomUUID());"
 ```
 
-Record this UUID — it will be the `tenant_id` for this tester's sandbox.
+### Step 2 — Provision shared lookup data
 
----
+Run in Node.js (or adapt to your environment):
 
-## Step 2 — Provision shared lookup data for the new tenant
-
-Levels and skill_sets must exist for the tenant before seeding. Run the following in the Supabase SQL editor, substituting `<TENANT_UUID>`:
-
-```sql
--- Copy levels from the production tenant
-INSERT INTO levels (name, billing_rate, cost_rate, tenant_id)
-SELECT name, billing_rate, cost_rate, '<TENANT_UUID>'
-FROM levels
-WHERE tenant_id = '<PROD_TENANT_UUID>';
-
--- Copy skill_sets from the production tenant
-INSERT INTO skill_sets (name, type, tenant_id)
-SELECT name, type, '<TENANT_UUID>'
-FROM skill_sets
-WHERE tenant_id = '<PROD_TENANT_UUID>';
-```
-
-> **Note:** `<PROD_TENANT_UUID>` is the value of `TENANT_ID` in your `.env` file.
-
----
-
-## Step 3 — Seed synthetic data for the new tenant
-
-```bash
-node seed-synthetic-data.js --tenant-id <TENANT_UUID>
-```
-
-The script will prompt for confirmation, then insert 25 consultants, 12 projects, 302 assignments, and 12 open needs into that tenant's tables. Safe to run repeatedly — it deletes and re-seeds each time.
-
----
-
-## Step 4 — Create a Supabase auth user for the tester
-
-In the Supabase dashboard → **Authentication → Users → Invite user**, or via the admin API:
-
-```bash
-# Using the Supabase service role key
-node -e "
+```javascript
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-sb.auth.admin.createUser({
+const PROD = process.env.TENANT_ID;
+const NEW_TENANT = '<YOUR_NEW_UUID>';
+const TENANT_NAME = 'Tester Name Sandbox';
+
+// Insert tenants row
+await sb.from('tenants').insert({ id: NEW_TENANT, name: TENANT_NAME });
+
+// Copy levels from prod
+const { data: lvls } = await sb.from('levels')
+  .select('name, sort_order, default_cost_rate, default_bill_rate, target_billable_pct')
+  .eq('tenant_id', PROD);
+await sb.from('levels').insert(lvls.map(r => ({ ...r, tenant_id: NEW_TENANT })));
+
+// Copy skill_sets from prod
+const { data: skills } = await sb.from('skill_sets').select('name, type').eq('tenant_id', PROD);
+await sb.from('skill_sets').insert(skills.map(r => ({ ...r, tenant_id: NEW_TENANT })));
+```
+
+### Step 3 — Seed synthetic data
+
+```bash
+node seed-synthetic-data.js --tenant-id <YOUR_NEW_UUID>
+```
+
+### Step 4 — Create a Supabase auth user
+
+```javascript
+await sb.auth.admin.createUser({
   email: 'tester@example.com',
   password: 'TemporaryPassword123!',
   app_metadata: {
-    role: 'admin',
-    tenant_id: '<TENANT_UUID>'
+    role: 'admin',                // or 'resource_manager'
+    tenant_id: '<YOUR_NEW_UUID>',
   },
-  email_confirm: true
-}).then(({ data, error }) => {
-  if (error) console.error(error.message);
-  else console.log('Created user:', data.user.id);
+  user_metadata: {
+    display_name: 'Tester Name', // shown in sidebar
+  },
+  email_confirm: true,
 });
-"
 ```
 
-Key fields in `app_metadata`:
-- `role`: `admin` (gives the tester full access to their sandbox, including reset)
-- `tenant_id`: the UUID generated in Step 1 — this is what RLS uses to isolate data
+Key fields:
+- `app_metadata.role` — `admin` gives full access including sandbox reset; `resource_manager` gives full data access but no user management
+- `app_metadata.tenant_id` — the UUID from Step 1; used by RLS to isolate data
+- `user_metadata.display_name` — shown in the sidebar footer and welcome modal
 
-> **Important:** `app_metadata` is set server-side only. Do not use `user_metadata` for these fields — it is writable by the user and not trusted by RLS.
+> **Important:** `app_metadata` is set server-side only and is trusted by RLS. Never use `user_metadata` for `role` or `tenant_id` — it is writable by the user.
+
+### Step 5 — Share credentials with the tester
+
+Send:
+- App URL
+- Email and temporary password
+- Note: they can reset their sandbox any time via **Settings → Sandbox**
 
 ---
 
-## Step 5 — Share credentials with the tester
+## Multi-Tenant Architecture Notes
 
-Send the tester:
-- App URL (production Railway URL or localhost:3000 for local testing)
-- Email: the address used in Step 4
-- Temporary password: ask them to change it on first login
-- Note: they can reset their sandbox any time via Settings (once the UI button is built in Stage 2)
-
----
-
-## Resetting a sandbox
-
-### Via API (admin only)
-
-```bash
-# Must be authenticated as the tester's admin user
-curl -X POST https://<app-url>/api/admin/reset-sandbox \
-  -H "Content-Type: application/json" \
-  --cookie "connect.sid=<session-cookie>"
-```
-
-The reset endpoint:
-- Reads `tenant_id` from the authenticated session (users can only reset their own tenant)
-- **Rejects** requests if the tenant matches the production `TENANT_ID` env var (safety guard)
-- Runs the full delete-and-reseed sequence, then reloads the in-memory staffing cache
-
-### Via CLI (for local/dev)
-
-```bash
-node seed-synthetic-data.js --tenant-id <TENANT_UUID>
-```
-
----
-
-## Multi-tenant architecture notes
-
-This setup doubles as a dry run for the V3 multi-tenant architecture:
-
-- Each tenant's data is fully isolated via `tenant_id` column + RLS policies
+- Each tenant's data is fully isolated via `tenant_id` column + RLS policies on every table
 - The same Railway instance and Supabase project serve all tenants
-- The `serviceClient` (service role key) used in the reset endpoint bypasses RLS — this is safe because we validate `tenant_id` from the session and reject the production tenant
+- `serviceClient` (service role key) used in the reset endpoint bypasses RLS — safe because we validate `tenant_id` from the session and reject the production tenant
 - To add more tenants: repeat Steps 1–4. No infrastructure changes required.
 - To remove a tenant: delete the auth user in Supabase, then `DELETE FROM <table> WHERE tenant_id = '<UUID>'` for each table in FK-safe order (same order as the seed script's delete phase)
+- Per-tenant name randomization: `hashTenantId(uuid)` → mulberry32 PRNG → unique names drawn from pools in `seed-synthetic-data.js`. Same UUID → same names on every reset.

@@ -143,11 +143,15 @@ app.get('/api/auth/me', (req, res) => {
   if (!req.session || !req.session.token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  const displayName = req.session.user?.user_metadata?.display_name
+    || req.session.user?.email?.split('@')[0]
+    || null;
   res.json({
     user:         req.session.user,
     role:         req.session.role,
     tenant_id:    req.session.tenant_id,
     canViewRates: ['admin', 'resource_manager'].includes(req.session.role),
+    display_name: displayName,
   });
 });
 

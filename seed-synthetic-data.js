@@ -68,6 +68,153 @@ function confirm(question) {
 }
 
 // ---------------------------------------------------------------------------
+// Deterministic RNG — seeded per tenant so same tenant always reseeds to
+// the same synthetic names, but different tenants get different datasets.
+// ---------------------------------------------------------------------------
+
+function hashTenantId(tenantId) {
+  // FNV-1a 32-bit hash of the UUID string → uint32
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < tenantId.length; i++) {
+    h = Math.imul(h ^ tenantId.charCodeAt(i), 16777619) >>> 0;
+  }
+  return h;
+}
+
+function makePrng(seed) {
+  // Mulberry32 — fast, deterministic 32-bit PRNG
+  let s = seed >>> 0;
+  return function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    let z = s;
+    z = Math.imul(z ^ (z >>> 15), z | 1) >>> 0;
+    z ^= z + Math.imul(z ^ (z >>> 7), z | 61) >>> 0;
+    return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Fisher-Yates shuffle, returns first n unique items from pool
+function pickUnique(pool, n, rng) {
+  if (n > pool.length) throw new Error(`Need ${n} items but pool only has ${pool.length}`);
+  const arr = [...pool];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, n);
+}
+
+// ---------------------------------------------------------------------------
+// Name pools — large enough to give each tenant a unique set
+// ---------------------------------------------------------------------------
+
+const FIRST_NAME_POOL = [
+  'Aaron', 'Alice', 'Amber', 'Andre', 'Angela', 'Anna', 'Ben', 'Beth',
+  'Blake', 'Brenda', 'Carlos', 'Carmen', 'Chris', 'Claire', 'David', 'Diana',
+  'Dylan', 'Elena', 'Ethan', 'Eva', 'Felix', 'Fiona', 'George', 'Hannah',
+  'Ian', 'Jack', 'Jamie', 'Jason', 'Jessica', 'Jordan', 'Julia', 'Kevin',
+  'Laura', 'Lena', 'Lucas', 'Marcus', 'Maria', 'Mark', 'Maya', 'Michael',
+  'Mila', 'Nathan', 'Nicole', 'Oliver', 'Owen', 'Patrick', 'Paula', 'Rachel',
+  'Ryan', 'Sarah', 'Sophie', 'Steven', 'Susan', 'Thomas', 'Tina', 'Tyler',
+  'Victor', 'Wendy', 'William', 'Zach', 'Zoe',
+];
+
+const LAST_NAME_POOL = [
+  'Adams', 'Allen', 'Anderson', 'Baker', 'Bell', 'Brooks', 'Brown', 'Carter',
+  'Clark', 'Collins', 'Cook', 'Cooper', 'Davis', 'Dixon', 'Edwards', 'Evans',
+  'Fisher', 'Foster', 'Garcia', 'Gibson', 'Grant', 'Gray', 'Green', 'Hall',
+  'Harris', 'Hayes', 'Hill', 'Howard', 'Hughes', 'Hunt', 'Jackson', 'James',
+  'Johnson', 'Jones', 'Kelly', 'Kim', 'King', 'Lee', 'Lewis', 'Long',
+  'Martin', 'Mason', 'Mitchell', 'Moore', 'Morgan', 'Morris', 'Murphy', 'Nelson',
+  'Parker', 'Patel', 'Peterson', 'Phillips', 'Powell', 'Price', 'Reed', 'Robinson',
+  'Rogers', 'Ross', 'Scott', 'Shaw', 'Smith', 'Stewart', 'Taylor', 'Thomas',
+  'Thompson', 'Torres', 'Turner', 'Walker', 'Ward', 'Watson', 'White', 'Williams',
+  'Wilson', 'Wood', 'Wright', 'Young',
+];
+
+const CLIENT_PREFIX_POOL = [
+  'Acme', 'Apex', 'Atlas', 'Axiom', 'Blue', 'Bright', 'Capital', 'Cascade',
+  'Crest', 'Crown', 'Delta', 'Echo', 'Elite', 'Empire', 'Falcon', 'Frontier',
+  'Galaxy', 'Globe', 'Harbor', 'Helix', 'Horizon', 'Iris', 'Iron', 'Jupiter',
+  'Legacy', 'Lumen', 'Lynx', 'Maple', 'Mercury', 'Metro', 'Monarch', 'Nova',
+  'Nexus', 'Oak', 'Orion', 'Pacific', 'Pinnacle', 'Pioneer', 'Prism', 'Ridge',
+  'River', 'Sapphire', 'Silver', 'Solaris', 'Stellar', 'Summit', 'Titan',
+  'Triumph', 'Vector', 'Vertex', 'Vantage', 'Vista', 'Zenith', 'Zephyr',
+];
+
+const CLIENT_SUFFIX_POOL = [
+  'Corp', 'Industries', 'Systems', 'Foods', 'Retail', 'Manufacturing',
+  'Logistics', 'Health', 'Solutions', 'Group', 'Partners', 'Holdings',
+  'Enterprises', 'Technologies', 'Services', 'Ventures',
+];
+
+const EXT_PROJECT_NAME_POOL = [
+  'ERP Rollout', 'P2P Implementation', 'Finance Transformation',
+  'Supply Chain Optimization', 'Order Management System', 'NetSuite Migration',
+  'Inventory Optimization', 'Procure-to-Pay Rollout', 'Phase 2 ERP',
+  'O2C Implementation', 'Record-to-Report', 'Process Improvement',
+  'Finance Modernization', 'Source-to-Pay', 'Integrated Planning',
+  'ERP Assessment', 'AP Automation', 'GL Transformation',
+  'Order-to-Cash Rollout', 'FP&A Implementation', 'Supply Chain Visibility',
+  'Demand Planning', 'NetSuite Optimization', 'ERP Upgrade',
+  'Revenue Recognition', 'Close Acceleration', 'Working Capital',
+  'Procure-to-Pay Assessment', 'Inventory Planning', 'Treasury Transformation',
+];
+
+// ---------------------------------------------------------------------------
+// Generate per-tenant name substitutions (deterministic, seeded by tenant_id)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns name substitution maps for a given tenant.
+ * - consultantNameMap: template name → generated name (25 consultants)
+ * - clientNameMap:     template name → generated name (8 clients)
+ * - projectNameMap:    template name → generated name (10 external projects)
+ * Internal projects ('Pre-Sales Support', 'Internal Training') are unchanged.
+ */
+function generateTenantNames(tenantId) {
+  const rng = makePrng(hashTenantId(tenantId));
+
+  // 25 unique consultant names: shuffle first + last pools independently
+  const firstNames = pickUnique(FIRST_NAME_POOL, 25, rng);
+  const lastNames  = pickUnique(LAST_NAME_POOL,  25, rng);
+  const generatedConsultants = firstNames.map((f, i) => `${f} ${lastNames[i]}`);
+
+  // 8 unique client names: prefix + suffix pairs
+  const prefixes = pickUnique(CLIENT_PREFIX_POOL, 8, rng);
+  const suffixes = pickUnique(CLIENT_SUFFIX_POOL, 8, rng);
+  const generatedClients = prefixes.map((p, i) => `${p} ${suffixes[i]}`);
+
+  // 10 unique external project names
+  const extTypes = pickUnique(EXT_PROJECT_NAME_POOL, 10, rng);
+  // Prefix each project name with a short client identifier for realism
+  const generatedProjects = extTypes.map((type, i) => `${prefixes[i % 8]} ${type}`);
+
+  // Build maps: TEMPLATE_NAME → GENERATED_NAME
+  const templateConsultants = CONSULTANT_DEFS.map(c => c.name);
+  const consultantNameMap = Object.fromEntries(
+    templateConsultants.map((name, i) => [name, generatedConsultants[i]])
+  );
+
+  const templateClients = CLIENT_NAMES; // matches CLIENT_NAMES array order
+  const clientNameMap = Object.fromEntries(
+    templateClients.map((name, i) => [name, generatedClients[i]])
+  );
+
+  // External projects: PROJECT_DEFS indices 0-9 (non-internal)
+  const externalProjectDefs = PROJECT_DEFS.filter(p => p.client !== null);
+  const projectNameMap = Object.fromEntries(
+    externalProjectDefs.map((p, i) => [p.name, generatedProjects[i]])
+  );
+  // Internal projects keep their template names
+  PROJECT_DEFS.filter(p => p.client === null).forEach(p => {
+    projectNameMap[p.name] = p.name;
+  });
+
+  return { consultantNameMap, clientNameMap, projectNameMap };
+}
+
+// ---------------------------------------------------------------------------
 // Data definitions
 // ---------------------------------------------------------------------------
 
@@ -257,7 +404,11 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
 
   console.log('\n--- Seeding synthetic data ---\n');
 
-  // 1. Query lookup tables (levels + skill_sets are shared across tenants)
+  // 0. Generate deterministic per-tenant name substitutions
+  const { consultantNameMap, clientNameMap, projectNameMap } = generateTenantNames(tenantId);
+  console.log('Generated unique names for this tenant');
+
+  // 1. Query lookup tables (levels + skill_sets are tenant-scoped)
   const levelsRaw = await client.from('levels').select('id, name').eq('tenant_id', tenantId);
   if (levelsRaw.error) throw new Error(`Query levels: ${levelsRaw.error.message}`);
   const levelByName = Object.fromEntries(levelsRaw.data.map(r => [r.name, r.id]));
@@ -278,21 +429,22 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
   await deleteWhere('projects');            console.log('  projects cleared');
   await deleteWhere('clients');             console.log('  clients cleared');
 
-  // 3. Insert clients
+  // 3. Insert clients (using generated names)
   console.log('\nInserting clients...');
-  const clientRows = CLIENT_NAMES.map(name => ({ name, tenant_id: tenantId }));
+  const clientRows = CLIENT_NAMES.map(name => ({ name: clientNameMap[name], tenant_id: tenantId }));
   const insertedClients = await insert('clients', clientRows);
+  // clientByGeneratedName: generated name → id
   const clientByName = Object.fromEntries(insertedClients.map(r => [r.name, r.id]));
   console.log(`  Inserted ${insertedClients.length} clients`);
 
-  // 4. Insert projects
+  // 4. Insert projects (using generated names)
   console.log('Inserting projects...');
   const weeks = getWeekEndings(12);
   const week1Monday = addDays(weeks[0], -4);
 
   const projectRows = PROJECT_DEFS.map(p => ({
-    name: p.name,
-    client_id: p.client ? clientByName[p.client] : null,
+    name: projectNameMap[p.name],
+    client_id: p.client ? clientByName[clientNameMap[p.client]] : null,
     status: p.status,
     probability_pct: PROBABILITY_MAP[p.status],
     is_billable: p.is_billable,
@@ -301,13 +453,14 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
     tenant_id: tenantId,
   }));
   const insertedProjects = await insert('projects', projectRows);
+  // projectByGeneratedName: generated name → id
   const projectByName = Object.fromEntries(insertedProjects.map(r => [r.name, r.id]));
   console.log(`  Inserted ${insertedProjects.length} projects`);
 
-  // 5. Insert consultants
+  // 5. Insert consultants (using generated names)
   console.log('Inserting consultants...');
   const consultantRows = CONSULTANT_DEFS.map(c => ({
-    name: c.name,
+    name: consultantNameMap[c.name],
     level_id: levelByName[c.level],
     location: c.location,
     capacity_hours_per_week: 45,
@@ -317,14 +470,15 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
     tenant_id: tenantId,
   }));
   const insertedConsultants = await insert('consultants', consultantRows);
+  // consultantByGeneratedName: generated name → id
   const consultantByName = Object.fromEntries(insertedConsultants.map(r => [r.name, r.id]));
   console.log(`  Inserted ${insertedConsultants.length} consultants`);
 
-  // 6. Insert consultant_skill_sets
+  // 6. Insert consultant_skill_sets (same skills, generated names for lookup)
   console.log('Inserting consultant_skill_sets...');
   const cssRows = [];
   for (const c of CONSULTANT_DEFS) {
-    const cid = consultantByName[c.name];
+    const cid = consultantByName[consultantNameMap[c.name]];
     const seen = new Set();
     for (const skillName of c.skills) {
       const sid = skillByName[skillName];
@@ -337,14 +491,14 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
   const insertedCss = await insert('consultant_skill_sets', cssRows);
   console.log(`  Inserted ${insertedCss.length} consultant_skill_sets`);
 
-  // 7. Insert resource_assignments
+  // 7. Insert resource_assignments (template names resolved via name maps)
   console.log('Inserting resource_assignments...');
   const assignmentRows = [];
   for (const a of ASSIGNMENT_DEFS) {
-    const cid = consultantByName[a.consultant];
-    const pid = projectByName[a.project];
-    if (!cid) throw new Error(`Unknown consultant: ${a.consultant}`);
-    if (!pid) throw new Error(`Unknown project: ${a.project}`);
+    const cid = consultantByName[consultantNameMap[a.consultant]];
+    const pid = projectByName[projectNameMap[a.project]];
+    if (!cid) throw new Error(`Unknown consultant template: ${a.consultant}`);
+    if (!pid) throw new Error(`Unknown project template: ${a.project}`);
     for (let wi = a.weekRange[0] - 1; wi < a.weekRange[1]; wi++) {
       assignmentRows.push({
         consultant_id: cid,
@@ -359,17 +513,17 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
   const insertedAssignments = await insert('resource_assignments', assignmentRows);
   console.log(`  Inserted ${insertedAssignments.length} resource_assignments`);
 
-  // 8. Insert needs
+  // 8. Insert needs (template project names resolved via projectNameMap)
   console.log('Inserting needs...');
   for (const n of NEED_DEFS) {
-    const pid = projectByName[n.project];
+    const pid = projectByName[projectNameMap[n.project]];
     const lid = levelByName[n.level];
-    if (!pid) throw new Error(`Need FK not found — project: "${n.project}" (check PROJECT_DEFS name matches exactly)`);
+    if (!pid) throw new Error(`Need FK not found — project template: "${n.project}" → "${projectNameMap[n.project]}"`);
     if (!lid) throw new Error(`Need FK not found — level: "${n.level}" (check levels table has this name)`);
     console.log(`  Need: ${n.project} | ${n.level} → project_id=${pid} level_id=${lid}`);
   }
   const needRows = NEED_DEFS.map(n => ({
-    project_id: projectByName[n.project],
+    project_id: projectByName[projectNameMap[n.project]],
     level_id: levelByName[n.level],
     hours_per_week: n.hoursPerWeek,
     start_date: daysFromNow(n.startOff),

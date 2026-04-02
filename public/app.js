@@ -5378,6 +5378,60 @@ async function _enSubmit() {
   }
 }
 
+// ── Welcome modal ─────────────────────────────────────────────────
+const WELCOME_BULLETS = {
+  admin: [
+    'Full access to all tabs, consultants, and settings',
+    'Manage users and permissions under Settings → Users',
+    'Reset sandbox test data any time under Settings → Sandbox',
+    'Use Ask Claude for natural language staffing questions',
+  ],
+  resource_manager: [
+    'Edit the resource heatmap and manage consultant assignments',
+    'Create, edit, and close staffing needs',
+    'View consultant profiles and skill coverage',
+    'Use Ask Claude for natural language staffing questions',
+  ],
+  project_manager: [
+    'Create and manage open staffing needs for your projects',
+    'View the resource heatmap (read-only)',
+    'Track demand coverage and urgency',
+  ],
+  executive: [
+    'View utilization overview, heatmap, and bench data',
+    'Use Ask Claude to ask staffing questions in plain English',
+  ],
+  consultant: [
+    'View your own assignment schedule on the Staffing tab',
+    'Update your profile and skills in Settings',
+  ],
+};
+
+function closeWelcomeModal() {
+  const modal = document.getElementById('welcomeModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function _maybeShowWelcomeModal(userId, role, displayName) {
+  const key = `si_welcomed_${userId}`;
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+
+  const modal    = document.getElementById('welcomeModal');
+  const subtitle = document.getElementById('welcomeSubtitle');
+  const bullets  = document.getElementById('welcomeBullets');
+  if (!modal) return;
+
+  const roleLbl = { admin: 'Admin', resource_manager: 'Resource Manager',
+    project_manager: 'Project Manager', executive: 'Executive', consultant: 'Consultant' }[role] || role;
+  if (subtitle) subtitle.textContent = `You're signed in as ${displayName} (${roleLbl}).`;
+  if (bullets) {
+    const items = WELCOME_BULLETS[role] || [];
+    bullets.innerHTML = items.map(b => `<li>${b}</li>`).join('');
+  }
+  modal.classList.remove('hidden');
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -5386,6 +5440,21 @@ async function _enSubmit() {
     const me = await res.json();
     currentUserRole         = me.role || null;
     currentUserCanViewRates = !!me.canViewRates;
+
+    // Populate sidebar user info
+    const displayName = me.display_name || me.user?.email?.split('@')[0] || '';
+    const nameEl = document.getElementById('sidebarUserName');
+    const roleEl = document.getElementById('sidebarUserRole');
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) {
+      const roleLabels = { admin: 'Admin', resource_manager: 'RM',
+        project_manager: 'PM', executive: 'Exec', consultant: 'Consultant' };
+      roleEl.textContent = roleLabels[me.role] || (me.role || '');
+      roleEl.setAttribute('data-role', me.role || '');
+    }
+
+    // Show first-login welcome modal
+    if (me.user?.id) _maybeShowWelcomeModal(me.user.id, me.role, displayName);
   } catch (e) { window.location.replace('login.html'); return; }
 
   // ── Role-based tab gating ──────────────────────────────────────
