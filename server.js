@@ -142,19 +142,28 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // GET /api/auth/me
-app.get('/api/auth/me', (req, res) => {
+app.get('/api/auth/me', async (req, res) => {
   if (!req.session || !req.session.token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const displayName = req.session.user?.user_metadata?.display_name
     || req.session.user?.email?.split('@')[0]
     || null;
+
+  let tenantName = null;
+  const tid = req.session.tenant_id;
+  if (tid) {
+    const { data } = await serviceClient.from('tenants').select('name').eq('id', tid).single();
+    tenantName = data?.name || null;
+  }
+
   res.json({
     user:         req.session.user,
     role:         req.session.role,
-    tenant_id:    req.session.tenant_id,
+    tenant_id:    tid,
     canViewRates: ['admin', 'resource_manager'].includes(req.session.role),
     display_name: displayName,
+    tenant_name:  tenantName,
   });
 });
 

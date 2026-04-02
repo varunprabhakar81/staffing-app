@@ -5412,19 +5412,24 @@ function closeWelcomeModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-function _maybeShowWelcomeModal(userId, role, displayName) {
+function _maybeShowWelcomeModal(userId, role, displayName, tenantName) {
   const key = `si_welcomed_${userId}`;
   if (localStorage.getItem(key)) return;
   localStorage.setItem(key, '1');
 
-  const modal    = document.getElementById('welcomeModal');
-  const subtitle = document.getElementById('welcomeSubtitle');
-  const bullets  = document.getElementById('welcomeBullets');
+  const modal      = document.getElementById('welcomeModal');
+  const titleEl    = document.getElementById('welcomeTitle');
+  const companyEl  = document.getElementById('welcomeCompany');
+  const subtitle   = document.getElementById('welcomeSubtitle');
+  const bullets    = document.getElementById('welcomeBullets');
   if (!modal) return;
 
+  const firstName = displayName ? displayName.split(' ')[0] : displayName;
   const roleLbl = { admin: 'Admin', resource_manager: 'Resource Manager',
     project_manager: 'Project Manager', executive: 'Executive', consultant: 'Consultant' }[role] || role;
-  if (subtitle) subtitle.textContent = `You're signed in as ${displayName} (${roleLbl}).`;
+  if (titleEl)   titleEl.textContent   = firstName ? `Welcome, ${firstName}!` : 'Welcome!';
+  if (companyEl) companyEl.textContent = tenantName ? `You're managing resources for ${tenantName}.` : '';
+  if (subtitle)  subtitle.textContent  = `You're signed in as ${roleLbl}.`;
   if (bullets) {
     const items = WELCOME_BULLETS[role] || [];
     bullets.innerHTML = items.map(b => `<li>${b}</li>`).join('');
@@ -5443,8 +5448,10 @@ function _maybeShowWelcomeModal(userId, role, displayName) {
 
     // Populate sidebar user info
     const displayName = me.display_name || me.user?.email?.split('@')[0] || '';
-    const nameEl = document.getElementById('sidebarUserName');
-    const roleEl = document.getElementById('sidebarUserRole');
+    const tenantName  = me.tenant_name || '';
+    const nameEl     = document.getElementById('sidebarUserName');
+    const roleEl     = document.getElementById('sidebarUserRole');
+    const tenantEl   = document.getElementById('sidebarTenantName');
     if (nameEl) nameEl.textContent = displayName;
     if (roleEl) {
       const roleLabels = { admin: 'Admin', resource_manager: 'RM',
@@ -5452,9 +5459,10 @@ function _maybeShowWelcomeModal(userId, role, displayName) {
       roleEl.textContent = roleLabels[me.role] || (me.role || '');
       roleEl.setAttribute('data-role', me.role || '');
     }
+    if (tenantEl) tenantEl.textContent = tenantName;
 
     // Show first-login welcome modal
-    if (me.user?.id) _maybeShowWelcomeModal(me.user.id, me.role, displayName);
+    if (me.user?.id) _maybeShowWelcomeModal(me.user.id, me.role, displayName, tenantName);
   } catch (e) { window.location.replace('login.html'); return; }
 
   // ── Role-based tab gating ──────────────────────────────────────
