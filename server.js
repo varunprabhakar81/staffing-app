@@ -241,7 +241,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     return res.status(503).json({ error: freshData.error });
   }
 
-  const { supply, demand, employees } = staffingData;
+  const { supply, demand, employees } = freshData;
 
   // ── Shared helpers (used across all sections) ────────────────────────────
   const weekKeys = supply.length ? Object.keys(supply[0].weeklyHours) : [];
