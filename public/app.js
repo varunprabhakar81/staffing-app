@@ -1182,7 +1182,7 @@ function renderOverallocated(heatmapData) {
       <div class="ov-cliff-name">${r.name}</div>
       <div class="ov-cliff-meta">${r.level || '—'}${r.skillSet ? ' · ' + r.skillSet : ''}</div>
       <div class="ov-cliff-detail">
-        <span style="color:#F97316;font-size:11px">Peak: wk of ${r.worstWeek.wk}</span>
+        <span style="color:#F97316;font-size:11px">Peak: wk ending ${r.worstWeek.wk}</span>
         <span class="ov-cliff-hours">${r.worstWeek.hrs}h</span>
       </div>
     </div>`
@@ -1232,7 +1232,7 @@ function drillOverallocated() {
     return `<tr>
       <td>${_esc(e.name)}</td>
       <td style="color:#8892B0;font-size:12px">${_esc(e.level)}</td>
-      <td style="background:rgba(249,115,22,0.12);color:#F97316;font-weight:600;border-left:2px solid #F97316">${e.worstWeek.hrs}h <span style="font-size:11px;color:#8892B0;font-weight:400">wk of ${_esc(e.worstWeek.wk)}</span></td>
+      <td style="background:rgba(249,115,22,0.12);color:#F97316;font-weight:600;border-left:2px solid #F97316">${e.worstWeek.hrs}h <span style="font-size:11px;color:#8892B0;font-weight:400">wk ending ${_esc(e.worstWeek.wk)}</span></td>
       <td style="font-size:11px;color:#8892B0">${_esc(weeksStr)}</td>
       <td><button onclick="event.stopPropagation();closeDrilldown();_overallocatedNavigate('${_esc(e.name)}')" style="padding:4px 10px;background:#3B82F6;border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-family:inherit">Change Assignment</button></td>
     </tr>`;
