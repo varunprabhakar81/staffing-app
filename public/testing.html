@@ -440,6 +440,16 @@
     .tp-my-summary-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
     .hidden { display: none !important; }
+
+    /* ── Role filter bar ── */
+    .tp-role-filter-bar { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .tp-role-filter-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .tp-role-filter-select {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-primary); font-family: var(--font); font-size: 12px; font-weight: 500;
+      padding: 5px 10px; cursor: pointer; outline: none; transition: border-color 0.15s;
+    }
+    .tp-role-filter-select:hover, .tp-role-filter-select:focus { border-color: var(--text-dim); }
   </style>
 </head>
 <body>
@@ -522,6 +532,7 @@
           </div>
         </div>
       </div>
+      <div id="roleFilterBar"></div>
       <div id="testContent"></div>
     </main>
     <!-- Submit bar -->
@@ -572,12 +583,14 @@
 'use strict';
 
 // ── State ──────────────────────────────────────────────────────────────────
-let currentUser  = null;
-let testingRole  = null;  // 'test_admin' | 'tester' | null
-let testCases    = [];
-let myResults    = {};    // test_case_id → {status, notes, submitted_at}
-let isSubmitted  = false;
-let activeArea   = null;
+let currentUser      = null;
+let testingRole      = null;  // 'test_admin' | 'tester' | null
+let allTestCases     = [];    // all cases from JSON, unfiltered
+let testCases        = [];    // cases currently visible (after role filter)
+let activeRoleFilter = null;  // null = All roles
+let myResults        = {};    // test_case_id → {status, notes, submitted_at}
+let isSubmitted      = false;
+let activeArea       = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
@@ -652,7 +665,9 @@ function confirm(title, msg, okLabel, okClass, cb) {
       showToast('Failed to load test cases. Try refreshing.', 'error');
       return;
     }
-    testCases = allCases.filter(tc => tc.roles && tc.roles.includes(me.role));
+    allTestCases = allCases;
+    activeRoleFilter = readHashFilter();
+    testCases = filterByRole(allTestCases, activeRoleFilter);
 
     if (resultsRes.ok) {
       try {
@@ -670,6 +685,7 @@ function confirm(title, msg, okLabel, okClass, cb) {
     }
 
     renderSidebar();
+    renderRoleFilter();
     renderMyTests();
     renderMySummary();
     renderGeneralFeedback();
@@ -680,6 +696,12 @@ function confirm(title, msg, okLabel, okClass, cb) {
     console.error('Boot error:', bootErr);
     showToast('Page load error: ' + bootErr.message, 'error');
   }
+
+  // Role filter hash navigation (back/forward)
+  window.addEventListener('hashchange', () => {
+    const role = readHashFilter();
+    if (role !== activeRoleFilter) setRoleFilter(role);
+  });
 
   // Tab switching
   document.querySelectorAll('.tp-tab').forEach(btn => {
@@ -894,6 +916,49 @@ function renderMySummary() {
 
   // Re-bind button listener after every innerHTML replacement
   document.getElementById('feedbackBtn').addEventListener('click', openFeedbackPanel);
+}
+
+// ── Role filter ────────────────────────────────────────────────────────────
+function filterByRole(cases, role) {
+  if (!role) return cases;
+  return cases.filter(tc => tc.roles && tc.roles.includes(role));
+}
+
+function readHashFilter() {
+  const m = location.hash.match(/^#role=(.+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function setRoleFilter(role) {
+  activeRoleFilter = role || null;
+  testCases = filterByRole(allTestCases, activeRoleFilter);
+  if (activeRoleFilter) {
+    history.replaceState(null, '', '#role=' + encodeURIComponent(activeRoleFilter));
+  } else {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  renderRoleFilter();
+  renderSidebar();
+  renderMyTests();
+  renderMySummary();
+  updateProgress();
+  updateSubmitBar();
+}
+
+function renderRoleFilter() {
+  const bar = document.getElementById('roleFilterBar');
+  if (!bar) return;
+  const total = allTestCases.length;
+  if (total === 0) { bar.innerHTML = ''; return; }
+  const ROLES = ['admin', 'resource_manager', 'project_manager', 'executive', 'consultant'];
+  let opts = `<option value=""${!activeRoleFilter ? ' selected' : ''}>All roles (${total})</option>`;
+  ROLES.forEach(r => {
+    const count = allTestCases.filter(tc => tc.roles && tc.roles.includes(r)).length;
+    if (count === 0) return;
+    opts += `<option value="${r}"${activeRoleFilter === r ? ' selected' : ''}>${r} (${count})</option>`;
+  });
+  bar.innerHTML = `<div class="tp-role-filter-bar"><label class="tp-role-filter-label" for="roleFilterSelect">Show:</label><select class="tp-role-filter-select" id="roleFilterSelect">${opts}</select></div>`;
+  document.getElementById('roleFilterSelect').addEventListener('change', e => setRoleFilter(e.target.value || null));
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
