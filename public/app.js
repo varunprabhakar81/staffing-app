@@ -4628,92 +4628,74 @@ function closeInviteModal() {
   modal.classList.add('hidden');
   document.getElementById('inviteForm').reset();
   document.getElementById('inviteError').classList.add('hidden');
-  checkInvitePwStrength(''); // reset checklist and re-disable submit
-}
-
-function checkInvitePwStrength(val) {
-  const rules = [
-    { id: 'pwRule-len',   ok: val.length >= 12,              label: 'At least 12 characters' },
-    { id: 'pwRule-upper', ok: /[A-Z]/.test(val),             label: 'Uppercase letter' },
-    { id: 'pwRule-lower', ok: /[a-z]/.test(val),             label: 'Lowercase letter' },
-    { id: 'pwRule-num',   ok: /\d/.test(val),                label: 'Number' },
-    { id: 'pwRule-spec',  ok: /[^A-Za-z\d]/.test(val),      label: 'Special character' },
-  ];
-  let allPass = true;
-  for (const r of rules) {
-    const el = document.getElementById(r.id);
-    if (!el) continue;
-    if (r.ok) {
-      el.textContent = `✓ ${r.label}`;
-      el.style.color = '#10B981';
-    } else {
-      el.textContent = `✕ ${r.label}`;
-      el.style.color = val.length === 0 ? '#4A4D5A' : '#F87171';
-      allPass = false;
-    }
-  }
-  const btn = document.getElementById('inviteSubmitBtn');
-  btn.disabled      = !allPass;
-  btn.style.opacity = allPass ? '1' : '0.45';
-  btn.style.cursor  = allPass ? 'pointer' : 'not-allowed';
+  document.getElementById('inviteResult').classList.add('hidden');
+  document.getElementById('inviteUrlText').value = '';
+  document.getElementById('copyInviteBtn').textContent = 'Copy';
 }
 
 function handleInviteOverlayClick(e) {
   if (e.target === document.getElementById('inviteModal')) closeInviteModal();
 }
 
-// Phase 2 SSO/SAML: delivery method toggle (magic link vs temp password) will be added here.
-
 async function submitInvite(e) {
   e.preventDefault();
-  const form   = document.getElementById('inviteForm');
-  const errEl  = document.getElementById('inviteError');
+  const form  = document.getElementById('inviteForm');
+  const errEl = document.getElementById('inviteError');
   errEl.classList.add('hidden');
 
-  const name         = form.elements.name.value.trim();
+  const display_name = form.elements.name.value.trim();
   const email        = form.elements.email.value.trim();
   const role         = form.elements.role.value;
-  const tempPassword = form.elements.tempPassword?.value.trim() || '';
 
-  if (!name || !email || !role) {
+  if (!display_name || !email || !role) {
     errEl.textContent = 'Name, email, and role are required.';
-    errEl.classList.remove('hidden');
-    return;
-  }
-  if (!tempPassword) {
-    errEl.textContent = 'A temporary password is required.';
     errEl.classList.remove('hidden');
     return;
   }
 
   const btn = document.getElementById('inviteSubmitBtn');
   btn.disabled    = true;
-  btn.textContent = 'Creating…';
+  btn.textContent = 'Generating…';
 
   try {
     const res = await apiFetch('/api/admin/users/invite', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, email, role, tempPassword }),
+      body:    JSON.stringify({ email, role, display_name }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      errEl.textContent = data.error || 'Failed to create user.';
+      errEl.textContent = data.error || 'Failed to generate invite link.';
       errEl.classList.remove('hidden');
       btn.disabled    = false;
-      btn.textContent = 'Add User';
+      btn.textContent = 'Generate Invite Link';
       return;
     }
 
-    closeInviteModal();
-    showToast(`${email} created successfully.`);
+    document.getElementById('inviteUrlText').value = data.invite_url;
+    document.getElementById('inviteResult').classList.remove('hidden');
+    btn.disabled    = false;
+    btn.textContent = 'Generate Invite Link';
     loadUsers();
   } catch (err) {
     errEl.textContent = err.message || 'Network error.';
     errEl.classList.remove('hidden');
     btn.disabled    = false;
-    btn.textContent = 'Add User';
+    btn.textContent = 'Generate Invite Link';
+  }
+}
+
+async function copyInviteLink() {
+  const url = document.getElementById('inviteUrlText').value;
+  const btn = document.getElementById('copyInviteBtn');
+  try {
+    await navigator.clipboard.writeText(url);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  } catch (_) {
+    document.getElementById('inviteUrlText').select();
   }
 }
 

@@ -65,6 +65,7 @@ function employeeWeeklyAverages(supply) {
 // ── Auth middleware ──────────────────────────────────────────────────────────
 
 function requireAuth(req, res, next) {
+  console.log('requireAuth called for:', req.method, req.originalUrl);
   if (!req.session || !req.session.token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -185,6 +186,51 @@ app.post('/api/auth/reset-password', async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('reset-password error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
+});
+
+console.log('REGISTERING set-password route');
+// POST /api/auth/set-password — invitee sets password + promotes user_metadata to app_metadata
+app.post('/api/auth/set-password', async (req, res) => {
+  console.log('SET-PASSWORD ROUTE HIT, body:', JSON.stringify(req.body));
+  const { access_token, password } = req.body || {};
+  if (!access_token || !password) {
+    return res.status(400).json({ error: 'access_token and password are required.' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  }
+
+  try {
+    // Use a throwaway client to validate the invite token. Calling getUser(jwt) on the
+    // shared serviceClient mutates its internal session state and corrupts subsequent
+    // admin calls — isolate the validation to a short-lived client instead.
+    const validationClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+    const { data: { user }, error: getUserError } = await validationClient.auth.getUser(access_token);
+    if (getUserError || !user) {
+      return res.status(401).json({ error: 'Invalid or expired invite link. Please contact your admin for a new one.' });
+    }
+
+    const { error: pwError } = await serviceClient.auth.admin.updateUserById(user.id, { password });
+    if (pwError) return res.status(400).json({ error: pwError.message });
+
+    const meta = user.user_metadata || {};
+    if (meta.role && meta.tenant_id) {
+      await serviceClient.auth.admin.updateUserById(user.id, {
+        app_metadata: {
+          role:         meta.role,
+          tenant_id:    meta.tenant_id,
+          display_name: meta.display_name || user.email
+        }
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('set-password error:', err);
     res.status(500).json({ error: 'An unexpected error occurred.' });
   }
 });
@@ -1536,9 +1582,9 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
   }
 });
 
-// POST /api/admin/users/invite — create or invite a new user
+// POST /api/admin/users/invite — generate invite link (no temp password)
 app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (req, res) => {
-  const { email, role, name, deliveryMethod, tempPassword } = req.body || {};
+  const { email, role, display_name } = req.body || {};
   if (!email || !role) {
     return res.status(400).json({ error: 'email and role are required' });
   }
@@ -1546,45 +1592,22 @@ app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (re
     return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
   }
 
-  // Phase 2 SSO/SAML: provider-based invite flow (magic link / IdP provisioning)
-  // will hook in here when SSO is implemented. For now only temp-password creation
-  // is supported; reject magic-link requests explicitly.
-  if (deliveryMethod === 'invite') {
-    return res.status(400).json({ error: "Magic link invites are not supported. Use deliveryMethod 'password'." });
-  }
-
-  if (!tempPassword) return res.status(400).json({ error: 'tempPassword is required' });
-  const pwFailures = [];
-  if (tempPassword.length < 12)           pwFailures.push('at least 12 characters');
-  if (!/[A-Z]/.test(tempPassword))        pwFailures.push('an uppercase letter');
-  if (!/[a-z]/.test(tempPassword))        pwFailures.push('a lowercase letter');
-  if (!/\d/.test(tempPassword))           pwFailures.push('a number');
-  if (!/[^A-Za-z\d]/.test(tempPassword)) pwFailures.push('a special character');
-  if (pwFailures.length) {
-    return res.status(400).json({ error: `Password must include: ${pwFailures.join(', ')}.` });
-  }
-
   try {
-    let createData, createError;
+    const { data: linkData, error } = await serviceClient.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: {
+        data: { role, tenant_id: tId(req), display_name: display_name || email },
+        redirectTo: `${process.env.RAILWAY_URL || 'http://localhost:3000'}/set-password.html`
+      }
+    });
+    if (error) return res.status(400).json({ error: error.message });
 
-    ({ data: createData, error: createError } =
-      await serviceClient.auth.admin.createUser({
-        email,
-        password:      tempPassword,
-        email_confirm: true,
-        user_metadata: { name },
-      }));
-
-    if (createError) return res.status(400).json({ error: createError.message });
-
-    const userId = createData.user.id;
-    const { data: updatedData, error: updateError } =
-      await serviceClient.auth.admin.updateUserById(userId, {
-        app_metadata: { role, tenant_id: req.session.tenant_id },
-      });
-    if (updateError) return res.status(500).json({ error: updateError.message });
-
-    res.status(201).json(updatedData.user);
+    res.status(201).json({
+      success: true,
+      invite_url: linkData.properties.action_link,
+      email
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

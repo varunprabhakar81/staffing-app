@@ -179,6 +179,7 @@ SUPABASE_SERVICE_KEY=...       # server-only, bypasses RLS
 SUPABASE_ANON_KEY=eyJ...
 SESSION_SECRET=...             # 32-byte random hex
 TENANT_ID=...                  # UUID, fixed per deployment
+RAILWAY_URL=https://staffing-app-production.up.railway.app  # used as redirectTo base in invite generateLink
 ```
 
 Railway auto-sets `PORT=8080`; do not override it in Railway config.
