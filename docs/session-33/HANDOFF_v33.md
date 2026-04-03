@@ -6,6 +6,57 @@
 
 ---
 
+## Roadmap & Milestone Summary
+
+### Product stage
+Pilot — internal adoption. 8 test users across 4 tenants. No external customers yet.
+Gate to V3: at least 3 unsolicited feature requests from pilot users.
+
+### Pilot milestone (10 open issues)
+
+**Ready for next session:**
+| Priority | Issue | Description | Effort |
+|----------|-------|-------------|--------|
+| 1 | #207 | Comprehensive test case regeneration (crawl app, rebuild test-cases.json) | Medium |
+| 2 | — | Varun UAT day (run full test suite after #207) | Half day |
+| 3 | — | Tester onboarding (Tim/Shreyas/Nick via onboarding runbook) | Small |
+| 4 | #204 | Main app header redesign | Medium |
+| 5 | #208 | Skill set categories rethink — structured grouping | Medium-Large |
+| 6 | #188 | Consultant master data: Industry + Country fields | Small |
+| 7 | #209 | Overview mini donut — restore or remove dead code | Small |
+| 8 | #183 | Contextual tooltips (informed by UAT feedback) | Small |
+| 9 | #184 | Admin getting-started checklist (informed by UAT) | Medium |
+| 10 | #182 | In-app onboarding tour (informed by UAT) | Medium |
+
+**Recently completed (this session):**
+- #205 — Donut hover tooltip ✓
+- #206 — Bulk need creation ✓
+
+**Completed earlier in Pilot:**
+- #195 — Per-tenant sandboxes + personalization ✓
+- #196 — Rename Staffing → Resource Allocation ✓
+- #199 — Button terminology audit ✓
+- #192 — Week alignment ✓
+- #201 — Invite flow (set-password + generateLink) ✓
+- #202 — Testing companion app ✓
+- #197 — Open needs modal — group by project, collapsed ✓
+- #198 — Needs tab — expand/collapse all ✓
+
+### V3 milestone (first external customer — after Pilot)
+| # | Title |
+|---|-------|
+| #96 | Tenant onboarding |
+| #97 | Extended roles |
+| #118 | Audit log |
+| #172 | Client hierarchy |
+| #203 | Configure custom SMTP for branded emails |
+
+### Parallel tracks (non-Pilot)
+- **SOD Detector SaaS** — starts after staffing app auth + Railway deploy close out. Repo exists (varunprabhakar81/sod-detector), 10 epics created.
+- **Deloitte client work** — AT&T (NetSuite + Ivalua), ForgedFiber ADM.
+
+---
+
 ## What Was Done This Session
 
 ### #205 — Donut hover tooltip (CLOSED)
