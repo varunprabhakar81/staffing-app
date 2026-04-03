@@ -5419,6 +5419,26 @@ function _maybeShowWelcomeModal(userId, role, displayName, tenantName) {
   modal.classList.remove('hidden');
 }
 
+// ── Tenant branding ───────────────────────────────────────────────
+const TENANT_BRANDS = {
+  'Meridian Consulting': {
+    color: '#1D9E75',
+    icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12" stroke="#1D9E75" stroke-width="2"/><path d="M14 4 L14 24 M8 8 L14 4 L20 8" stroke="#1D9E75" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  },
+  'Acme Corp': {
+    color: '#D85A30',
+    icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 3 L16 11 L24 11 L18 16 L20 24 L14 19 L8 24 L10 16 L4 11 L12 11Z" stroke="#D85A30" stroke-width="2" fill="none" stroke-linejoin="round"/></svg>`,
+  },
+  'BigCo Inc': {
+    color: '#378ADD',
+    icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="4" y="10" width="8" height="14" rx="1" stroke="#378ADD" stroke-width="2"/><rect x="16" y="4" width="8" height="20" rx="1" stroke="#378ADD" stroke-width="2"/><line x1="6" y1="14" x2="10" y2="14" stroke="#378ADD" stroke-width="1.5"/><line x1="6" y1="18" x2="10" y2="18" stroke="#378ADD" stroke-width="1.5"/><line x1="18" y1="8" x2="22" y2="8" stroke="#378ADD" stroke-width="1.5"/><line x1="18" y1="12" x2="22" y2="12" stroke="#378ADD" stroke-width="1.5"/><line x1="18" y1="16" x2="22" y2="16" stroke="#378ADD" stroke-width="1.5"/></svg>`,
+  },
+  'Summit LLC': {
+    color: '#7F77DD',
+    icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 3 L24 24 L4 24Z" stroke="#7F77DD" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M14 10 L18 24 L10 24Z" fill="#7F77DD" opacity="0.2"/></svg>`,
+  }
+};
+
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -5442,6 +5462,38 @@ function _maybeShowWelcomeModal(userId, role, displayName, tenantName) {
       roleEl.setAttribute('data-role', me.role || '');
     }
     if (tenantEl) tenantEl.textContent = tenantName;
+
+    // Apply per-tenant sidebar branding
+    const brand = TENANT_BRANDS[tenantName] || TENANT_BRANDS['Meridian Consulting'];
+
+    // Replace static logo with tenant icon
+    const logoEl = document.querySelector('.sidebar-logo');
+    if (logoEl) {
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'sidebar-brand-icon';
+      iconSpan.style.cssText = 'display:flex;align-items:center;flex-shrink:0;';
+      iconSpan.innerHTML = brand.icon;
+      logoEl.replaceWith(iconSpan);
+    }
+
+    // 3px left border accent on brand area
+    const brandArea = document.querySelector('.sidebar-brand');
+    if (brandArea) {
+      brandArea.style.borderLeft = `3px solid ${brand.color}`;
+      brandArea.style.paddingLeft = '13px'; // compensate for 3px border
+    }
+
+    // Tenant name: brand color + soft glow
+    if (tenantEl) {
+      tenantEl.style.color = brand.color;
+      tenantEl.style.textShadow = `0 0 10px ${brand.color}4D`;
+    }
+
+    // Active nav item border color (CSS injection survives tab switches)
+    const brandStyle = document.createElement('style');
+    brandStyle.id = 'tenant-brand-style';
+    brandStyle.textContent = `.nav-item.active { border-left-color: ${brand.color} !important; }`;
+    document.head.appendChild(brandStyle);
 
     // Show first-login welcome modal
     if (me.user?.id) _maybeShowWelcomeModal(me.user.id, me.role, displayName, tenantName);
