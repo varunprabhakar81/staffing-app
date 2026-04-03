@@ -5448,6 +5448,12 @@ const TENANT_BRANDS = {
     currentUserRole         = me.role || null;
     currentUserCanViewRates = !!me.canViewRates;
 
+    // Show Testing Portal link only for users with a testing_role
+    if (me.testing_role) {
+      const navEl = document.getElementById('testingPortalNav');
+      if (navEl) navEl.style.display = '';
+    }
+
     // Populate sidebar user info
     const displayName = me.display_name || me.user?.email?.split('@')[0] || '';
     const tenantName  = me.tenant_name || '';

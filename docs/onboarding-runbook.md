@@ -44,7 +44,7 @@ const RAILWAY_URL = process.env.RAILWAY_URL || 'https://staffing-app-production.
     type: 'invite',
     email: 'USER_EMAIL',
     options: {
-      data: { role: 'USER_ROLE', tenant_id: tenant.id, display_name: 'USER_NAME' },
+      data: { role: 'USER_ROLE', tenant_id: tenant.id, display_name: 'USER_NAME', testing_role: 'tester' },
       redirectTo: `${RAILWAY_URL}/set-password.html`
     }
   });

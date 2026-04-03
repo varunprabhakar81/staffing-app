@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS test_results (
   status        TEXT        NOT NULL CHECK (status IN ('pass', 'fail', 'skip')),
   notes         TEXT,
   tested_at     TIMESTAMPTZ DEFAULT now(),
+  submitted_at  TIMESTAMPTZ DEFAULT NULL,
   UNIQUE(tenant_id, test_case_id, user_id)
 );
 

@@ -97,10 +97,11 @@ app.post('/api/auth/login', async (req, res) => {
     if (!data.user.email_confirmed_at) {
       return res.status(401).json({ error: 'Email not verified. Please check your inbox for the verification link.' });
     }
-    req.session.token     = data.session.access_token;
-    req.session.user      = data.user;
-    req.session.tenant_id = data.user.app_metadata?.tenant_id;
-    req.session.role      = data.user.app_metadata?.role;
+    req.session.token      = data.session.access_token;
+    req.session.user       = data.user;
+    req.session.tenant_id  = data.user.app_metadata?.tenant_id;
+    req.session.role       = data.user.app_metadata?.role;
+    req.session.testing_role = data.user.app_metadata?.testing_role || null;
     const uid = data.user.id;
     if (!userSessionMap.has(uid)) userSessionMap.set(uid, new Set());
     userSessionMap.get(uid).add(req.session.id);
@@ -138,12 +139,13 @@ app.get('/api/auth/me', async (req, res) => {
   }
 
   res.json({
-    user:         req.session.user,
-    role:         req.session.role,
-    tenant_id:    tid,
-    canViewRates: ['admin', 'resource_manager'].includes(req.session.role),
-    display_name: displayName,
-    tenant_name:  tenantName,
+    user:          req.session.user,
+    role:          req.session.role,
+    tenant_id:     tid,
+    canViewRates:  ['admin', 'resource_manager'].includes(req.session.role),
+    display_name:  displayName,
+    tenant_name:   tenantName,
+    testing_role:  req.session.testing_role || null,
   });
 });
 
@@ -152,8 +154,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: 'Email is required.' });
 
-  const origin     = req.headers.origin || `${req.protocol}://${req.headers.host}`;
-  const redirectTo = `${origin}/reset-password`;
+  const redirectTo = `${process.env.RAILWAY_URL || 'http://localhost:3000'}/set-password.html`;
 
   try {
     await supabaseAuth.auth.resetPasswordForEmail(email, { redirectTo });
@@ -1736,12 +1737,17 @@ app.post('/api/admin/reset-sandbox', requireAuth, requireRole('admin'), async (r
 
 // ── Testing companion endpoints ──────────────────────────────────────────────
 
-// GET /api/test-results — current user's results
+const getTestingRole = (req) => req.session?.testing_role || null;
+const isTestAdmin    = (req) => getTestingRole(req) === 'test_admin';
+const isTester       = (req) => ['test_admin', 'tester'].includes(getTestingRole(req));
+
+// GET /api/test-results — current user's results (includes submitted_at)
 app.get('/api/test-results', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
   try {
     const { data, error } = await serviceClient
       .from('test_results')
-      .select('test_case_id, status, notes, tested_at')
+      .select('test_case_id, status, notes, tested_at, submitted_at')
       .eq('tenant_id', tId(req))
       .eq('user_id', req.session.user.id);
     if (error) return res.status(500).json({ error: error.message });
@@ -1751,8 +1757,9 @@ app.get('/api/test-results', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/test-results — upsert a single result
+// POST /api/test-results — upsert a single result (blocked if submitted)
 app.post('/api/test-results', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
   const { test_case_id, status, notes } = req.body || {};
   if (!test_case_id || !status) {
     return res.status(400).json({ error: 'test_case_id and status are required' });
@@ -1761,6 +1768,17 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'status must be pass, fail, or skip' });
   }
   try {
+    // Block writes if user has already submitted
+    const { data: existing } = await serviceClient
+      .from('test_results')
+      .select('submitted_at')
+      .eq('tenant_id', tId(req))
+      .eq('user_id', req.session.user.id)
+      .not('submitted_at', 'is', null)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return res.status(403).json({ error: 'Tests already submitted. Ask the test admin to reset your results.' });
+    }
     const { error } = await serviceClient
       .from('test_results')
       .upsert({
@@ -1779,15 +1797,76 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/test-results/summary — admin only, all users' results for tenant
-app.get('/api/test-results/summary', requireAuth, requireRole('admin'), async (req, res) => {
+// DELETE /api/test-results/:testCaseId — remove a single result (blocked if submitted)
+app.delete('/api/test-results/:testCaseId', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
+  const { testCaseId } = req.params;
+  try {
+    const { data: existing } = await serviceClient
+      .from('test_results')
+      .select('submitted_at')
+      .eq('tenant_id', tId(req))
+      .eq('user_id', req.session.user.id)
+      .not('submitted_at', 'is', null)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return res.status(403).json({ error: 'Tests already submitted.' });
+    }
+    const { error } = await serviceClient
+      .from('test_results')
+      .delete()
+      .eq('tenant_id', tId(req))
+      .eq('user_id', req.session.user.id)
+      .eq('test_case_id', testCaseId);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/test-results/submit — lock all current user's results
+app.post('/api/test-results/submit', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
+  try {
+    const now = new Date().toISOString();
+    const { error } = await serviceClient
+      .from('test_results')
+      .update({ submitted_at: now })
+      .eq('tenant_id', tId(req))
+      .eq('user_id', req.session.user.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true, submitted_at: now });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/test-results/summary — test_admin only, all tenants
+app.get('/api/test-results/summary', requireAuth, async (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
   try {
     const { data, error } = await serviceClient
       .from('test_results')
-      .select('test_case_id, user_id, user_email, status, notes, tested_at')
-      .eq('tenant_id', tId(req));
+      .select('test_case_id, user_id, user_email, tenant_id, status, notes, tested_at, submitted_at, tenants(name)');
     if (error) return res.status(500).json({ error: error.message });
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/test-results/reset — test_admin only; body: { user_id? } omit = reset all
+app.post('/api/test-results/reset', requireAuth, async (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
+  const { user_id } = req.body || {};
+  try {
+    let query = serviceClient.from('test_results').delete();
+    if (user_id) query = query.eq('user_id', user_id);
+    else         query = query.neq('id', '00000000-0000-0000-0000-000000000000'); // delete all
+    const { error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
