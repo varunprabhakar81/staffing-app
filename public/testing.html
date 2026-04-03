@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staffing Intelligence — Testing Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0D1117;
+      --bg-card:      #161B22;
+      --bg-elevated:  #1C2230;
+      --border:       #30363D;
+      --border-subtle:#21262D;
+      --text-primary: #E2E8F0;
+      --text-muted:   #8892B0;
+      --text-dim:     #4A5568;
+      --accent:       #86BC25;
+      --accent-muted: rgba(134,188,37,0.12);
+      --pass:         #1D9E75;
+      --pass-muted:   rgba(29,158,117,0.15);
+      --fail:         #E53E3E;
+      --fail-muted:   rgba(229,62,62,0.15);
+      --skip:         #718096;
+      --skip-muted:   rgba(113,128,150,0.15);
+      --font: 'Open Sans', sans-serif;
+      --radius: 8px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .tp-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .tp-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+    .tp-header-brand svg { opacity: 0.85; }
+    .tp-header-sep { color: var(--text-dim); }
+    .tp-header-subtitle { color: var(--text-muted); font-size: 12px; }
+    .tp-header-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .tp-header-user { display: flex; align-items: center; gap: 6px; }
+    .tp-role-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--accent-muted);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── Progress bar ── */
+    .tp-progress-wrap {
+      flex: 1;
+      max-width: 360px;
+    }
+    .tp-progress-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .tp-progress-bar {
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .tp-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* ── Tabs ── */
+    .tp-tabs {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 0 24px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tp-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tp-tab:hover { color: var(--text-primary); }
+    .tp-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    .tp-body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .tp-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+    .tp-sidebar-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0 16px 8px;
+    }
+    .tp-area-filter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 16px;
+      cursor: pointer;
+      border-radius: 0;
+      border: none;
+      background: none;
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 100%;
+      text-align: left;
+      transition: background 0.1s, color 0.1s;
+      border-left: 3px solid transparent;
+    }
+    .tp-area-filter:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .tp-area-filter.active {
+      background: var(--accent-muted);
+      color: var(--accent);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+    .tp-area-count {
+      font-size: 10px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      padding: 1px 6px;
+      color: var(--text-dim);
+    }
+    .tp-area-filter.active .tp-area-count { background: var(--accent-muted); color: var(--accent); }
+
+    /* ── Main content ── */
+    .tp-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ── Area section ── */
+    .tp-area-section { margin-bottom: 32px; }
+    .tp-area-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .tp-area-heading h2 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .tp-area-heading-count {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
+    .tp-area-chevron {
+      margin-left: auto;
+      color: var(--text-dim);
+      transition: transform 0.15s;
+    }
+    .tp-area-section.collapsed .tp-area-chevron { transform: rotate(-90deg); }
+    .tp-area-cards { display: flex; flex-direction: column; gap: 8px; }
+    .tp-area-section.collapsed .tp-area-cards { display: none; }
+
+    /* ── Test card ── */
+    .tp-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      transition: border-color 0.15s;
+    }
+    .tp-card.status-pass { border-left: 3px solid var(--pass); }
+    .tp-card.status-fail { border-left: 3px solid var(--fail); }
+    .tp-card.status-skip { border-left: 3px solid var(--skip); }
+
+    .tp-card-body { flex: 1; min-width: 0; }
+    .tp-card-id {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .tp-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .tp-card-detail {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 4px 8px;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .tp-card-label { color: var(--text-dim); font-weight: 600; padding-top: 1px; }
+    .tp-card-value { color: var(--text-muted); line-height: 1.5; }
+
+    .tp-card-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+      min-width: 140px;
+    }
+    .tp-btn-group {
+      display: flex;
+      gap: 4px;
+    }
+    .tp-btn {
+      padding: 5px 12px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tp-btn:hover { color: var(--text-primary); border-color: var(--text-dim); }
+    .tp-btn.pass.active, .tp-btn.pass:hover { background: var(--pass-muted); color: var(--pass); border-color: var(--pass); }
+    .tp-btn.fail.active, .tp-btn.fail:hover { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
+    .tp-btn.skip.active, .tp-btn.skip:hover { background: var(--skip-muted); color: var(--skip); border-color: var(--skip); }
+    .tp-btn.saving { opacity: 0.6; cursor: wait; }
+
+    .tp-notes-wrap { width: 100%; }
+    .tp-notes {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 12px;
+      padding: 6px 8px;
+      resize: vertical;
+      min-height: 52px;
+      transition: border-color 0.15s;
+    }
+    .tp-notes:focus { outline: none; border-color: var(--text-dim); }
+    .tp-notes::placeholder { color: var(--text-dim); }
+    .tp-notes-add {
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .tp-notes-add:hover { color: var(--text-muted); }
+
+    .tp-card-status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .tp-card-status-badge.pass { background: var(--pass-muted); color: var(--pass); }
+    .tp-card-status-badge.fail { background: var(--fail-muted); color: var(--fail); }
+    .tp-card-status-badge.skip { background: var(--skip-muted); color: var(--skip); }
+
+    /* ── Summary tab ── */
+    .tp-summary-stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .tp-stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 20px;
+      min-width: 120px;
+    }
+    .tp-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .tp-stat-label { font-size: 11px; color: var(--text-muted); }
+
+    .tp-summary-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      align-items: center;
+    }
+    .tp-filter-btn {
+      padding: 5px 12px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tp-filter-btn:hover, .tp-filter-btn.active {
+      background: var(--accent-muted);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .tp-filter-label { font-size: 12px; color: var(--text-muted); }
+
+    .tp-matrix-wrap { overflow-x: auto; }
+    .tp-matrix {
+      border-collapse: collapse;
+      min-width: 100%;
+      font-size: 12px;
+    }
+    .tp-matrix th {
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 8px 10px;
+      text-align: left;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+    }
+    .tp-matrix th.tester-col {
+      writing-mode: vertical-lr;
+      transform: rotate(180deg);
+      max-width: 80px;
+      font-size: 11px;
+      padding: 8px 6px;
+    }
+    .tp-matrix td {
+      border: 1px solid var(--border-subtle);
+      padding: 6px 10px;
+      vertical-align: middle;
+    }
+    .tp-matrix tr:hover td { background: rgba(255,255,255,0.02); }
+    .tp-matrix .area-row td {
+      background: var(--bg-elevated);
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 5px 10px;
+    }
+    .tp-matrix .test-title-cell {
+      color: var(--text-primary);
+      font-weight: 500;
+      min-width: 200px;
+      max-width: 300px;
+    }
+    .tp-matrix .test-id-cell {
+      color: var(--text-dim);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .tp-dot-cell {
+      text-align: center;
+      cursor: pointer;
+    }
+    .tp-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .tp-dot.pass  { background: var(--pass); }
+    .tp-dot.fail  { background: var(--fail); }
+    .tp-dot.skip  { background: var(--skip); }
+    .tp-dot.empty { background: var(--border); }
+
+    /* ── Tooltip ── */
+    .tp-tooltip {
+      position: fixed;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-primary);
+      max-width: 280px;
+      z-index: 200;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .tp-tooltip-tester { font-weight: 700; margin-bottom: 4px; }
+    .tp-tooltip-status { margin-bottom: 4px; }
+    .tp-tooltip-notes { color: var(--text-muted); font-style: italic; }
+
+    /* ── Toast ── */
+    .tp-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--text-primary);
+      z-index: 300;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .tp-toast.show { opacity: 1; transform: translateY(0); }
+    .tp-toast.pass { border-left: 3px solid var(--pass); }
+    .tp-toast.fail { border-left: 3px solid var(--fail); }
+    .tp-toast.skip { border-left: 3px solid var(--skip); }
+    .tp-toast.error { border-left: 3px solid var(--fail); }
+
+    /* ── Empty / loading states ── */
+    .tp-empty {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+    .tp-empty h3 { font-size: 16px; margin-bottom: 8px; color: var(--text-primary); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="tp-header">
+  <div class="tp-header-brand">
+    <svg width="18" height="18" viewBox="0 0 30 30" fill="none">
+      <circle cx="15" cy="8" r="3.8" fill="#86BC25"/>
+      <path d="M7.5 24c0-4.142 3.358-7.5 7.5-7.5s7.5 3.358 7.5 7.5" stroke="#86BC25" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    Staffing Intelligence
+  </div>
+  <span class="tp-header-sep">/</span>
+  <span class="tp-header-subtitle">Testing Portal</span>
+
+  <div class="tp-progress-wrap" id="headerProgress">
+    <div class="tp-progress-label">
+      <span id="progressText">Loading…</span>
+      <span id="progressPct"></span>
+    </div>
+    <div class="tp-progress-bar"><div class="tp-progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="tp-header-meta">
+    <div class="tp-header-user">
+      <span id="headerTenant" style="color:var(--text-primary);font-weight:600"></span>
+      <span style="color:var(--text-dim)">·</span>
+      <span id="headerUser"></span>
+      <span class="tp-role-badge" id="headerRole"></span>
+    </div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tp-tabs">
+  <button class="tp-tab active" data-tab="my-tests">My Tests</button>
+  <button class="tp-tab hidden" id="summaryTab" data-tab="summary">Summary</button>
+</div>
+
+<!-- Body -->
+<div class="tp-body">
+
+  <!-- Sidebar (area filters) -->
+  <aside class="tp-sidebar" id="areaSidebar">
+    <div class="tp-sidebar-title">Areas</div>
+    <div id="areaFilters"></div>
+  </aside>
+
+  <!-- My Tests panel -->
+  <main class="tp-main" id="panelMyTests">
+    <div id="testContent"></div>
+  </main>
+
+  <!-- Summary panel -->
+  <main class="tp-main hidden" id="panelSummary">
+    <div class="tp-summary-stats" id="summaryStats"></div>
+    <div class="tp-summary-filters">
+      <span class="tp-filter-label">Filter:</span>
+      <button class="tp-filter-btn active" data-filter="all">All</button>
+      <button class="tp-filter-btn" data-filter="fail">Failures only</button>
+      <button class="tp-filter-btn" data-filter="untested">Untested only</button>
+    </div>
+    <div class="tp-matrix-wrap">
+      <table class="tp-matrix" id="summaryMatrix"></table>
+    </div>
+  </main>
+
+</div>
+
+<!-- Tooltip -->
+<div class="tp-tooltip hidden" id="tooltip"></div>
+
+<!-- Toast -->
+<div class="tp-toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentUser = null;
+let testCases   = [];
+let myResults   = {};     // test_case_id → {status, notes}
+let summaryData = [];     // raw from /api/test-results/summary
+let activeArea  = null;
+let summaryFilter = 'all';
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  return fetch(url, { credentials: 'include', ...opts });
+}
+
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `tp-toast show ${type}`;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.className = 'tp-toast'; }, 2200);
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+(async () => {
+  // Auth check
+  const meRes = await apiFetch('/api/auth/me');
+  if (meRes.status === 401) { window.location.replace('login.html'); return; }
+  const me = await meRes.json();
+  currentUser = me;
+
+  // Header
+  document.getElementById('headerTenant').textContent = me.tenant_name || '';
+  document.getElementById('headerUser').textContent   = me.display_name || me.user?.email || '';
+  const roleLabels = { admin:'Admin', resource_manager:'RM', project_manager:'PM', executive:'Exec', consultant:'Consultant' };
+  document.getElementById('headerRole').textContent   = roleLabels[me.role] || me.role || '';
+
+  if (me.role === 'admin') {
+    document.getElementById('summaryTab').classList.remove('hidden');
+  }
+
+  // Load test cases + my results in parallel
+  const [tcRes, resultsRes] = await Promise.all([
+    fetch('/test-cases.json'),
+    apiFetch('/api/test-results')
+  ]);
+  testCases = await tcRes.json();
+
+  if (resultsRes.ok) {
+    const results = await resultsRes.json();
+    results.forEach(r => { myResults[r.test_case_id] = { status: r.status, notes: r.notes || '' }; });
+  }
+
+  // Filter test cases to role
+  testCases = testCases.filter(tc => tc.roles.includes(me.role));
+
+  renderSidebar();
+  renderMyTests();
+  updateProgress();
+
+  // Tab switching
+  document.querySelectorAll('.tp-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tp-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('panelMyTests').classList.toggle('hidden', tab !== 'my-tests');
+      document.getElementById('panelSummary').classList.toggle('hidden', tab !== 'summary');
+      document.getElementById('areaSidebar').classList.toggle('hidden', tab !== 'my-tests');
+      if (tab === 'summary') loadSummary();
+    });
+  });
+
+  // Summary filter buttons
+  document.querySelectorAll('.tp-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tp-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      summaryFilter = btn.dataset.filter;
+      renderMatrix();
+    });
+  });
+})();
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+function getAreas() {
+  const order = [];
+  const seen  = new Set();
+  testCases.forEach(tc => { if (!seen.has(tc.area)) { order.push(tc.area); seen.add(tc.area); } });
+  return order;
+}
+
+function renderSidebar() {
+  const areas     = getAreas();
+  const container = document.getElementById('areaFilters');
+  container.innerHTML = '';
+  areas.forEach(area => {
+    const total     = testCases.filter(tc => tc.area === area).length;
+    const completed = testCases.filter(tc => tc.area === area && myResults[tc.id]).length;
+    const btn       = document.createElement('button');
+    btn.className   = 'tp-area-filter' + (activeArea === area ? ' active' : '');
+    btn.dataset.area = area;
+    btn.innerHTML    = `<span>${esc(area)}</span><span class="tp-area-count">${completed}/${total}</span>`;
+    btn.addEventListener('click', () => scrollToArea(area));
+    container.appendChild(btn);
+  });
+}
+
+function scrollToArea(area) {
+  activeArea = area;
+  renderSidebar();
+  const el = document.getElementById('area-' + area.replace(/[^a-z0-9]/gi, '-'));
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── My Tests ───────────────────────────────────────────────────────────────
+function renderMyTests() {
+  const areas     = getAreas();
+  const container = document.getElementById('testContent');
+  container.innerHTML = '';
+
+  if (testCases.length === 0) {
+    container.innerHTML = '<div class="tp-empty"><h3>No tests for your role</h3><p>There are no test cases assigned to your role.</p></div>';
+    return;
+  }
+
+  areas.forEach(area => {
+    const cases = testCases.filter(tc => tc.area === area);
+    if (cases.length === 0) return;
+
+    const sectionId = 'area-' + area.replace(/[^a-z0-9]/gi, '-');
+    const completed  = cases.filter(tc => myResults[tc.id]).length;
+
+    const section   = document.createElement('div');
+    section.className = 'tp-area-section';
+    section.id      = sectionId;
+
+    section.innerHTML = `
+      <div class="tp-area-heading">
+        <h2>${esc(area)}</h2>
+        <span class="tp-area-heading-count">${completed}/${cases.length}</span>
+        <svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="tp-area-cards" id="cards-${sectionId}"></div>
+    `;
+
+    const cardsEl = section.querySelector('.tp-area-cards');
+    cases.forEach(tc => cardsEl.appendChild(buildCard(tc)));
+
+    section.querySelector('.tp-area-heading').addEventListener('click', () => {
+      section.classList.toggle('collapsed');
+    });
+
+    container.appendChild(section);
+  });
+}
+
+function buildCard(tc) {
+  const result   = myResults[tc.id] || {};
+  const status   = result.status || '';
+  const notes    = result.notes  || '';
+  const hasNotes = !!notes;
+
+  const card = document.createElement('div');
+  card.className = `tp-card${status ? ' status-' + status : ''}`;
+  card.dataset.id = tc.id;
+
+  card.innerHTML = `
+    <div class="tp-card-body">
+      <div class="tp-card-id">${esc(tc.id)}</div>
+      <div class="tp-card-title">${esc(tc.title)}</div>
+      <div class="tp-card-detail">
+        <span class="tp-card-label">Steps</span>
+        <span class="tp-card-value">${esc(tc.steps)}</span>
+        <span class="tp-card-label">Expected</span>
+        <span class="tp-card-value">${esc(tc.expected)}</span>
+      </div>
+    </div>
+    <div class="tp-card-actions">
+      ${status ? `<span class="tp-card-status-badge ${status}">${status}</span>` : ''}
+      <div class="tp-btn-group">
+        <button class="tp-btn pass${status === 'pass' ? ' active' : ''}" data-action="pass" data-id="${esc(tc.id)}">Pass</button>
+        <button class="tp-btn fail${status === 'fail' ? ' active' : ''}" data-action="fail" data-id="${esc(tc.id)}">Fail</button>
+        <button class="tp-btn skip${status === 'skip' ? ' active' : ''}" data-action="skip" data-id="${esc(tc.id)}">Skip</button>
+      </div>
+      <div class="tp-notes-wrap" id="notes-wrap-${esc(tc.id)}" ${!hasNotes && status !== 'fail' ? 'style="display:none"' : ''}>
+        <textarea class="tp-notes" id="notes-${esc(tc.id)}" placeholder="Add notes…" rows="2">${esc(notes)}</textarea>
+      </div>
+      ${!hasNotes && status !== 'fail' ? `<button class="tp-notes-add" data-notes-id="${esc(tc.id)}">+ Add note</button>` : ''}
+    </div>
+  `;
+
+  // Pass/Fail/Skip buttons
+  card.querySelectorAll('.tp-btn[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => saveResult(tc.id, btn.dataset.action, card));
+  });
+
+  // Add note link
+  const noteAdd = card.querySelector('.tp-notes-add');
+  if (noteAdd) {
+    noteAdd.addEventListener('click', () => {
+      card.querySelector(`#notes-wrap-${tc.id}`).style.display = '';
+      noteAdd.remove();
+      card.querySelector(`#notes-${tc.id}`).focus();
+    });
+  }
+
+  // Notes autosave on blur
+  const notesEl = card.querySelector(`#notes-${tc.id}`);
+  if (notesEl) {
+    notesEl.addEventListener('blur', () => {
+      if (myResults[tc.id]?.status) {
+        saveResult(tc.id, myResults[tc.id].status, card, notesEl.value);
+      }
+    });
+  }
+
+  return card;
+}
+
+async function saveResult(testId, status, card, notesOverride) {
+  const notesEl = document.getElementById(`notes-${testId}`);
+  const notes   = notesOverride !== undefined ? notesOverride : (notesEl ? notesEl.value : '');
+
+  // Optimistic UI
+  myResults[testId] = { status, notes };
+  card.className     = `tp-card status-${status}`;
+
+  // Update button states
+  card.querySelectorAll('.tp-btn[data-action]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.action === status);
+  });
+
+  // Show notes on fail
+  if (status === 'fail') {
+    const wrap = card.querySelector(`#notes-wrap-${testId}`);
+    if (wrap) wrap.style.display = '';
+    const addBtn = card.querySelector(`.tp-notes-add[data-notes-id="${testId}"]`);
+    if (addBtn) addBtn.remove();
+  }
+
+  // Update status badge
+  let badgeEl = card.querySelector('.tp-card-status-badge');
+  if (!badgeEl) {
+    badgeEl = document.createElement('span');
+    card.querySelector('.tp-card-actions').prepend(badgeEl);
+  }
+  badgeEl.className   = `tp-card-status-badge ${status}`;
+  badgeEl.textContent = status;
+
+  // Disable buttons while saving
+  card.querySelectorAll('.tp-btn[data-action]').forEach(b => b.classList.add('saving'));
+
+  try {
+    const res = await apiFetch('/api/test-results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test_case_id: testId, status, notes: notes || null })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      showToast('Save failed: ' + (err.error || 'unknown error'), 'error');
+    } else {
+      showToast(`${testId} → ${status}`, status);
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+  } finally {
+    card.querySelectorAll('.tp-btn[data-action]').forEach(b => b.classList.remove('saving'));
+    updateProgress();
+    renderSidebar();
+  }
+}
+
+function updateProgress() {
+  const total     = testCases.length;
+  const completed = testCases.filter(tc => myResults[tc.id]).length;
+  const pct       = total > 0 ? Math.round(completed / total * 100) : 0;
+  document.getElementById('progressText').textContent = `${completed} of ${total} completed`;
+  document.getElementById('progressPct').textContent  = `${pct}%`;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+// ── Summary ────────────────────────────────────────────────────────────────
+async function loadSummary() {
+  const res = await apiFetch('/api/test-results/summary');
+  if (!res.ok) {
+    document.getElementById('summaryStats').innerHTML = '<p style="color:var(--fail)">Could not load summary.</p>';
+    return;
+  }
+  summaryData = await res.json();
+  renderSummaryStats();
+  renderMatrix();
+}
+
+function renderSummaryStats() {
+  // All test cases (unfiltered by role for summary)
+  const allCases   = testCases;
+  const testers    = [...new Set(summaryData.map(r => r.user_email))];
+  const totalCells = allCases.length * testers.length;
+  const done       = summaryData.length;
+  const passing    = summaryData.filter(r => r.status === 'pass').length;
+  const failing    = summaryData.filter(r => r.status === 'fail').length;
+  const pctDone    = totalCells > 0 ? Math.round(done / totalCells * 100) : 0;
+  const pctPass    = done > 0 ? Math.round(passing / done * 100) : 0;
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="tp-stat"><div class="tp-stat-value">${allCases.length}</div><div class="tp-stat-label">Test cases</div></div>
+    <div class="tp-stat"><div class="tp-stat-value">${testers.length}</div><div class="tp-stat-label">Testers</div></div>
+    <div class="tp-stat"><div class="tp-stat-value" style="color:var(--accent)">${pctDone}%</div><div class="tp-stat-label">Complete</div></div>
+    <div class="tp-stat"><div class="tp-stat-value" style="color:var(--pass)">${pctPass}%</div><div class="tp-stat-label">Passing</div></div>
+    <div class="tp-stat"><div class="tp-stat-value" style="color:var(--fail)">${failing}</div><div class="tp-stat-label">Failures</div></div>
+  `;
+}
+
+function renderMatrix() {
+  // Build lookup: test_case_id → user_email → {status, notes}
+  const lookup = {};
+  summaryData.forEach(r => {
+    if (!lookup[r.test_case_id]) lookup[r.test_case_id] = {};
+    lookup[r.test_case_id][r.user_email] = { status: r.status, notes: r.notes };
+  });
+
+  const testers  = [...new Set(summaryData.map(r => r.user_email))].sort();
+  const areas    = getAreas();
+
+  // Apply filter
+  let filteredCases = testCases;
+  if (summaryFilter === 'fail') {
+    filteredCases = testCases.filter(tc => {
+      return testers.some(t => lookup[tc.id]?.[t]?.status === 'fail');
+    });
+  } else if (summaryFilter === 'untested') {
+    filteredCases = testCases.filter(tc => {
+      return testers.some(t => !lookup[tc.id]?.[t]);
+    });
+  }
+
+  const table = document.getElementById('summaryMatrix');
+
+  if (testers.length === 0) {
+    table.innerHTML = '<tr><td style="padding:40px;color:var(--text-muted);text-align:center">No test results submitted yet.</td></tr>';
+    return;
+  }
+
+  // Header row
+  let html = '<thead><tr>';
+  html    += '<th style="min-width:50px">ID</th>';
+  html    += '<th style="min-width:200px">Test</th>';
+  testers.forEach(t => {
+    const short = t.split('@')[0].replace(/\+.*/, '');
+    html += `<th class="tester-col" title="${esc(t)}">${esc(short)}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  let lastArea = null;
+  filteredCases.forEach(tc => {
+    if (tc.area !== lastArea) {
+      lastArea = tc.area;
+      html += `<tr class="area-row"><td colspan="${2 + testers.length}">${esc(tc.area)}</td></tr>`;
+    }
+    html += '<tr>';
+    html += `<td class="test-id-cell">${esc(tc.id)}</td>`;
+    html += `<td class="test-title-cell">${esc(tc.title)}</td>`;
+    testers.forEach(t => {
+      const result = lookup[tc.id]?.[t];
+      const st     = result?.status || 'empty';
+      const notes  = result?.notes  || '';
+      html += `<td class="tp-dot-cell" data-tester="${esc(t)}" data-notes="${esc(notes)}" data-status="${esc(st)}" data-test="${esc(tc.title)}">`;
+      html += `<span class="tp-dot ${st}"></span>`;
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  // Tooltip on dot cells
+  table.querySelectorAll('.tp-dot-cell').forEach(cell => {
+    cell.addEventListener('mouseenter', e => showDotTooltip(e, cell));
+    cell.addEventListener('mouseleave', () => {
+      document.getElementById('tooltip').classList.add('hidden');
+    });
+  });
+}
+
+function showDotTooltip(e, cell) {
+  const tt     = document.getElementById('tooltip');
+  const status = cell.dataset.status;
+  const tester = cell.dataset.tester;
+  const notes  = cell.dataset.notes;
+  const test   = cell.dataset.test;
+  if (status === 'empty') { tt.classList.add('hidden'); return; }
+
+  const statusColors = { pass: 'var(--pass)', fail: 'var(--fail)', skip: 'var(--skip)' };
+  tt.innerHTML = `
+    <div class="tp-tooltip-tester">${esc(tester)}</div>
+    <div class="tp-tooltip-status" style="color:${statusColors[status]||'inherit'}">${status.toUpperCase()}</div>
+    ${notes ? `<div class="tp-tooltip-notes">"${esc(notes)}"</div>` : ''}
+  `;
+  tt.classList.remove('hidden');
+  const rect = e.target.getBoundingClientRect();
+  tt.style.left = (rect.left + 16) + 'px';
+  tt.style.top  = (rect.top  - 8)  + 'px';
+}
+</script>
+</body>
+</html>

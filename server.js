@@ -1734,6 +1734,65 @@ app.post('/api/admin/reset-sandbox', requireAuth, requireRole('admin'), async (r
   }
 });
 
+// ── Testing companion endpoints ──────────────────────────────────────────────
+
+// GET /api/test-results — current user's results
+app.get('/api/test-results', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await serviceClient
+      .from('test_results')
+      .select('test_case_id, status, notes, tested_at')
+      .eq('tenant_id', tId(req))
+      .eq('user_id', req.session.user.id);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/test-results — upsert a single result
+app.post('/api/test-results', requireAuth, async (req, res) => {
+  const { test_case_id, status, notes } = req.body || {};
+  if (!test_case_id || !status) {
+    return res.status(400).json({ error: 'test_case_id and status are required' });
+  }
+  if (!['pass', 'fail', 'skip'].includes(status)) {
+    return res.status(400).json({ error: 'status must be pass, fail, or skip' });
+  }
+  try {
+    const { error } = await serviceClient
+      .from('test_results')
+      .upsert({
+        tenant_id:    tId(req),
+        test_case_id,
+        user_id:      req.session.user.id,
+        user_email:   req.session.user.email,
+        status,
+        notes:        notes || null,
+        tested_at:    new Date().toISOString()
+      }, { onConflict: 'tenant_id,test_case_id,user_id' });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/test-results/summary — admin only, all users' results for tenant
+app.get('/api/test-results/summary', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { data, error } = await serviceClient
+      .from('test_results')
+      .select('test_case_id, user_id, user_email, status, notes, tested_at')
+      .eq('tenant_id', tId(req));
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/events — Server-Sent Events endpoint
 app.get('/api/events', (req, res) => {
   console.log('SSE client connected');
