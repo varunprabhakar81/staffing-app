@@ -666,7 +666,12 @@ function confirm(title, msg, okLabel, okClass, cb) {
       return;
     }
     allTestCases = allCases;
-    activeRoleFilter = readHashFilter();
+    // Testers are locked to their own app role — ignore any hash param
+    if (testingRole === 'tester') {
+      activeRoleFilter = currentUser.role || null;
+    } else {
+      activeRoleFilter = readHashFilter();
+    }
     testCases = filterByRole(allTestCases, activeRoleFilter);
 
     if (resultsRes.ok) {
@@ -697,8 +702,9 @@ function confirm(title, msg, okLabel, okClass, cb) {
     showToast('Page load error: ' + bootErr.message, 'error');
   }
 
-  // Role filter hash navigation (back/forward)
+  // Role filter hash navigation (back/forward) — test_admin only; testers are locked to own role
   window.addEventListener('hashchange', () => {
+    if (testingRole === 'tester') return;
     const role = readHashFilter();
     if (role !== activeRoleFilter) setRoleFilter(role);
   });
@@ -950,6 +956,16 @@ function renderRoleFilter() {
   if (!bar) return;
   const total = allTestCases.length;
   if (total === 0) { bar.innerHTML = ''; return; }
+
+  // Testers see a read-only label showing their locked role
+  if (testingRole === 'tester') {
+    const ROLE_LABELS = { admin: 'Admin', resource_manager: 'Resource Manager', project_manager: 'Project Manager', executive: 'Executive', consultant: 'Consultant' };
+    const displayRole = ROLE_LABELS[activeRoleFilter] || activeRoleFilter || 'Unknown';
+    bar.innerHTML = `<div class="tp-role-filter-bar"><span class="tp-role-filter-label">Showing tests for: <strong style="color:var(--text-primary)">${esc(displayRole)}</strong></span></div>`;
+    return;
+  }
+
+  // test_admin: full dropdown with all roles + hash persistence
   const ROLES = ['admin', 'resource_manager', 'project_manager', 'executive', 'consultant'];
   let opts = `<option value=""${!activeRoleFilter ? ' selected' : ''}>All roles (${total})</option>`;
   ROLES.forEach(r => {
