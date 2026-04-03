@@ -245,6 +245,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 | `Ctrl+1–5` | Switch tabs |
 | `Ctrl+R` | Refresh dashboard |
 | `Ctrl+B` | Toggle sidebar |
+| `Ctrl+K` | Focus search |
 | `?` | Show shortcut help |
 | `Esc` | Close modal |
 
