@@ -1764,8 +1764,8 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
   if (!test_case_id || !status) {
     return res.status(400).json({ error: 'test_case_id and status are required' });
   }
-  if (!['pass', 'fail', 'skip'].includes(status)) {
-    return res.status(400).json({ error: 'status must be pass, fail, or skip' });
+  if (!['pass', 'fail', 'skip', 'note'].includes(status)) {
+    return res.status(400).json({ error: 'status must be pass, fail, skip, or note' });
   }
   try {
     // Block writes if user has already submitted

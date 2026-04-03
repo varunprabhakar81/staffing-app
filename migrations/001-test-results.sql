@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS test_results (
   test_case_id  TEXT        NOT NULL,
   user_id       UUID        NOT NULL,
   user_email    TEXT        NOT NULL,
-  status        TEXT        NOT NULL CHECK (status IN ('pass', 'fail', 'skip')),
+  status        TEXT        NOT NULL CHECK (status IN ('pass', 'fail', 'skip', 'note')),
   notes         TEXT,
   tested_at     TIMESTAMPTZ DEFAULT now(),
   submitted_at  TIMESTAMPTZ DEFAULT NULL,
