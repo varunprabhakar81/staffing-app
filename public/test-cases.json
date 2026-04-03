@@ -28,80 +28,104 @@
     "area": "Authentication",
     "title": "Session persists across page refresh",
     "roles": ["admin", "resource_manager", "project_manager", "executive", "consultant"],
-    "steps": "Log in. Press F5 or Ctrl+R to refresh the page.",
+    "steps": "Log in. Press F5 to refresh the page.",
     "expected": "Dashboard reloads. User is still logged in. Sidebar still shows correct name and role."
   },
   {
     "id": "auth-05",
     "area": "Authentication",
-    "title": "Forgot password flow",
+    "title": "Forgot password — success message",
     "roles": ["admin", "resource_manager", "project_manager", "executive", "consultant"],
     "steps": "Go to login.html. Click 'Forgot password?'. Enter your email. Click Send.",
-    "expected": "Success message appears. A password reset email is sent to the inbox."
+    "expected": "Success message appears. No error is shown. (Email delivery requires working SMTP — confirm message display only.)"
   },
   {
-    "id": "dashboard-01",
-    "area": "Dashboard",
-    "title": "KPIs load correctly",
+    "id": "auth-06",
+    "area": "Authentication",
+    "title": "Set password via invite token — promotes role metadata",
+    "roles": ["admin"],
+    "steps": "Open an invite link (generated in Settings → Users). The link should go to set-password.html with token type 'invite'. Enter a new password and confirm. Submit.",
+    "expected": "Page shows 'Set Your Password' heading. After submit, user is redirected to the app. Role and tenant metadata are applied. Sidebar shows correct role badge."
+  },
+  {
+    "id": "auth-07",
+    "area": "Authentication",
+    "title": "Set password via recovery token — password reset only",
+    "roles": ["admin"],
+    "steps": "Trigger a password reset for a user. Open the reset link (set-password.html with token type 'recovery'). Enter a new password and confirm. Submit.",
+    "expected": "Page shows 'Reset Your Password' heading (not 'Set Your Password'). After submit, user can log in with the new password. Role metadata is not altered."
+  },
+  {
+    "id": "overview-01",
+    "area": "Overview",
+    "title": "KPI cards render with numeric values",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "Log in and view the Overview tab.",
-    "expected": "Utilization %, bench count, and billable headcount KPI cards all show numeric values (not blank or error)."
+    "steps": "Log in and navigate to the Overview tab.",
+    "expected": "All KPI cards (Available Capacity %, On Bench count, Open Needs count) display numeric values. No card shows blank, NaN, or an error state."
   },
   {
-    "id": "dashboard-02",
-    "area": "Dashboard",
-    "title": "Bench list shows correct consultants",
+    "id": "overview-02",
+    "area": "Overview",
+    "title": "Bench KPI drilldown opens modal with consultant list",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "On the Overview tab, view the Bench section.",
-    "expected": "Consultants with 0–10h/week this week appear in the bench list with their name and current hours."
+    "steps": "On the Overview tab, click the On Bench KPI card.",
+    "expected": "A drilldown modal or panel opens. It lists consultants with 0–10h this week, with their names and current hours."
   },
   {
-    "id": "dashboard-03",
-    "area": "Dashboard",
-    "title": "Rolloff list accuracy",
+    "id": "overview-03",
+    "area": "Overview",
+    "title": "Open Needs KPI drilldown opens needs detail",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Overview tab, click the Open Needs KPI card.",
+    "expected": "A drilldown opens showing open needs. Each item shows project, level, and dates."
+  },
+  {
+    "id": "overview-04",
+    "area": "Overview",
+    "title": "Rolling Off Soon panel lists upcoming rolloffs",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "On the Overview tab, view the Upcoming Rolloffs section.",
+    "steps": "On the Overview tab, view the Rolling Off Soon panel.",
     "expected": "Consultants whose project assignments end in the next 4 weeks appear, with project name and end date."
   },
   {
-    "id": "dashboard-04",
-    "area": "Dashboard",
-    "title": "Demand cliffs display",
+    "id": "overview-05",
+    "area": "Overview",
+    "title": "Overallocated Resources panel shows 46h+ consultants",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "On the Overview tab, view the Demand Cliffs section.",
-    "expected": "Weeks where demand drops significantly are highlighted. Each row shows the week and the drop in hours."
+    "steps": "On the Overview tab, view the Overallocated Resources panel.",
+    "expected": "Consultants assigned more than 45h/week appear in the list. Each row shows name and current hours."
   },
   {
-    "id": "dashboard-05",
-    "area": "Dashboard",
-    "title": "Needs coverage donut chart renders",
-    "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Overview tab, find the Open Needs donut chart.",
-    "expected": "Donut chart renders with colored segments. Legend shows client names and counts."
-  },
-  {
-    "id": "dashboard-06",
-    "area": "Dashboard",
-    "title": "Donut chart click filters needs list",
-    "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Overview tab, click a segment on the Open Needs donut chart.",
-    "expected": "The needs list below the chart filters to show only needs for that client. Clicking again clears the filter."
-  },
-  {
-    "id": "dashboard-07",
-    "area": "Dashboard",
-    "title": "Chart tooltips display data",
+    "id": "overview-06",
+    "area": "Overview",
+    "title": "Top Projects panel shows most utilized projects",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "On the Overview tab, hover over bars or segments in any chart.",
-    "expected": "Tooltip appears showing relevant data (week label, hours, consultant name, etc.)."
+    "steps": "On the Overview tab, view the Top Projects panel.",
+    "expected": "A list of projects appears ordered by total hours this week. Each row shows project name and hours."
   },
   {
-    "id": "dashboard-08",
-    "area": "Dashboard",
-    "title": "Dashboard refreshes on Ctrl+R",
+    "id": "overview-07",
+    "area": "Overview",
+    "title": "Chart tooltips appear on hover",
+    "roles": ["admin", "resource_manager", "executive"],
+    "steps": "On the Overview tab, hover over bars or segments in any visible chart.",
+    "expected": "A tooltip appears showing relevant data (label and value). Tooltip disappears when cursor moves away."
+  },
+  {
+    "id": "overview-08",
+    "area": "Overview",
+    "title": "Ctrl+R refreshes dashboard without full page reload",
     "roles": ["admin", "resource_manager", "executive"],
     "steps": "On the Overview tab, press Ctrl+R.",
-    "expected": "Dashboard data reloads. KPIs and charts update. No full page refresh occurs."
+    "expected": "KPIs and panels reload. No browser-level page refresh occurs (address bar stays the same, tab does not blink)."
+  },
+  {
+    "id": "overview-09",
+    "area": "Overview",
+    "title": "Drilldown modals open expanded by default",
+    "roles": ["admin", "resource_manager", "executive"],
+    "steps": "Click any KPI card that opens a drilldown modal. Observe the initial state of grouped sections inside.",
+    "expected": "All consultant group sections inside the drilldown are expanded (visible) by default. An Expand/Collapse All button is present above the rows."
   },
   {
     "id": "heatmap-01",
@@ -114,170 +138,274 @@
   {
     "id": "heatmap-02",
     "area": "Resource Allocation",
-    "title": "Color coding: bench, partial, utilized, overallocated",
+    "title": "Color coding — bench, partial, utilized, overallocated",
     "roles": ["admin", "resource_manager", "executive"],
     "steps": "On the Resource Allocation tab, observe cell colors across the heatmap.",
-    "expected": "Red cells = 0–10h (bench). Yellow = 11–44h (partial). Green = 45h (utilized). Orange = 46h+ (over)."
+    "expected": "Red cells = 0–10h (bench). Yellow = 11–44h (partial). Green = 45h (fully utilized). Orange = 46h+ (overallocated)."
   },
   {
     "id": "heatmap-03",
     "area": "Resource Allocation",
-    "title": "Expand consultant row shows project breakdown",
+    "title": "Expand consultant row shows project sub-rows",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Resource Allocation tab, click the chevron/arrow next to a consultant name.",
-    "expected": "Row expands to show per-project sub-rows with individual project hours per week."
+    "steps": "Click the chevron next to a consultant name to expand their row.",
+    "expected": "Row expands to show one sub-row per project, with individual hours per week for each project."
   },
   {
     "id": "heatmap-04",
     "area": "Resource Allocation",
-    "title": "Inline cell editing — click, type, blur to save",
-    "roles": ["admin", "resource_manager"],
-    "steps": "Click a cell in the heatmap. Type a new number. Click elsewhere or press Tab.",
-    "expected": "Cell saves the new value. Cell color updates to reflect new utilization level. No page reload."
+    "title": "Expand All and Collapse All buttons work",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Resource Allocation tab, click Expand All. Then click Collapse All.",
+    "expected": "Expand All opens sub-rows for all consultants. Collapse All closes them all. Both actions complete without error."
   },
   {
     "id": "heatmap-05",
     "area": "Resource Allocation",
-    "title": "Save confirmation appears after edit",
+    "title": "Inline cell editing — click, type, blur to save",
     "roles": ["admin", "resource_manager"],
-    "steps": "Edit a heatmap cell and save (blur or Tab).",
-    "expected": "A brief save confirmation message appears (e.g. toast or status indicator), then disappears."
+    "steps": "Click a week cell in the heatmap. Type a new number (e.g. 40). Click elsewhere on the page.",
+    "expected": "Cell saves the new value. Cell color updates to reflect the new utilization band. No page reload occurs."
   },
   {
     "id": "heatmap-06",
     "area": "Resource Allocation",
-    "title": "Keyboard nav: Tab moves between cells",
+    "title": "Save confirmation appears after cell edit",
     "roles": ["admin", "resource_manager"],
-    "steps": "Click a heatmap cell. Press Tab repeatedly.",
-    "expected": "Focus moves to the next cell in the row, then wraps to the next row. Each focused cell is editable."
+    "steps": "Edit a heatmap cell (click, type, blur).",
+    "expected": "A brief save confirmation indicator (toast or status message) appears after the save, then disappears."
   },
   {
     "id": "heatmap-07",
     "area": "Resource Allocation",
-    "title": "Keyboard nav: Enter moves down",
+    "title": "Keyboard nav — Tab moves between cells horizontally",
     "roles": ["admin", "resource_manager"],
-    "steps": "Click a heatmap cell. Type a value. Press Enter.",
-    "expected": "Value is saved and focus moves to the same column in the next row."
+    "steps": "Click a heatmap cell. Press Tab repeatedly.",
+    "expected": "Focus moves to the next cell in the row. At the end of a row, focus wraps to the next row. Each focused cell is editable."
   },
   {
     "id": "heatmap-08",
     "area": "Resource Allocation",
-    "title": "Quick Fill functionality",
+    "title": "Keyboard nav — Enter saves and moves down to next row",
     "roles": ["admin", "resource_manager"],
-    "steps": "Click Quick Fill for a consultant+project row. Fill in a value and confirm.",
-    "expected": "The specified hours are written to the selected week range. Heatmap cells update."
+    "steps": "Click a heatmap cell. Type a value. Press Enter.",
+    "expected": "Value is saved. Focus moves to the same column in the next row (skipping consultants with no project sub-rows)."
   },
   {
     "id": "heatmap-09",
     "area": "Resource Allocation",
-    "title": "Collapse and expand all rows",
-    "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Resource Allocation tab, click Expand All, then Collapse All.",
-    "expected": "Expand All opens all consultant sub-rows. Collapse All hides all sub-rows. Performance stays smooth."
+    "title": "Quick Fill uses API path, not DOM",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Expand a consultant's project sub-row. Use the Quick Fill bar to enter hours for a date range. Apply.",
+    "expected": "Hours are written to the correct cells. Open the browser DevTools Network tab first and confirm a POST to /api/save-staffing is made. No DOM cell matching should occur."
   },
   {
     "id": "heatmap-10",
     "area": "Resource Allocation",
-    "title": "Heatmap virtual scroll performance",
+    "title": "Consultant name click opens profile modal",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Resource Allocation tab, click a consultant's name.",
+    "expected": "A profile modal opens showing the consultant's details (name, level, skills, location). Modal is not editable for PM and executive roles."
+  },
+  {
+    "id": "heatmap-11",
+    "area": "Resource Allocation",
+    "title": "Virtual scroll — smooth performance with many rows",
     "roles": ["admin", "resource_manager"],
     "steps": "On the Resource Allocation tab, scroll rapidly up and down through all consultants.",
-    "expected": "Scrolling is smooth (no freezing or jank). Rows render correctly without blank gaps."
+    "expected": "Scrolling is smooth. Rows render correctly without blank gaps or missing data."
+  },
+  {
+    "id": "heatmap-12",
+    "area": "Resource Allocation",
+    "title": "Heatmap is read-only for project manager and executive",
+    "roles": ["project_manager", "executive"],
+    "steps": "Log in as project manager or executive. Go to Resource Allocation. Click a week cell.",
+    "expected": "Cell does not become editable. No input field appears. Quick Fill bar is not shown."
   },
   {
     "id": "needs-01",
-    "area": "Needs",
-    "title": "Create new staffing need",
-    "roles": ["admin", "resource_manager", "project_manager"],
-    "steps": "On the Open Needs tab, click Add Need. Fill in level, skills, hours/week, start and end dates. Click Save.",
-    "expected": "New need appears in the list with correct details. Donut chart updates."
+    "area": "Open Needs",
+    "title": "Needs tab loads with open needs listed",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to the Open Needs tab.",
+    "expected": "A list of open staffing needs loads. Each row shows project, level, skills, hours/week, and dates."
   },
   {
     "id": "needs-02",
-    "area": "Needs",
-    "title": "Edit existing need",
-    "roles": ["admin", "resource_manager", "project_manager"],
-    "steps": "On the Open Needs tab, click Edit on an existing need. Change one field. Click Save.",
-    "expected": "Need updates with the new value. Change is reflected in the list immediately."
+    "area": "Open Needs",
+    "title": "Donut chart renders with client segments",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Open Needs tab, view the donut chart at the top.",
+    "expected": "A donut chart renders with one colored segment per client. A legend shows client names. Segment sizes reflect open need counts per client."
   },
   {
     "id": "needs-03",
-    "area": "Needs",
-    "title": "Close need as met",
-    "roles": ["admin", "resource_manager"],
-    "steps": "On the Open Needs tab, click Close on a need. Select 'Met'. Confirm.",
-    "expected": "Need disappears from the open needs list. Donut chart segment shrinks or disappears."
+    "area": "Open Needs",
+    "title": "Donut segment hover tooltip shows client name and count",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Open Needs tab, hover the mouse cursor over a donut chart segment.",
+    "expected": "A tooltip appears showing the client name as the title and 'X open needs' as the body. Tooltip disappears when cursor moves away."
   },
   {
     "id": "needs-04",
-    "area": "Needs",
-    "title": "Close need as abandoned",
-    "roles": ["admin", "resource_manager"],
-    "steps": "On the Open Needs tab, click Close on a need. Select 'Abandoned'. Confirm.",
-    "expected": "Need disappears from the open needs list."
+    "area": "Open Needs",
+    "title": "Donut click filters needs list by client",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Click a segment on the Open Needs donut chart.",
+    "expected": "The needs list below filters to show only that client's needs. All other clients' needs are hidden."
   },
   {
     "id": "needs-05",
-    "area": "Needs",
-    "title": "Candidate matching shows eligible consultants",
-    "roles": ["admin", "resource_manager"],
-    "steps": "On the Open Needs tab, click Find Candidates for an open need.",
-    "expected": "Modal shows consultants matching the required level and skills. Each candidate shows available hours and a match badge (green/yellow/coral)."
+    "area": "Open Needs",
+    "title": "Donut click again clears filter",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Click a donut segment to filter. Then click the same segment again.",
+    "expected": "Filter clears. All clients' needs reappear in the list."
   },
   {
     "id": "needs-06",
-    "area": "Needs",
-    "title": "Bulk assign consultants to need",
-    "roles": ["admin", "resource_manager"],
-    "steps": "Open candidates for a need. Select one or more consultants. Click Assign.",
-    "expected": "Consultants are assigned to the need's project for the need's date range. Heatmap updates."
+    "area": "Open Needs",
+    "title": "Client header grouping with open-need count badge",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Open Needs tab, view the needs list.",
+    "expected": "Needs are grouped under client header rows. Each client header shows a count badge indicating how many open needs belong to that client."
   },
   {
     "id": "needs-07",
-    "area": "Needs",
-    "title": "Auto-close when need fully staffed",
-    "roles": ["admin", "resource_manager"],
-    "steps": "Assign enough consultants to fully meet a need's required hours.",
-    "expected": "Need automatically closes with reason 'met'. It disappears from the open needs list."
+    "area": "Open Needs",
+    "title": "Expand All and Collapse All in needs list",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "On the Open Needs tab, click Expand All. Verify all need rows are visible. Then click Collapse All.",
+    "expected": "Expand All reveals all need rows under every client. Collapse All collapses all client groups, hiding individual need rows."
   },
   {
     "id": "needs-08",
-    "area": "Needs",
-    "title": "Urgency badges display correctly",
+    "area": "Open Needs",
+    "title": "Urgency badges — Urgent, Soon, Planned",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Open Needs tab, observe the urgency badges on needs.",
-    "expected": "Needs starting ≤2 weeks out show 'Urgent' (red). 2–4 weeks show 'Soon' (yellow). 4+ weeks show 'Planned' (green)."
+    "steps": "On the Open Needs tab, observe the badge on each need row.",
+    "expected": "Needs starting within 2 weeks show 'Urgent' in red. Needs 2–4 weeks out show 'Soon' in yellow. Needs 4+ weeks out show 'Planned' in green."
   },
   {
     "id": "needs-09",
-    "area": "Needs",
-    "title": "Donut chart segments by client",
+    "area": "Open Needs",
+    "title": "Needs sorted by urgency (soonest start first)",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Open Needs tab, view the donut chart.",
-    "expected": "Each segment represents one client. Segment size reflects the number of open needs for that client."
+    "steps": "On the Open Needs tab, view the order of need rows within any client group.",
+    "expected": "Needs are sorted with the soonest start date first (most urgent at the top of each group)."
   },
   {
     "id": "needs-10",
-    "area": "Needs",
-    "title": "Donut chart click filters needs list",
-    "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "Click a segment on the Open Needs donut chart.",
-    "expected": "The needs list filters to show only that client's needs. Clicking the same segment again clears the filter."
+    "area": "Open Needs",
+    "title": "Add Need — step 1 project selection",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "Click the Add Need button. Observe step 1 of the modal.",
+    "expected": "A modal opens showing a project selection list or dropdown. A Next button is visible. The form does not skip to step 2."
   },
   {
     "id": "needs-11",
-    "area": "Needs",
-    "title": "Needs list sorted correctly",
-    "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Open Needs tab, view the full needs list.",
-    "expected": "Needs are ordered by urgency (soonest start date first)."
+    "area": "Open Needs",
+    "title": "Add Need — step 2 shows bulk row form with project and client badge",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "In the Add Need modal, select a project and click Next.",
+    "expected": "Step 2 opens showing the selected project name and client name at the top. A bulk form appears with shared start/end date fields and at least one row containing Level, Skills, Hrs/Wk, and Qty fields."
   },
   {
     "id": "needs-12",
-    "area": "Needs",
-    "title": "Skill matching uses full skill set",
+    "area": "Open Needs",
+    "title": "Add Need — level dropdown reversed (Partner/MD first)",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "In the Add Need modal step 2, open the Level dropdown on any row.",
+    "expected": "Levels appear in descending order (Partner/MD at the top, Analyst at the bottom)."
+  },
+  {
+    "id": "needs-13",
+    "area": "Open Needs",
+    "title": "Add Need — skills multi-select per row with pill tags",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "In the Add Need modal step 2, click the Skills selector on a row. Toggle two or more skills.",
+    "expected": "Selected skills appear as pill tags in the trigger. If more than one is selected, the trigger shows '1 skill name + N more'. Clicking a skill again removes it."
+  },
+  {
+    "id": "needs-14",
+    "area": "Open Needs",
+    "title": "Add Need — Qty field creates N independent need records",
     "roles": ["admin", "resource_manager"],
-    "steps": "Create a need requiring a secondary skill (not the consultant's primary skill). Open candidates.",
-    "expected": "Consultants with that skill in their full skill set appear as candidates, even if it is not their primary skill."
+    "steps": "In the Add Need modal step 2, set Qty to 3 on a row. Fill in all other fields. Click Create Needs.",
+    "expected": "A progress counter shows 'Creating… (X/3)'. After completion, 3 separate need records appear in the needs list with identical level/skills/hours/dates."
+  },
+  {
+    "id": "needs-15",
+    "area": "Open Needs",
+    "title": "Add Need — add and remove extra rows",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "In the Add Need modal step 2, click '+ Add another need' to add a second row. Then click the ✕ button on that row.",
+    "expected": "A second row appears when adding. Clicking ✕ removes the row. The ✕ button on the only remaining row is hidden (cannot remove last row)."
+  },
+  {
+    "id": "needs-16",
+    "area": "Open Needs",
+    "title": "Add Need — per-row validation shows row number in error",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "In the Add Need modal step 2, leave one row's Level field blank. Click Create Needs.",
+    "expected": "An error message appears indicating which row number has the issue (e.g. 'Row 2: Level is required'). No needs are created until all rows are valid."
+  },
+  {
+    "id": "needs-17",
+    "area": "Open Needs",
+    "title": "Edit Need — level dropdown reversed",
+    "roles": ["admin", "resource_manager", "project_manager"],
+    "steps": "Click Edit on an existing need. Open the Level dropdown in the edit modal.",
+    "expected": "Levels appear in descending order (Partner/MD first, Analyst last), same as in the Add Need modal."
+  },
+  {
+    "id": "needs-18",
+    "area": "Open Needs",
+    "title": "Close need as met",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click Close on an open need. Select 'Met' as the reason. Confirm.",
+    "expected": "Need disappears from the open needs list. Donut chart updates to reflect the reduced count."
+  },
+  {
+    "id": "needs-19",
+    "area": "Open Needs",
+    "title": "Close need as abandoned",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click Close on an open need. Select 'Abandoned' as the reason. Confirm.",
+    "expected": "Need disappears from the open needs list."
+  },
+  {
+    "id": "needs-20",
+    "area": "Open Needs",
+    "title": "Find Candidates — eligible consultants shown with match badges",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click Find Candidates (or the AI icon) on an open need.",
+    "expected": "A modal opens listing consultants who match the need's level and skills. Each candidate shows available hours and a colored match badge (green ≥100%, yellow 50–99%, coral <50% of hours needed)."
+  },
+  {
+    "id": "needs-21",
+    "area": "Open Needs",
+    "title": "Bulk assign consultants to need",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Open candidates for a need. Select one or more consultants by checking their rows. Click Assign.",
+    "expected": "Consultants are assigned to the need's project for the need's date range. Heatmap reflects the new assignments."
+  },
+  {
+    "id": "needs-22",
+    "area": "Open Needs",
+    "title": "Auto-close when need fully staffed after bulk assign",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Assign enough consultants to a need so that the total assigned hours meets or exceeds the need's required hours.",
+    "expected": "Need automatically closes with reason 'met'. It disappears from the open needs list without a manual close action."
+  },
+  {
+    "id": "needs-23",
+    "area": "Open Needs",
+    "title": "Skill matching uses full skill set, not primary only",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Find a need that requires a skill that some consultants hold as a secondary (non-primary) skill. Open candidates for that need.",
+    "expected": "Consultants who have the skill anywhere in their full skill set appear as candidates, not only those whose primary skill matches."
   },
   {
     "id": "claude-01",
@@ -285,286 +413,494 @@
     "title": "Suggested questions load on tab open",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
     "steps": "Click the Ask Claude tab.",
-    "expected": "3–5 suggested question chips appear within a few seconds of opening the tab."
+    "expected": "3–5 suggested question chips appear within a few seconds. They are clickable and insert the question text into the input."
   },
   {
     "id": "claude-02",
     "area": "Ask Claude",
-    "title": "Free-form question returns relevant answer",
+    "title": "Free-form question returns a relevant answer",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
     "steps": "On the Ask Claude tab, type 'Who is currently on the bench?' and press Enter or click Ask.",
-    "expected": "Claude responds with a list of consultants with low utilization from your tenant's data."
+    "expected": "Claude responds with a formatted answer referencing consultants from your tenant. Response appears in the chat area."
   },
   {
     "id": "claude-03",
     "area": "Ask Claude",
-    "title": "Response references correct tenant data",
-    "roles": ["admin", "resource_manager", "executive"],
-    "steps": "Ask Claude: 'List all consultants.' Review the response.",
-    "expected": "Response contains only consultants from your tenant. No consultants from other tenants appear."
+    "title": "Response renders as formatted markdown",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Ask Claude a question that typically returns a list or table (e.g. 'List all projects').",
+    "expected": "Response is rendered with markdown formatting — headers, bullet lists, or tables are displayed visually, not as raw markdown text."
   },
   {
     "id": "claude-04",
     "area": "Ask Claude",
-    "title": "Follow-up question works",
+    "title": "Follow-up question context is preserved",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "Ask Claude a question. After the response, ask a follow-up related question.",
-    "expected": "Follow-up question returns a relevant response. Both questions and answers are visible in the chat history."
+    "steps": "Ask 'Who has the most availability this week?' Then ask a follow-up: 'What projects are they on?'",
+    "expected": "The follow-up response references the specific consultant mentioned in the prior answer. Both the question and answer pairs are visible in the chat history."
   },
   {
     "id": "claude-05",
     "area": "Ask Claude",
-    "title": "Error state on empty question",
+    "title": "Empty question shows error, no API call made",
     "roles": ["admin", "resource_manager", "project_manager", "executive"],
-    "steps": "On the Ask Claude tab, click Ask without typing anything.",
-    "expected": "An error or warning message appears. No API call is made."
+    "steps": "On the Ask Claude tab, leave the input blank and click Ask (or press Enter).",
+    "expected": "An error or warning message appears indicating a question is required. No loading spinner appears and no API call is made."
+  },
+  {
+    "id": "claude-06",
+    "area": "Ask Claude",
+    "title": "Response references only current tenant's data",
+    "roles": ["admin"],
+    "steps": "Ask Claude 'List all consultants'. Note the names. Log in as admin of a different tenant and ask the same question.",
+    "expected": "Each tenant sees only their own consultants in Claude's response. No cross-tenant data appears."
   },
   {
     "id": "settings-c-01",
     "area": "Settings: Consultants",
-    "title": "Consultant list loads",
+    "title": "Consultants panel loads for admin and resource manager",
     "roles": ["admin", "resource_manager"],
-    "steps": "Navigate to Settings → Consultants.",
-    "expected": "Full list of consultants for the tenant loads. Each row shows name, level, and status."
+    "steps": "Navigate to Settings. Observe which sub-panel is shown first.",
+    "expected": "Consultants panel is the default. A list of all active consultants loads with name, level, location, and status columns."
   },
   {
     "id": "settings-c-02",
     "area": "Settings: Consultants",
-    "title": "Edit consultant profile",
+    "title": "Edit consultant name and location",
     "roles": ["admin", "resource_manager"],
-    "steps": "In Settings → Consultants, click a consultant. Edit their name or location. Click Save.",
-    "expected": "Changes save and are reflected in the consultant list and heatmap immediately."
+    "steps": "In Settings → Consultants, click a consultant row to open their profile. Change the name or location. Click Save.",
+    "expected": "Changes save without error. Updated name or location is reflected in the consultant list and heatmap."
   },
   {
     "id": "settings-c-03",
     "area": "Settings: Consultants",
-    "title": "Add skill to consultant",
+    "title": "Add skill to consultant profile",
     "roles": ["admin", "resource_manager"],
-    "steps": "In Settings → Consultants, open a consultant profile. Add a new skill from the dropdown. Save.",
-    "expected": "Skill appears in the consultant's skill list. Skill is used in candidate matching going forward."
+    "steps": "Open a consultant profile in Settings → Consultants. Use the skills selector to add a new skill. Save.",
+    "expected": "Skill appears in the consultant's skill tags. The skill is considered in candidate matching from this point forward."
   },
   {
     "id": "settings-c-04",
     "area": "Settings: Consultants",
-    "title": "Remove skill from consultant",
+    "title": "Remove skill from consultant profile",
     "roles": ["admin", "resource_manager"],
-    "steps": "In Settings → Consultants, open a consultant profile. Remove an existing skill. Save.",
-    "expected": "Skill is removed from the consultant's profile."
+    "steps": "Open a consultant profile. Click the ✕ on an existing skill chip to remove it. Save.",
+    "expected": "Skill is removed from the consultant's profile and saved. It no longer appears on their profile."
   },
   {
     "id": "settings-c-05",
     "area": "Settings: Consultants",
-    "title": "Deactivate consultant",
+    "title": "Billing rate fields visible to admin and resource manager",
     "roles": ["admin", "resource_manager"],
-    "steps": "In Settings → Consultants, click Deactivate on an active consultant. Confirm.",
-    "expected": "Consultant's status changes to Inactive. They no longer appear in the heatmap or candidate lists."
+    "steps": "Open a consultant profile in Settings → Consultants.",
+    "expected": "Bill Rate and Cost Rate fields are visible and show numeric values."
   },
   {
     "id": "settings-c-06",
     "area": "Settings: Consultants",
-    "title": "Reactivate consultant",
+    "title": "Linked User Account dropdown visible to admin only",
+    "roles": ["admin"],
+    "steps": "Log in as admin. Open a consultant profile in Settings → Consultants. Look for the Linked User Account field.",
+    "expected": "A 'Linked User Account' dropdown or selector is visible, listing auth users available to link to this consultant."
+  },
+  {
+    "id": "settings-c-07",
+    "area": "Settings: Consultants",
+    "title": "Unsaved changes warning on modal close",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Open a consultant profile. Make a change to any field. Without saving, click the X or close button.",
+    "expected": "A warning message or discard confirmation appears asking whether to save or discard changes. Changes are not lost unless confirmed."
+  },
+  {
+    "id": "settings-c-08",
+    "area": "Settings: Consultants",
+    "title": "Deactivate consultant — removed from heatmap and candidate lists",
+    "roles": ["admin", "resource_manager"],
+    "steps": "In Settings → Consultants, click Deactivate on an active consultant. Confirm the action.",
+    "expected": "Consultant status changes to Inactive. They no longer appear in the heatmap or in candidate matching results."
+  },
+  {
+    "id": "settings-c-09",
+    "area": "Settings: Consultants",
+    "title": "Reactivate consultant — restored to heatmap",
     "roles": ["admin", "resource_manager"],
     "steps": "In Settings → Consultants, find an inactive consultant. Click Reactivate. Confirm.",
-    "expected": "Consultant's status changes back to Active. They reappear in the heatmap."
+    "expected": "Consultant status changes back to Active. They reappear in the heatmap."
   },
   {
     "id": "settings-u-01",
     "area": "Settings: Users",
-    "title": "User list loads",
+    "title": "Users panel is visible to admin only",
     "roles": ["admin"],
-    "steps": "Navigate to Settings → Users.",
-    "expected": "All users for the tenant appear in the list with email, role, and status."
+    "steps": "Log in as admin. Navigate to Settings. Look for a Users sub-panel in the left nav.",
+    "expected": "A 'Users' nav item is visible. Clicking it shows the user management panel with a list of tenant users."
   },
   {
     "id": "settings-u-02",
     "area": "Settings: Users",
-    "title": "Invite new user — generates link, no password field",
+    "title": "User list shows all tenant users with role and status",
     "roles": ["admin"],
-    "steps": "In Settings → Users, click Invite User. Enter an email and role. Click Send Invite.",
-    "expected": "An invite link is generated and shown. No password field is present. The user appears in the list as 'pending'."
+    "steps": "In Settings → Users, view the user table.",
+    "expected": "All users for the current tenant are listed. Each row shows email, role, and status (Active / Deactivated / Pending)."
   },
   {
     "id": "settings-u-03",
     "area": "Settings: Users",
-    "title": "Change user role",
+    "title": "Invite user generates an invite link, no password field",
     "roles": ["admin"],
-    "steps": "In Settings → Users, click the role dropdown for a user. Select a different role. Confirm.",
-    "expected": "User's role updates in the list. The user must log in again for the change to take effect."
+    "steps": "In Settings → Users, click Invite User. Fill in full name, email, and a role. Click Send Invite.",
+    "expected": "An invite link is generated and displayed. No password field is present on the invite form. The new user appears in the list with a 'Pending' status."
   },
   {
     "id": "settings-u-04",
     "area": "Settings: Users",
-    "title": "Deactivate user",
+    "title": "Change user role",
     "roles": ["admin"],
-    "steps": "In Settings → Users, click Deactivate on an active user. Confirm.",
-    "expected": "User's status changes to Deactivated. They cannot log in."
+    "steps": "In Settings → Users, click on an active user to open their edit panel. Change the role dropdown to a different role. Save.",
+    "expected": "User's role updates in the list. A note may indicate the user must log in again for the change to take effect."
   },
   {
     "id": "settings-u-05",
     "area": "Settings: Users",
-    "title": "Reactivate user",
+    "title": "Deactivate user prevents login",
+    "roles": ["admin"],
+    "steps": "In Settings → Users, click Deactivate on an active user. Confirm.",
+    "expected": "User's status changes to Deactivated. Attempting to log in as that user fails with an appropriate error."
+  },
+  {
+    "id": "settings-u-06",
+    "area": "Settings: Users",
+    "title": "Reactivate deactivated user",
     "roles": ["admin"],
     "steps": "In Settings → Users, find a deactivated user. Click Reactivate. Confirm.",
-    "expected": "User's status changes back to Active. They can log in again."
+    "expected": "User's status changes back to Active. The user can log in again."
+  },
+  {
+    "id": "settings-u-07",
+    "area": "Settings: Users",
+    "title": "Resend invite for pending user",
+    "roles": ["admin"],
+    "steps": "In Settings → Users, find a user with 'Pending' status. Click Resend Invite.",
+    "expected": "A new invite link is generated and displayed. The user's pending status remains."
   },
   {
     "id": "rbac-01",
     "area": "RBAC",
-    "title": "Admin: can edit heatmap cells",
+    "title": "Admin — full access: edit heatmap, close needs, manage users",
     "roles": ["admin"],
-    "steps": "Log in as admin. Go to Resource Allocation. Click a cell and enter a number.",
-    "expected": "Cell is editable and saves successfully."
+    "steps": "Log in as admin. Edit a heatmap cell. Close a need. Invite a user in Settings → Users.",
+    "expected": "All three actions succeed without any permission errors."
   },
   {
     "id": "rbac-02",
     "area": "RBAC",
-    "title": "Admin: can close and assign needs",
+    "title": "Admin — Settings shows both Consultants and Users panels",
     "roles": ["admin"],
-    "steps": "Log in as admin. Go to Open Needs. Close a need and assign a consultant to another.",
-    "expected": "Both actions succeed without permission errors."
+    "steps": "Log in as admin. Navigate to Settings.",
+    "expected": "Both 'Consultants' and 'Users' are visible in the Settings left nav. Consultants panel is selected by default."
   },
   {
     "id": "rbac-03",
     "area": "RBAC",
-    "title": "Admin: can access Settings: Consultants and Users",
+    "title": "Admin — billing rates visible in consultant profile",
     "roles": ["admin"],
-    "steps": "Log in as admin. Go to Settings. Check that both Consultants and Users sub-panels are visible.",
-    "expected": "Both Consultants and Users nav items appear in Settings sidebar."
+    "steps": "Log in as admin. Open any consultant profile in Settings → Consultants.",
+    "expected": "Bill Rate and Cost Rate fields are visible and show numeric values."
   },
   {
     "id": "rbac-04",
     "area": "RBAC",
-    "title": "Admin: can see billing rates in consultant profile",
+    "title": "Admin — sandbox reset available in Settings",
     "roles": ["admin"],
-    "steps": "Log in as admin. Open a consultant profile in Settings → Consultants.",
-    "expected": "Billing rate field is visible and shows a numeric value."
+    "steps": "Log in as admin on a non-production sandbox tenant. Navigate to Settings. Look for a Sandbox panel or Reset option.",
+    "expected": "A Sandbox or Reset panel is visible in Settings. A reset button or option is present."
   },
   {
     "id": "rbac-05",
     "area": "RBAC",
-    "title": "Resource Manager: can edit heatmap and assign needs",
+    "title": "Resource Manager — can edit heatmap and consultant data",
     "roles": ["resource_manager"],
-    "steps": "Log in as resource manager. Edit a heatmap cell. Then assign a consultant to a need.",
-    "expected": "Both actions succeed. RM has full data-edit access."
+    "steps": "Log in as resource manager. Edit a heatmap cell. Open a consultant profile and change their location. Save both.",
+    "expected": "Both edits succeed. RM has full data-edit access."
   },
   {
     "id": "rbac-06",
     "area": "RBAC",
-    "title": "Resource Manager: can see Consultants but not Users in Settings",
+    "title": "Resource Manager — sees Consultants but NOT Users in Settings",
     "roles": ["resource_manager"],
-    "steps": "Log in as resource manager. Go to Settings.",
-    "expected": "Consultants panel is visible and functional. Users panel is not shown."
+    "steps": "Log in as resource manager. Navigate to Settings.",
+    "expected": "Consultants panel is visible and functional. No 'Users' nav item appears in the Settings left nav."
   },
   {
     "id": "rbac-07",
     "area": "RBAC",
-    "title": "Resource Manager: can see billing rates",
+    "title": "Resource Manager — billing rates visible",
     "roles": ["resource_manager"],
-    "steps": "Log in as resource manager. Open a consultant profile.",
-    "expected": "Billing rate is visible."
+    "steps": "Log in as resource manager. Open a consultant profile in Settings → Consultants.",
+    "expected": "Bill Rate and Cost Rate fields are visible."
   },
   {
     "id": "rbac-08",
     "area": "RBAC",
-    "title": "Project Manager: heatmap is read-only",
-    "roles": ["project_manager"],
-    "steps": "Log in as project manager. Go to Resource Allocation. Try to click and edit a cell.",
-    "expected": "Cells are not editable. No input field appears on click."
+    "title": "Resource Manager — cannot close needs or bulk assign",
+    "roles": ["resource_manager"],
+    "steps": "Log in as resource manager. Go to Open Needs. Confirm Close and Assign buttons are present and functional.",
+    "expected": "Close and Assign buttons are visible and work. (RM has full data access on needs.)"
   },
   {
     "id": "rbac-09",
     "area": "RBAC",
-    "title": "Project Manager: can create and edit needs but not close or assign",
+    "title": "Project Manager — heatmap is read-only",
     "roles": ["project_manager"],
-    "steps": "Log in as project manager. Create a new need. Edit it. Then try to close it or assign a consultant.",
-    "expected": "Create and edit succeed. Close and Assign buttons are either hidden or return a permission error."
+    "steps": "Log in as project manager. Go to Resource Allocation. Click a week cell.",
+    "expected": "Cell is not editable. No input field appears. Quick Fill bar is not shown."
   },
   {
     "id": "rbac-10",
     "area": "RBAC",
-    "title": "Project Manager: cannot see billing rates",
+    "title": "Project Manager — can create and edit needs",
     "roles": ["project_manager"],
-    "steps": "Log in as project manager. Open a consultant profile.",
-    "expected": "Billing rate field is hidden or not shown."
+    "steps": "Log in as project manager. Go to Open Needs. Click Add Need and create a need. Then edit it.",
+    "expected": "Create and edit both succeed without permission errors."
   },
   {
     "id": "rbac-11",
     "area": "RBAC",
-    "title": "Executive: read-only dashboard and heatmap",
-    "roles": ["executive"],
-    "steps": "Log in as executive. View the Overview and Resource Allocation tabs.",
-    "expected": "All data loads correctly. No edit controls appear. Heatmap cells are not clickable."
+    "title": "Project Manager — Close and Assign buttons not shown",
+    "roles": ["project_manager"],
+    "steps": "Log in as project manager. Go to Open Needs. Observe the action buttons on any need row.",
+    "expected": "Close and Assign (bulk assign) buttons are either hidden or disabled. PM cannot close or assign needs."
   },
   {
     "id": "rbac-12",
     "area": "RBAC",
-    "title": "Executive: can access Ask Claude",
-    "roles": ["executive"],
-    "steps": "Log in as executive. Click the Ask Claude tab. Type a question.",
-    "expected": "Ask Claude tab is visible. Question returns a valid response."
+    "title": "Project Manager — billing rates not visible",
+    "roles": ["project_manager"],
+    "steps": "Log in as project manager. Click a consultant name in the heatmap to view their profile.",
+    "expected": "Billing rate field is not visible in the consultant profile modal."
   },
   {
     "id": "rbac-13",
     "area": "RBAC",
-    "title": "Executive: cannot access Settings",
-    "roles": ["executive"],
-    "steps": "Log in as executive. Look for Settings in the sidebar.",
-    "expected": "Settings tab is not visible in the sidebar."
+    "title": "Project Manager — Settings tab is not visible",
+    "roles": ["project_manager"],
+    "steps": "Log in as project manager. Look at the sidebar navigation.",
+    "expected": "Settings tab is not present in the sidebar."
   },
   {
     "id": "rbac-14",
     "area": "RBAC",
-    "title": "Consultant: sees only own heatmap row",
-    "roles": ["consultant"],
-    "steps": "Log in as a consultant-role user linked to a consultant record.",
-    "expected": "Resource Allocation heatmap shows only that consultant's own row. No other consultants visible."
+    "title": "Executive — read-only dashboard and heatmap",
+    "roles": ["executive"],
+    "steps": "Log in as executive. View the Overview and Resource Allocation tabs. Try to click a heatmap cell.",
+    "expected": "All data loads correctly. No edit controls appear. Heatmap cells are not clickable."
   },
   {
     "id": "rbac-15",
     "area": "RBAC",
-    "title": "Consultant: no billing rates visible",
+    "title": "Executive — can access Ask Claude",
+    "roles": ["executive"],
+    "steps": "Log in as executive. Click the Ask Claude tab. Type a question and submit.",
+    "expected": "Ask Claude tab is visible. Question returns a valid response."
+  },
+  {
+    "id": "rbac-16",
+    "area": "RBAC",
+    "title": "Executive — Settings tab not visible",
+    "roles": ["executive"],
+    "steps": "Log in as executive. Look at the sidebar navigation.",
+    "expected": "Settings tab is not present in the sidebar."
+  },
+  {
+    "id": "rbac-17",
+    "area": "RBAC",
+    "title": "Executive — billing rates not visible",
+    "roles": ["executive"],
+    "steps": "Log in as executive. Navigate to the Open Needs tab and view a need. Also check the heatmap for any rate display.",
+    "expected": "No billing rate values are shown anywhere in the UI."
+  },
+  {
+    "id": "rbac-18",
+    "area": "RBAC",
+    "title": "Consultant — sees only own heatmap row",
     "roles": ["consultant"],
-    "steps": "Log in as consultant. Open your own profile.",
-    "expected": "Billing rate field is not visible."
+    "steps": "Log in as a user with consultant role linked to a consultant record.",
+    "expected": "Resource Allocation heatmap shows only that consultant's own row. No other consultants' rows are visible."
+  },
+  {
+    "id": "rbac-19",
+    "area": "RBAC",
+    "title": "Consultant — billing rates not visible",
+    "roles": ["consultant"],
+    "steps": "Log in as consultant. Navigate to the app and look for any rate displays.",
+    "expected": "Billing rate values are not shown anywhere in the UI."
+  },
+  {
+    "id": "rbac-20",
+    "area": "RBAC",
+    "title": "Consultant — Settings tab not visible",
+    "roles": ["consultant"],
+    "steps": "Log in as consultant. Look at the sidebar navigation.",
+    "expected": "Settings tab is not present in the sidebar."
+  },
+  {
+    "id": "rbac-21",
+    "area": "RBAC",
+    "title": "Consultant — can access Ask Claude",
+    "roles": ["consultant"],
+    "steps": "Log in as consultant. Click the Ask Claude tab. Type a question and submit.",
+    "expected": "Ask Claude tab is visible and accessible. A response is returned."
+  },
+  {
+    "id": "rbac-22",
+    "area": "RBAC",
+    "title": "Consultant — heatmap row shows own projects only",
+    "roles": ["consultant"],
+    "steps": "Log in as consultant. Expand your heatmap row.",
+    "expected": "Sub-rows show only your own project assignments. No other consultants' project rows are shown."
+  },
+  {
+    "id": "cross-01",
+    "area": "Cross-cutting",
+    "title": "Keyboard shortcuts Ctrl+1 through Ctrl+5 switch tabs",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Press Ctrl+1, then Ctrl+2, Ctrl+3, Ctrl+4, and Ctrl+5 in sequence.",
+    "expected": "Each shortcut activates the corresponding tab: Overview, Resource Allocation, Open Needs, Ask Claude, Settings."
+  },
+  {
+    "id": "cross-02",
+    "area": "Cross-cutting",
+    "title": "Keyboard shortcut ? shows help overlay",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Press the ? key while on any tab.",
+    "expected": "A keyboard shortcut help overlay or modal appears listing all available shortcuts. It can be dismissed."
+  },
+  {
+    "id": "cross-03",
+    "area": "Cross-cutting",
+    "title": "Esc closes open modals",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Open any modal (e.g. Add Need, Edit Consultant). Press Escape.",
+    "expected": "The modal closes. No unsaved changes are applied (or a discard prompt appears if changes were made)."
+  },
+  {
+    "id": "cross-04",
+    "area": "Cross-cutting",
+    "title": "Ctrl+R refreshes data without full page reload",
+    "roles": ["admin", "resource_manager"],
+    "steps": "While on any main tab, press Ctrl+R.",
+    "expected": "App data reloads (spinner may appear briefly). The browser does not perform a full page reload."
+  },
+  {
+    "id": "cross-05",
+    "area": "Cross-cutting",
+    "title": "Ctrl+B toggles sidebar collapse and expand",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Press Ctrl+B once to collapse the sidebar. Press Ctrl+B again to expand it.",
+    "expected": "Sidebar collapses to icon-only or hidden state on first press. Expands back to full width on second press."
+  },
+  {
+    "id": "cross-06",
+    "area": "Cross-cutting",
+    "title": "Settings tab defaults to Consultants panel on open",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click Settings in the sidebar (or press Ctrl+5).",
+    "expected": "The Consultants sub-panel is shown by default. The Consultants item in the Settings left nav is highlighted."
+  },
+  {
+    "id": "cross-07",
+    "area": "Cross-cutting",
+    "title": "Settings panel selection persists across tab switches",
+    "roles": ["admin"],
+    "steps": "Go to Settings → Users. Switch to a different tab (e.g. Overview). Return to Settings.",
+    "expected": "The Users panel is still selected when returning to Settings (selection is preserved, not reset to Consultants)."
+  },
+  {
+    "id": "cross-08",
+    "area": "Cross-cutting",
+    "title": "SSE auto-refresh — heatmap updates after consultant change",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Open the app in two browser windows as admin. In window 1, make a change to a consultant's assignment (edit a heatmap cell). Observe window 2.",
+    "expected": "Window 2 receives a live update via SSE and refreshes the heatmap to show the change without requiring a manual page reload."
   },
   {
     "id": "isolation-01",
     "area": "Tenant Isolation",
-    "title": "Dashboard shows only tenant's data",
+    "title": "Dashboard shows only current tenant's data",
     "roles": ["admin"],
-    "steps": "Log in as admin of one tenant. View KPIs, bench list, and rolloffs on the Overview tab.",
-    "expected": "All data belongs to your tenant only. Log in to a different tenant and confirm the numbers differ."
+    "steps": "Log in as admin of one tenant. Note the KPI values and consultant names. Log out. Log in as admin of a different sandbox tenant.",
+    "expected": "KPI values differ between tenants. The consultants visible belong only to the current tenant. No cross-tenant data appears."
   },
   {
     "id": "isolation-02",
     "area": "Tenant Isolation",
-    "title": "Heatmap shows only tenant's employees",
+    "title": "Heatmap shows only current tenant's employees",
     "roles": ["admin"],
-    "steps": "Log in as admin of one tenant. View Resource Allocation heatmap. Note the consultant names.",
-    "expected": "Only consultants from your tenant appear. Log in to a different tenant and verify different consultants appear."
+    "steps": "Log in as admin on one tenant. Note heatmap consultant names. Log in on a second tenant and compare.",
+    "expected": "Each tenant sees only their own set of consultants. No consultant from another tenant appears."
   },
   {
     "id": "isolation-03",
     "area": "Tenant Isolation",
-    "title": "Ask Claude references only tenant's data",
+    "title": "Ask Claude references only current tenant's data",
     "roles": ["admin"],
-    "steps": "Log in as admin of one tenant. Ask Claude: 'List all consultants.' Note the names. Log in as admin of another tenant and ask the same question.",
-    "expected": "Each tenant sees only their own consultants. No cross-tenant data leaks."
+    "steps": "Log in as admin of tenant A. Ask Claude: 'List all consultants.' Log in as admin of tenant B and ask the same.",
+    "expected": "Each response contains only consultants from the respective tenant. No names from tenant A appear in tenant B's response."
+  },
+  {
+    "id": "isolation-04",
+    "area": "Tenant Isolation",
+    "title": "Open Needs shows only current tenant's needs",
+    "roles": ["admin"],
+    "steps": "Log in as admin of one tenant. Note the open needs. Log out and log in to a different tenant.",
+    "expected": "Each tenant has their own independent set of open needs. Needs from one tenant do not appear under another."
+  },
+  {
+    "id": "isolation-05",
+    "area": "Tenant Isolation",
+    "title": "Candidate matching shows only current tenant's consultants",
+    "roles": ["admin"],
+    "steps": "Log in as admin. Open candidates for any open need.",
+    "expected": "Only consultants from the current tenant appear as candidates. No consultants from other tenants are listed."
   },
   {
     "id": "sandbox-01",
     "area": "Sandbox Reset",
-    "title": "Admin can reset sandbox",
+    "title": "Admin can reset sandbox on non-production tenant",
     "roles": ["admin"],
-    "steps": "Log in as admin on a non-production tenant (Acme Corp, BigCo Inc, or Summit LLC). Go to Settings → Consultants or another data area. Trigger a sandbox reset if available.",
-    "expected": "Reset completes successfully. Synthetic data is restored. Dashboard data reloads."
+    "steps": "Log in as admin on a non-production sandbox tenant (e.g. Acme Corp, BigCo Inc, or Summit LLC). Navigate to Settings and find the Sandbox Reset option. Trigger the reset.",
+    "expected": "Reset completes. Data is wiped and reseeded with fresh synthetic data. Dashboard KPIs reload with the new data."
   },
   {
     "id": "sandbox-02",
     "area": "Sandbox Reset",
-    "title": "Reset rejected for production tenant",
+    "title": "Sandbox reset rejected for production tenant",
     "roles": ["admin"],
-    "steps": "Log in as admin on the Meridian Consulting (production) tenant. Attempt to trigger a sandbox reset.",
-    "expected": "Reset is rejected with an error. No data is modified."
+    "steps": "Log in as admin on the production tenant (Meridian Consulting). Navigate to Settings and attempt to trigger a sandbox reset.",
+    "expected": "Reset is rejected with an error message. No data is modified."
+  },
+  {
+    "id": "sandbox-03",
+    "area": "Sandbox Reset",
+    "title": "Non-admin roles cannot see Sandbox Reset option",
+    "roles": ["resource_manager"],
+    "steps": "Log in as resource manager. Navigate to Settings → Consultants.",
+    "expected": "No Sandbox Reset panel or reset button is visible anywhere in Settings."
+  },
+  {
+    "id": "sandbox-04",
+    "area": "Sandbox Reset",
+    "title": "After reset, heatmap shows fresh synthetic assignments",
+    "roles": ["admin"],
+    "steps": "On a sandbox tenant, trigger a reset. After completion, navigate to Resource Allocation.",
+    "expected": "The heatmap loads with a fresh set of synthetic consultants and assignments. Previously modified cells no longer show the old values."
+  },
+  {
+    "id": "sandbox-05",
+    "area": "Sandbox Reset",
+    "title": "After reset, Open Needs repopulates with synthetic needs",
+    "roles": ["admin"],
+    "steps": "On a sandbox tenant, trigger a reset. After completion, navigate to Open Needs.",
+    "expected": "The needs list shows a fresh set of synthetic open needs. Any previously created or closed needs are gone."
   }
 ]
