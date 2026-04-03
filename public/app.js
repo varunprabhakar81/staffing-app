@@ -21,6 +21,7 @@ let _editActiveCell = null;   // { empName, weekIdx, project } or null
 let _addProjEmp = null;       // empName being targeted by the Add Project modal
 let _editConsultantId = null;     // consultant id open in the profile editor
 let _needsClientFilter = null;    // active donut segment filter: client name string | null
+let _collapsedNeedsClients = new Set(); // client names collapsed on the Needs tab
 let _bulkAssignNeedId  = null;    // need id currently open in the bulk-assign modal
 let _editConsultantStatus = null; // status of the consultant open in the profile editor
 let _cpIsDirty = false;            // tracks unsaved changes in profile editor
@@ -752,9 +753,28 @@ function renderOverviewStats(data, heatmapData) {
       type: 'doughnut',
       data: { datasets: [{ data: ovEntries.map(([,n]) => n),
         backgroundColor: ovEntries.map((_, i) => OV_COLORS[i % OV_COLORS.length]),
-        borderWidth: 0, hoverOffset: 0 }] },
+        borderWidth: 0, hoverOffset: 4 }] },
       options: { responsive: false, cutout: '60%',
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        plugins: { legend: { display: false }, tooltip: {
+          enabled: true,
+          backgroundColor: '#1E2235',
+          titleColor: '#FFFFFF',
+          bodyColor: '#C9D1D9',
+          borderColor: '#3D4466',
+          borderWidth: 1,
+          cornerRadius: 6,
+          padding: 8,
+          displayColors: true,
+          boxPadding: 4,
+          callbacks: {
+            title: () => '',
+            label: (item) => {
+              const client = ovEntries[item.dataIndex][0];
+              const count = item.raw;
+              return ` ${client}: ${count}`;
+            },
+          },
+        } },
         animation: { duration: 600 } }
     });
   }
@@ -1880,6 +1900,7 @@ function renderCoverageChart(openNeeds) {
   _needs.loadState = 'idle';
   _needs.expanded.clear();
   _needsClientFilter = null;
+  _collapsedNeedsClients = new Set();
 
   const roles = openNeeds.roles || [];
   const total = roles.length;
@@ -1902,7 +1923,7 @@ function renderCoverageChart(openNeeds) {
         data: total === 0 ? [1] : clientEntries.map(([,n]) => n),
         backgroundColor: total === 0 ? ['#2E3250'] : clientColors,
         borderWidth: 0,
-        hoverOffset: 0,
+        hoverOffset: 6,
       }],
     },
     options: {
@@ -1922,7 +1943,25 @@ function renderCoverageChart(openNeeds) {
       },
       plugins: {
         legend: { display: false },
-        tooltip: { enabled: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#1E2235',
+          titleColor: '#FFFFFF',
+          bodyColor: '#C9D1D9',
+          borderColor: '#3D4466',
+          borderWidth: 1,
+          cornerRadius: 6,
+          padding: 10,
+          displayColors: true,
+          boxPadding: 4,
+          callbacks: {
+            title: (items) => items[0]?.label || '',
+            label: (item) => {
+              const count = item.raw;
+              return ` ${count} open need${count !== 1 ? 's' : ''}`;
+            },
+          },
+        },
       },
     },
     plugins: [{
@@ -2001,13 +2040,16 @@ function renderCoverageChart(openNeeds) {
     return 2;
   };
 
+  // All client sections start collapsed
+  sortedClients.forEach(c => _collapsedNeedsClients.add(c));
+
   let rows = '';
   for (const client of sortedClients) {
     const group = grouped[client];
     group.sort((a, b) => urgencyRank(a.r.startDate) - urgencyRank(b.r.startDate));
     const count = group.length;
-    rows += `<tr class="needs-client-header" data-client-group="${_esc(client)}">
-      <td colspan="8"><span class="needs-client-name">${_esc(client)}</span><span class="needs-client-count">(${count} ${count === 1 ? 'need' : 'needs'})</span></td>
+    rows += `<tr class="needs-client-header" data-client-group="${_esc(client)}" onclick="toggleNeedsClientGroup(this)" style="cursor:pointer">
+      <td colspan="8"><span class="needs-client-chevron" style="margin-right:8px;color:var(--text-muted);font-size:11px">▶</span><span class="needs-client-name">${_esc(client)}</span><span class="needs-client-count">(${count} ${count === 1 ? 'need' : 'needs'})</span></td>
     </tr>`;
     for (const { r, i } of group) {
       const needCtx = JSON.stringify({needId: r._needId || null, projectName: r.project, hoursPerWeek: r.hoursPerWeek, startDate: r.startDate, endDate: r.endDate, levelRequired: r.level}).replace(/"/g,'&quot;');
@@ -2022,7 +2064,7 @@ function renderCoverageChart(openNeeds) {
         ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
         : '';
       rows += `
-      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" style="display:none" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
         <td class="col-project" style="padding-left:20px"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
         <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
         <td>${r.level || '—'}</td>
@@ -2043,6 +2085,9 @@ function renderCoverageChart(openNeeds) {
   }
 
   tableEl.innerHTML = `
+    <div style="padding:0 0 10px">
+      <button class="needs-expand-collapse-btn" onclick="toggleAllNeedsClients()" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">Expand All</button>
+    </div>
     <table>
       <thead><tr>
         <th>Project</th><th>Skill</th><th>Level</th>
@@ -2068,13 +2113,15 @@ function onSkillPillClick(el) {
 function applyNeedsFilter() {
   const chart = charts.coverage;
 
-  // Show/hide need rows
+  // Show/hide need rows (respects both client filter and collapsed state)
   document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
     const match = !_needsClientFilter || tr.dataset.client === _needsClientFilter;
-    tr.style.display = match ? '' : 'none';
-    // Also hide the paired expansion row when filtered out
+    const collapsed = _collapsedNeedsClients.has(tr.dataset.client);
+    const show = match && !collapsed;
+    tr.style.display = show ? '' : 'none';
+    // Also hide the paired expansion row when not shown
     const exp = tr.nextElementSibling;
-    if (exp && exp.classList.contains('need-expansion-row') && !match) {
+    if (exp && exp.classList.contains('need-expansion-row') && !show) {
       exp.classList.add('hidden');
     }
   });
@@ -2102,6 +2149,55 @@ function applyNeedsFilter() {
     ds.borderWidth = labels.map(l => _needsClientFilter === l ? 3 : 0);
     chart.update('none');
   }
+}
+
+// ── Needs tab: collapsible client groups (#198) ───────────────────
+
+function toggleNeedsClientGroup(headerTr) {
+  const client = headerTr.dataset.clientGroup;
+  const nowCollapsed = !_collapsedNeedsClients.has(client);
+  if (nowCollapsed) {
+    _collapsedNeedsClients.add(client);
+  } else {
+    _collapsedNeedsClients.delete(client);
+  }
+  const chev = headerTr.querySelector('.needs-client-chevron');
+  if (chev) chev.textContent = nowCollapsed ? '▶' : '▼';
+  document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
+    if (tr.dataset.client !== client) return;
+    const inFilter = !_needsClientFilter || tr.dataset.client === _needsClientFilter;
+    const show = !nowCollapsed && inFilter;
+    tr.style.display = show ? '' : 'none';
+    const exp = tr.nextElementSibling;
+    if (exp && exp.classList.contains('need-expansion-row') && nowCollapsed) {
+      exp.classList.add('hidden');
+    }
+  });
+  const tableEl = document.getElementById('coverageTable');
+  const headers = tableEl ? tableEl.querySelectorAll('.needs-client-header') : [];
+  const allCollapsed = Array.from(headers).every(h => _collapsedNeedsClients.has(h.dataset.clientGroup));
+  const btn = tableEl ? tableEl.querySelector('.needs-expand-collapse-btn') : null;
+  if (btn) btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+function toggleAllNeedsClients() {
+  const tableEl = document.getElementById('coverageTable');
+  if (!tableEl) return;
+  const headers = tableEl.querySelectorAll('.needs-client-header');
+  const anyExpanded = Array.from(headers).some(h => !_collapsedNeedsClients.has(h.dataset.clientGroup));
+  headers.forEach(h => {
+    const client = h.dataset.clientGroup;
+    if (anyExpanded) {
+      _collapsedNeedsClients.add(client);
+    } else {
+      _collapsedNeedsClients.delete(client);
+    }
+    const chev = h.querySelector('.needs-client-chevron');
+    if (chev) chev.textContent = anyExpanded ? '▶' : '▼';
+  });
+  applyNeedsFilter();
+  const btn = tableEl.querySelector('.needs-expand-collapse-btn');
+  if (btn) btn.textContent = anyExpanded ? 'Expand All' : 'Collapse All';
 }
 
 // ── AI Recommendations: Expandable Row Logic ─────────────────────
@@ -2993,31 +3089,58 @@ function drillBenchKPI() {
     </table>`);
 }
 
-// ── KPI Drilldown 4: Open Needs ──────────────────────────────────
+// ── KPI Drilldown 4: Open Needs — grouped by project (#197) ──────
 function drillDemandKPI() {
   const roles = (rawData.openNeeds || {}).roles || [];
   if (!roles.length) {
-    openDrilldown('Open Needs',
-      '<p class="dd-empty">No open needs.</p>');
+    openDrilldown('Open Needs', '<p class="dd-empty">No open needs.</p>');
     return;
   }
 
-  const rows = roles.map((role, i) => {
-    return `<tr class="dd-clickable" onclick="drillCoverage(${i})" title="Click for detail">
-      <td style="font-size:12px">${role.client || '—'}</td>
-      <td style="font-size:12px">${role.project || '—'}</td>
-      <td style="color:#8892B0;font-size:12px">${role.level || '—'}</td>
-      <td style="font-size:12px">${role.skillSet || '—'}</td>
-      <td style="font-size:11px;color:#8892B0">${role.startDate || '—'} – ${role.endDate || '—'}</td>
-      <td style="font-size:12px">${role.hoursPerWeek || '—'}h/wk</td>
-      <td>${_urgencyBadge(role.startDate)}</td>
+  // Group by project, sort alphabetically
+  const byProject = {};
+  roles.forEach((role, i) => {
+    const proj = role.project || 'Unassigned';
+    if (!byProject[proj]) byProject[proj] = [];
+    byProject[proj].push({ role, i });
+  });
+  const sortedProjects = Object.keys(byProject).sort((a, b) => {
+    if (a === 'Unassigned') return 1;
+    if (b === 'Unassigned') return -1;
+    return a.localeCompare(b);
+  });
+
+  const pfx = 'ddneed' + Date.now().toString(36);
+  let gi = 0, rows = '';
+  for (const proj of sortedProjects) {
+    const group = byProject[proj];
+    const gid   = pfx + gi++;
+    rows += `<tr onclick="(function(h){var rs=h.parentNode.querySelectorAll('[data-g=${gid}]');var open=rs[0]&&rs[0].style.display!='none';rs.forEach(function(r){r.style.display=open?'none':'';});h.querySelector('.gc').textContent=open?'\u25BA':'\u25BC';})(this)" style="background:var(--surface2,#2E3250);cursor:pointer">
+      <td colspan="6" style="padding:8px 12px;font-weight:600;font-size:13px;color:var(--text-primary)"><span class="gc">\u25BA</span>&nbsp;${_esc(proj)}&nbsp;<span style="font-weight:400;color:var(--text-muted);font-size:11px">(${group.length})</span></td>
     </tr>`;
-  }).join('');
+    for (const { role, i } of group) {
+      rows += `<tr class="dd-clickable" data-g="${gid}" style="display:none" onclick="drillCoverage(${i})" title="Click for detail">
+        <td style="font-size:12px;padding-left:24px">${_esc(role.level || '—')}</td>
+        <td style="font-size:12px">${_esc(role.skillSet || '—')}</td>
+        <td style="font-size:12px;text-align:center">${role.hoursPerWeek ? role.hoursPerWeek + 'h/wk' : '—'}</td>
+        <td style="font-size:11px;color:#8892B0;text-align:center">${_esc(role.startDate || '—')}</td>
+        <td style="font-size:11px;color:#8892B0;text-align:center">${_esc(role.endDate || '—')}</td>
+        <td>${_urgencyBadge(role.startDate)}</td>
+      </tr>`;
+    }
+  }
 
   openDrilldown(`Open Needs (${roles.length})`,
-    `<table class="dd-table">
+    `<div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229E Expand all</button>
+    </div>
+    <table class="dd-table">
       <thead><tr>
-        <th>Client</th><th>Project</th><th>Level</th><th>Skill Set</th><th>Dates</th><th>Hrs/Wk</th><th>Urgency</th>
+        <th>Level</th><th>Skill Set</th>
+        <th style="text-align:center">Hrs/Wk</th>
+        <th style="text-align:center">Start</th>
+        <th style="text-align:center">End</th>
+        <th>Urgency</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`);
