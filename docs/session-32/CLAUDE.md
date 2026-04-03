@@ -221,7 +221,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=116`, `styles.css?v=59`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=113`, `styles.css?v=59`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -231,10 +231,6 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Quick Fill always uses API path (POST /api/save-staffing)** — DOM fast path was removed. Never reintroduce DOM cell matching for Quick Fill.
 - **No global staffingData — every route fetches fresh via tId(req)** — `readStaffingData(null, serviceClient, tId(req))` is called per-request. Never cache staffing data in a module-level variable. The only cache is `recoCacheMap` (per-tenant Map keyed by `tenantId`, 60s TTL). If you see `let staffingData` at module level, delete it — it was removed in Session 31 and must not return.
 - **tId(req) for all tenant-scoped calls** — `const tId = req => req.session?.tenant_id || process.env.TENANT_ID`. All Supabase reads and writes must use `tId(req)`, never `process.env.TENANT_ID` directly inside a route handler.
-- **testing_role gates testing portal access** — testing_role in app_metadata: test_admin (full access), tester (own results), null (no access). Sidebar link and /testing.html both check this. Do not use business roles (admin/RM/PM) for testing access control.
-- **generateLink for invites, not inviteUserByEmail** — Pilot uses generateLink to produce invite URLs. Admin copies link and shares via Teams. No SMTP dependency. inviteUserByEmail deferred to V3 (#203).
-- **set-password.html handles both invite and recovery** — Token type invite triggers Set Your Password plus metadata promotion. Token type recovery triggers Reset Your Password plus password update only. Do not break either path.
-- **test_results uses UNIQUE(tenant_id, test_case_id, user_id)** — Upsert pattern. One result per user per test. submitted_at column for lock/unlock flow. general-feedback is a special test_case_id for free-form feedback.
 
 ---
 
@@ -264,24 +260,20 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 
 ### Pilot — Internal adoption ← active
 Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
-- #205 — Needs donut chart hover tooltip ← next
-- #206 — Bulk need creation — multi-line modal
-- #207 — Comprehensive test case regeneration
-- #204 — Main app header redesign
-- #188 — Consultant master data: Industry and Country fields
+- #185 — In-app feedback button (Supabase-backed) ← next
 - #183 — Contextual tooltips
 - #184 — Admin getting-started checklist
 - #182 — In-app onboarding tour
+- #188 — Consultant master data: Industry and Country fields
+- #194 — UAT portal (tester-setup.md is the deliverable)
+- #197 — Open needs modal — group by project, collapsed
+- #198 — Needs tab — expand all / collapse all
 
 Completed in Pilot:
 - #195 — Per-tenant sandboxes + personalization ✓
 - #196 — Rename Staffing → Resource Allocation ✓
 - #199 — Button terminology audit ✓
 - #192 — Week alignment ✓
-- #201 — Invite flow — set-password + generateLink ✓
-- #202 — Testing companion app ✓
-- #197 — Open needs modal — group by project, collapsed ✓
-- #198 — Needs tab — expand/collapse all ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
