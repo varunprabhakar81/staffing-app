@@ -4948,9 +4948,12 @@ function openCreateNeedModal() {
 
 function closeCreateNeedModal() {
   document.getElementById('create-need-modal').classList.add('hidden');
-  _cnStep            = 1;
-  _cnNewProjExpanded = false;
-  _cnProjects        = [];
+  _cnStep              = 1;
+  _cnNewProjExpanded   = false;
+  _cnProjects          = [];
+  _cnRowCounter        = 0;
+  _cnSkillSetsCache    = [];
+  _cnOpenDropdownRowId = null;
 }
 
 async function _cnLoadProjects() {
@@ -5103,7 +5106,7 @@ function _cnPrevStep() {
 }
 
 function _cnUpdateStepIndicator() {
-  const labels = ['Step 1 of 2 — Select Project', 'Step 2 of 2 — Need Details'];
+  const labels = ['Step 1 of 2 — Select Project', 'Step 2 of 2 — Define Needs'];
   document.getElementById('cn-step-indicator').textContent = labels[_cnStep - 1];
 }
 
@@ -5122,22 +5125,175 @@ function _cnUpdateFooter() {
     cancelBtn.classList.add('hidden');
     nextBtn.classList.add('hidden');
     createBtn.classList.remove('hidden');
+    _cnUpdateCreateBtnLabel();
+  }
+}
+
+let _cnRowCounter = 0;
+let _cnSkillSetsCache = []; // populated in _cnPopulateStep2
+let _cnOpenDropdownRowId = null; // tracks which row's skill dropdown is open
+
+function _cnAddRow() {
+  _cnRowCounter++;
+  const id = _cnRowCounter;
+  const container = document.getElementById('cn-rows');
+  const row = document.createElement('div');
+  row.id = `cn-row-${id}`;
+  row.dataset.rowId = id;
+  row.style.cssText = 'display:grid;grid-template-columns:140px 1fr 72px 52px 24px;gap:8px;align-items:center';
+
+  const inputStyle = 'width:100%;padding:7px 10px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#E2E8F0;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box';
+  const selectStyle = inputStyle + ';appearance:none;cursor:pointer';
+
+  // Build skill pills HTML for the dropdown panel
+  const skillPillsHtml = _cnSkillSetsCache.map(ss =>
+    `<span class="cp-skill-tag${ss.type === 'Practice Area' ? ' type-practice' : ''}" data-ss-id="${ss.id}" data-ss-name="${ss.name}" style="cursor:pointer;font-size:11px">${ss.name}</span>`
+  ).join('');
+
+  row.innerHTML = `
+    <select data-field="level" style="${selectStyle};font-size:12px"
+      onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+      <option value="">— level —</option>
+      <option value="Partner/Principal/Managing Director">Partner / MD</option>
+      <option value="Senior Manager">Sr Manager</option>
+      <option value="Manager">Manager</option>
+      <option value="Senior Consultant">Sr Consultant</option>
+      <option value="Consultant">Consultant</option>
+      <option value="Analyst">Analyst</option>
+    </select>
+    <div class="cn-ms-wrapper" style="min-width:0;position:relative">
+      <div class="cn-ms-trigger" onclick="_cnToggleSkillDropdown(${id})" style="width:100%;padding:7px 10px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:7px;color:#E2E8F0;font-size:12px;font-family:inherit;cursor:pointer;text-align:left;box-sizing:border-box;height:34px;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;overflow:hidden">
+        <span class="cn-ms-placeholder">Select skills…</span>
+      </div>
+      <div class="cn-ms-panel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0F1117;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px;z-index:50;flex-wrap:wrap;gap:5px;max-height:140px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)" data-field="skill-panel">
+        ${skillPillsHtml}
+      </div>
+    </div>
+    <input data-field="hours" type="number" min="1" max="45" placeholder="40" style="${inputStyle};font-size:12px"
+      onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+      oninput="_cnUpdateCreateBtnLabel()">
+    <input data-field="qty" type="number" min="1" max="10" value="1" style="${inputStyle};text-align:center;font-size:12px"
+      onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+      oninput="_cnUpdateCreateBtnLabel()">
+    <button type="button" onclick="_cnRemoveRow(${id})"
+      style="background:none;border:none;color:#4A5168;font-size:14px;cursor:pointer;padding:0;line-height:1;border-radius:4px"
+      onmouseover="this.style.color='#F87171'" onmouseout="this.style.color='#4A5168'"
+      title="Remove row">✕</button>
+  `;
+
+  container.appendChild(row);
+
+  // Attach click handlers to skill pills
+  const panel = row.querySelector('[data-field="skill-panel"]');
+  panel.querySelectorAll('.cp-skill-tag').forEach(pill => {
+    pill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pill.classList.toggle('selected');
+      _cnUpdateTriggerLabel(id);
+    });
+  });
+
+  _cnUpdateRemoveButtons();
+  _cnUpdateCreateBtnLabel();
+}
+
+function _cnToggleSkillDropdown(rowId) {
+  const row = document.getElementById(`cn-row-${rowId}`);
+  if (!row) return;
+  const panel = row.querySelector('[data-field="skill-panel"]');
+  const isOpen = panel.style.display !== 'none';
+
+  // Close any other open dropdown first
+  if (_cnOpenDropdownRowId && _cnOpenDropdownRowId !== rowId) {
+    const prevRow = document.getElementById(`cn-row-${_cnOpenDropdownRowId}`);
+    if (prevRow) {
+      const prevPanel = prevRow.querySelector('[data-field="skill-panel"]');
+      if (prevPanel) prevPanel.style.display = 'none';
+    }
+  }
+
+  if (isOpen) {
+    panel.style.display = 'none';
+    _cnOpenDropdownRowId = null;
+  } else {
+    panel.style.display = 'flex';
+    _cnOpenDropdownRowId = rowId;
+  }
+}
+
+function _cnUpdateTriggerLabel(rowId) {
+  const row = document.getElementById(`cn-row-${rowId}`);
+  if (!row) return;
+  const trigger = row.querySelector('.cn-ms-trigger');
+  const selected = [...row.querySelectorAll('[data-field="skill-panel"] .cp-skill-tag.selected')];
+
+  if (selected.length === 0) {
+    trigger.innerHTML = '<span class="cn-ms-placeholder">Select skills…</span>';
+    return;
+  }
+
+  // Show up to 1 tag inline, then "+N more"
+  const maxShow = 1;
+  let html = '';
+  for (let i = 0; i < Math.min(selected.length, maxShow); i++) {
+    html += `<span class="cn-ms-tag">${selected[i].dataset.ssName}</span>`;
+  }
+  if (selected.length > maxShow) {
+    html += `<span class="cn-ms-more">+${selected.length - maxShow}</span>`;
+  }
+  trigger.innerHTML = html;
+}
+
+function _cnRemoveRow(id) {
+  const row = document.getElementById(`cn-row-${id}`);
+  if (row) row.remove();
+  _cnUpdateRemoveButtons();
+  _cnUpdateCreateBtnLabel();
+}
+
+function _cnUpdateRemoveButtons() {
+  const rows = document.querySelectorAll('#cn-rows > div');
+  rows.forEach(row => {
+    const btn = row.querySelector('button');
+    if (btn) {
+      btn.style.visibility = rows.length <= 1 ? 'hidden' : 'visible';
+    }
+  });
+}
+
+function _cnGetTotalNeedCount() {
+  let total = 0;
+  document.querySelectorAll('#cn-rows > div').forEach(row => {
+    const qtyInput = row.querySelector('[data-field="qty"]');
+    const qty = Math.max(1, Math.min(10, parseInt(qtyInput?.value) || 1));
+    total += qty;
+  });
+  return total;
+}
+
+function _cnUpdateCreateBtnLabel() {
+  const btn = document.getElementById('cn-create-btn');
+  if (!btn) return;
+  const n = _cnGetTotalNeedCount();
+  btn.textContent = `Create ${n} need${n !== 1 ? 's' : ''}`;
+}
+
+function _cnStep2ClickOutside(e) {
+  if (_cnOpenDropdownRowId && !e.target.closest('.cn-ms-wrapper')) {
+    const row = document.getElementById(`cn-row-${_cnOpenDropdownRowId}`);
+    if (row) {
+      const panel = row.querySelector('[data-field="skill-panel"]');
+      if (panel) panel.style.display = 'none';
+    }
+    _cnOpenDropdownRowId = null;
   }
 }
 
 function _cnPopulateStep2() {
-  // Reset all fields
-  document.getElementById('cn-level-select').value = '';
-  document.getElementById('cn-hours').value         = '';
-  document.getElementById('cn-start-date').value    = '';
-  document.getElementById('cn-end-date').value      = '';
+  document.getElementById('cn-start-date').value = '';
+  document.getElementById('cn-end-date').value   = '';
   document.getElementById('cn-step2-error').classList.add('hidden');
 
-  const skillGrid = document.getElementById('cn-skill-grid');
-  skillGrid.innerHTML = '';
-  document.getElementById('cn-skill-empty').classList.add('hidden');
-
-  // Set date min/max from selected project's date range
   const projectId = document.getElementById('cn-project-select').value;
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
   if (proj) {
@@ -5147,53 +5303,54 @@ function _cnPopulateStep2() {
     if (proj.endDate)   { endEl.max   = proj.endDate;   endEl.value   = proj.endDate; }
   }
 
-  // Populate skill set pills from dashboard _meta
-  const skillSets = rawData._meta?.skillSets || [];
-  if (skillSets.length === 0) {
-    document.getElementById('cn-skill-empty').classList.remove('hidden');
-    return;
+  // Show selected project name on Step 2
+  const projLabel = document.getElementById('cn-step2-project-label');
+  if (projLabel && proj) {
+    const clientPrefix = proj.clientName ? proj.clientName + ' — ' : '';
+    projLabel.textContent = clientPrefix + (proj.name || '');
+    projLabel.style.display = 'block';
+  } else if (projLabel) {
+    projLabel.style.display = 'none';
   }
-  // Sort: Practice Areas first, then Technologies, each group alphabetically
-  const sorted = [...skillSets].sort((a, b) => {
+
+  const skillSets = rawData._meta?.skillSets || [];
+  _cnSkillSetsCache = [...skillSets].sort((a, b) => {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     return a.type === 'Practice Area' ? -1 : 1;
   });
-  for (const ss of sorted) {
-    const tag = document.createElement('span');
-    tag.className    = 'cp-skill-tag' + (ss.type === 'Practice Area' ? ' type-practice' : '');
-    tag.dataset.ssId = ss.id;
-    tag.textContent  = ss.name;
-    tag.addEventListener('click', () => tag.classList.toggle('selected'));
-    skillGrid.appendChild(tag);
+
+  const rowsContainer = document.getElementById('cn-rows');
+  rowsContainer.innerHTML = '';
+  _cnRowCounter = 0;
+  _cnOpenDropdownRowId = null;
+  _cnAddRow();
+
+  // Close skill dropdowns when clicking inside step 2 but outside a wrapper
+  const step2El = document.getElementById('cn-step-2');
+  step2El.removeEventListener('click', _cnStep2ClickOutside);
+  step2El.addEventListener('click', _cnStep2ClickOutside);
+
+  // Also close when clicking on the modal overlay areas (dates, footer, etc.)
+  const modalInner = document.getElementById('create-need-modal')?.querySelector(':scope > div');
+  if (modalInner) {
+    modalInner.removeEventListener('click', _cnStep2ClickOutside);
+    modalInner.addEventListener('click', _cnStep2ClickOutside);
   }
 }
 
 async function _cnSubmit() {
-  const projectId   = document.getElementById('cn-project-select').value;
-  const level       = document.getElementById('cn-level-select').value;
-  const hours       = document.getElementById('cn-hours').value;
-  const startDate   = document.getElementById('cn-start-date').value;
-  const endDate     = document.getElementById('cn-end-date').value;
-  const skillSetIds = [...document.querySelectorAll('#cn-skill-grid .cp-skill-tag.selected')]
-    .map(t => t.dataset.ssId);
-  const errEl = document.getElementById('cn-step2-error');
+  const projectId = document.getElementById('cn-project-select').value;
+  const startDate = document.getElementById('cn-start-date').value;
+  const endDate   = document.getElementById('cn-end-date').value;
+  const errEl     = document.getElementById('cn-step2-error');
 
   const showErr = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
   errEl.classList.add('hidden');
 
-  if (!level)                  { showErr('Please select a level.'); return; }
-  if (skillSetIds.length === 0) {
-    document.getElementById('cn-skill-grid').classList.add('pills-error');
-    setTimeout(() => document.getElementById('cn-skill-grid').classList.remove('pills-error'), 1500);
-    showErr('Please select at least one skill set.'); return;
-  }
-  if (!hours || Number(hours) < 1 || Number(hours) > 45) {
-    showErr('Hours per week must be between 1 and 45.'); return;
-  }
-  if (!startDate || !endDate)  { showErr('Start date and end date are required.'); return; }
-  if (startDate > endDate)     { showErr('Start date must be before end date.'); return; }
+  // Validate shared date fields
+  if (!startDate || !endDate) { showErr('Start date and end date are required.'); return; }
+  if (startDate > endDate)    { showErr('Start date must be before end date.'); return; }
 
-  // Validate dates fall within project range
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
   if (proj) {
     if (proj.startDate && startDate < proj.startDate) {
@@ -5204,28 +5361,65 @@ async function _cnSubmit() {
     }
   }
 
+  // Collect and validate rows
+  const rows = [];
+  const rowEls = document.querySelectorAll('#cn-rows > div');
+  for (let i = 0; i < rowEls.length; i++) {
+    const level = rowEls[i].querySelector('[data-field="level"]').value;
+    const hours = rowEls[i].querySelector('[data-field="hours"]').value;
+    const qty   = parseInt(rowEls[i].querySelector('[data-field="qty"]').value) || 1;
+    const skillSetIds = [...rowEls[i].querySelectorAll('[data-field="skill-panel"] .cp-skill-tag.selected')]
+      .map(t => t.dataset.ssId);
+
+    if (!level) { showErr(`Row ${i + 1}: Please select a level.`); return; }
+    if (skillSetIds.length === 0) { showErr(`Row ${i + 1}: Please select at least one skill.`); return; }
+    if (!hours || Number(hours) < 1 || Number(hours) > 45) {
+      showErr(`Row ${i + 1}: Hours per week must be between 1 and 45.`); return;
+    }
+    if (qty < 1 || qty > 10) { showErr(`Row ${i + 1}: Quantity must be between 1 and 10.`); return; }
+    rows.push({ level, hoursPerWeek: Number(hours), qty: Math.min(10, Math.max(1, qty)), skillSetIds });
+  }
+
+  if (rows.length === 0) { showErr('Add at least one need row.'); return; }
+
+  const totalNeeds = rows.reduce((s, r) => s + r.qty, 0);
   const createBtn = document.getElementById('cn-create-btn');
   createBtn.disabled    = true;
-  createBtn.textContent = 'Creating…';
+  createBtn.textContent = `Creating ${totalNeeds} need${totalNeeds !== 1 ? 's' : ''}…`;
 
   try {
-    const res = await apiFetch('/api/needs', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ projectId, level, skillSetIds, hoursPerWeek: Number(hours), startDate, endDate }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `HTTP ${res.status}`);
+    let created = 0;
+    for (const row of rows) {
+      for (let q = 0; q < row.qty; q++) {
+        const res = await apiFetch('/api/needs', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            projectId,
+            level: row.level,
+            skillSetIds: row.skillSetIds,
+            hoursPerWeek: row.hoursPerWeek,
+            startDate,
+            endDate,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        created++;
+        createBtn.textContent = `Creating… (${created}/${totalNeeds})`;
+      }
     }
-    showToast('Need created', 'success');
+
+    showToast(`${created} need${created !== 1 ? 's' : ''} created`, 'success');
     closeCreateNeedModal();
     loadDashboard();
   } catch (e) {
     showErr(e.message);
   } finally {
-    createBtn.disabled    = false;
-    createBtn.textContent = 'Add Need';
+    createBtn.disabled = false;
+    _cnUpdateCreateBtnLabel();
   }
 }
 

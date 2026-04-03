@@ -9,6 +9,72 @@
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css?v=59">
+  <style>
+.cn-ms-wrapper {
+  position: relative;
+  width: 100%;
+}
+.cn-ms-trigger {
+  width: 100%;
+  padding: 7px 10px;
+  background: #0F1117;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 7px;
+  color: #E2E8F0;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.cn-ms-trigger:hover, .cn-ms-trigger:focus {
+  border-color: #A8C7FA;
+  outline: none;
+}
+.cn-ms-trigger .cn-ms-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: rgba(168,199,250,.15);
+  color: #A8C7FA;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cn-ms-trigger .cn-ms-placeholder {
+  color: #4A5168;
+  font-size: 12px;
+}
+.cn-ms-trigger .cn-ms-more {
+  font-size: 10px;
+  color: #8892B0;
+  flex-shrink: 0;
+}
+.cn-ms-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #0F1117;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 140px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
@@ -859,9 +925,9 @@
   <!-- Create New Need Modal (#164) -->
   <div id="create-need-modal" class="hidden"
     onclick="if(event.target===this)closeCreateNeedModal()"
-    style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+    style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:flex;align-items:flex-start;padding-top:5vh;justify-content:center;backdrop-filter:blur(2px)">
     <div onclick="event.stopPropagation()"
-      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
+      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;scrollbar-gutter:stable;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -955,54 +1021,50 @@
 
       </div>
 
-      <!-- Step 2: Need details (#164) -->
+      <!-- Step 2: Need details (#206) -->
       <div id="cn-step-2" class="hidden">
 
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">LEVEL <span style="color:#F87171">*</span></label>
-          <select id="cn-level-select"
-            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-            <option value="">— select level —</option>
-            <option value="Analyst">Analyst</option>
-            <option value="Consultant">Consultant</option>
-            <option value="Senior Consultant">Senior Consultant</option>
-            <option value="Manager">Manager</option>
-            <option value="Senior Manager">Senior Manager</option>
-            <option value="Partner/Principal/Managing Director">Partner/Principal/Managing Director</option>
-          </select>
-        </div>
+  <div id="cn-step2-project-label" style="display:none;font-size:13px;font-weight:500;color:#A8C7FA;margin-bottom:14px;padding:8px 12px;background:rgba(168,199,250,.06);border:1px solid rgba(168,199,250,.12);border-radius:8px"></div>
 
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">SKILL SETS <span style="color:#F87171">*</span> <span style="font-weight:400;color:#4A5168">(select at least one)</span></label>
-          <div id="cn-skill-grid" style="display:flex;flex-wrap:wrap;gap:7px;min-height:28px"></div>
-          <div id="cn-skill-empty" class="hidden" style="font-size:12px;color:#4A5168;padding:4px 0">No skill sets found.</div>
-        </div>
+  <!-- Shared: Dates only (skills moved to per-row) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    <div>
+      <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START DATE <span style="color:#F87171">*</span></label>
+      <input id="cn-start-date" type="date"
+        style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+    </div>
+    <div>
+      <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END DATE <span style="color:#F87171">*</span></label>
+      <input id="cn-end-date" type="date"
+        style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+    </div>
+  </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-          <div>
-            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">HOURS / WEEK <span style="color:#F87171">*</span></label>
-            <input id="cn-hours" type="number" min="1" max="45" placeholder="e.g. 40"
-              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-          <div></div>
-          <div>
-            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START DATE <span style="color:#F87171">*</span></label>
-            <input id="cn-start-date" type="date"
-              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-          <div>
-            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END DATE <span style="color:#F87171">*</span></label>
-            <input id="cn-end-date" type="date"
-              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-          </div>
-        </div>
+  <!-- Divider -->
+  <div style="border-top:1px solid rgba(255,255,255,.06);margin-bottom:12px"></div>
 
-        <div id="cn-step2-error" class="hidden"
-          style="font-size:12px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:7px;margin-bottom:4px"></div>
+  <!-- Column headers -->
+  <div style="display:grid;grid-template-columns:140px 1fr 72px 52px 24px;gap:8px;margin-bottom:6px;padding:0 2px">
+    <span style="font-size:11px;font-weight:500;color:#8892B0;letter-spacing:.04em">LEVEL <span style="color:#F87171">*</span></span>
+    <span style="font-size:11px;font-weight:500;color:#8892B0;letter-spacing:.04em">SKILLS <span style="color:#F87171">*</span></span>
+    <span style="font-size:11px;font-weight:500;color:#8892B0;letter-spacing:.04em">HRS/WK <span style="color:#F87171">*</span></span>
+    <span style="font-size:11px;font-weight:500;color:#8892B0;letter-spacing:.04em">QTY</span>
+    <span></span>
+  </div>
+
+  <!-- Dynamic need rows container -->
+  <div id="cn-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+
+  <!-- Add row link -->
+  <button type="button" id="cn-add-row-btn" onclick="_cnAddRow()"
+    style="background:none;border:none;color:#A8C7FA;font-size:12px;cursor:pointer;padding:0;font-family:inherit;display:flex;align-items:center;gap:4px;margin-bottom:8px">
+    ＋ Add another need
+  </button>
+
+  <div id="cn-step2-error" class="hidden"
+    style="font-size:12px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:7px;margin-bottom:4px"></div>
 
       </div>
 
@@ -1056,12 +1118,12 @@
           style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
           onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
           <option value="">— select level —</option>
-          <option value="Analyst">Analyst</option>
-          <option value="Consultant">Consultant</option>
-          <option value="Senior Consultant">Senior Consultant</option>
-          <option value="Manager">Manager</option>
-          <option value="Senior Manager">Senior Manager</option>
           <option value="Partner/Principal/Managing Director">Partner/Principal/Managing Director</option>
+          <option value="Senior Manager">Senior Manager</option>
+          <option value="Manager">Manager</option>
+          <option value="Senior Consultant">Senior Consultant</option>
+          <option value="Consultant">Consultant</option>
+          <option value="Analyst">Analyst</option>
         </select>
       </div>
 
@@ -1163,6 +1225,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=117"></script>
+  <script src="app.js?v=122"></script>
 </body>
 </html>
