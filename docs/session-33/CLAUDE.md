@@ -221,7 +221,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=122`, `styles.css?v=59`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=116`, `styles.css?v=59`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -264,11 +264,11 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 
 ### Pilot — Internal adoption ← active
 Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
+- #205 — Needs donut chart hover tooltip ← next
+- #206 — Bulk need creation — multi-line modal
 - #207 — Comprehensive test case regeneration
 - #204 — Main app header redesign
-- #208 — Skill set categories rethink
 - #188 — Consultant master data: Industry and Country fields
-- #209 — Overview mini donut — restore or remove
 - #183 — Contextual tooltips
 - #184 — Admin getting-started checklist
 - #182 — In-app onboarding tour
@@ -282,8 +282,6 @@ Completed in Pilot:
 - #202 — Testing companion app ✓
 - #197 — Open needs modal — group by project, collapsed ✓
 - #198 — Needs tab — expand/collapse all ✓
-- #205 — Needs donut chart hover tooltip ✓
-- #206 — Bulk need creation — multi-line modal ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
