@@ -741,44 +741,6 @@ function renderOverviewStats(data, heatmapData) {
       : 'no open needs';
   }
 
-  // Mini donut for Card 3 — segments by client
-  if (charts.needsDonut) { try { charts.needsDonut.destroy(); } catch(e) {} charts.needsDonut = null; }
-  const donutCanvas = document.getElementById('overviewNeedsDonut');
-  if (donutCanvas && totalRoles > 0) {
-    const OV_COLORS = ['#86BC25', '#00A3E0', '#86EB22', '#A0DCFF', '#005587', '#B7E320'];
-    const ovClientCounts = {};
-    for (const r of openRolesOv) { const c = r.client || 'Unknown'; ovClientCounts[c] = (ovClientCounts[c] || 0) + 1; }
-    const ovEntries = Object.entries(ovClientCounts);
-    charts.needsDonut = new Chart(donutCanvas, {
-      type: 'doughnut',
-      data: { datasets: [{ data: ovEntries.map(([,n]) => n),
-        backgroundColor: ovEntries.map((_, i) => OV_COLORS[i % OV_COLORS.length]),
-        borderWidth: 0, hoverOffset: 4 }] },
-      options: { responsive: false, cutout: '60%',
-        plugins: { legend: { display: false }, tooltip: {
-          enabled: true,
-          backgroundColor: '#1E2235',
-          titleColor: '#FFFFFF',
-          bodyColor: '#C9D1D9',
-          borderColor: '#3D4466',
-          borderWidth: 1,
-          cornerRadius: 6,
-          padding: 8,
-          displayColors: true,
-          boxPadding: 4,
-          callbacks: {
-            title: () => '',
-            label: (item) => {
-              const client = ovEntries[item.dataIndex][0];
-              const count = item.raw;
-              return ` ${client}: ${count}`;
-            },
-          },
-        } },
-        animation: { duration: 600 } }
-    });
-  }
-
   const unmetTrendEl = document.getElementById('overviewUnmetTrend');
   if (unmetTrendEl) {
     if (totalRoles > 0) {
