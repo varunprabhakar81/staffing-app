@@ -813,7 +813,7 @@ app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'
     const [{ data: consultants, error: cErr }, { data: levels, error: lErr },
            { data: css, error: cssErr }, { data: skillSets, error: ssErr }] = await Promise.all([
       serviceClient.from('consultants')
-        .select('id, name, level_id, location, is_active')
+        .select('id, name, level_id, location, industry, country, is_active')
         .eq('tenant_id', tenantId)
         .order('name'),
       serviceClient.from('levels').select('id, name').eq('tenant_id', tenantId),
@@ -849,6 +849,8 @@ app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'
         name:            c.name,
         level:           levelById[c.level_id] || null,
         location:        c.location || null,
+        industry:        c.industry || null,
+        country:         c.country  || null,
         skillSets,
         is_active:       c.is_active !== false,
       };
