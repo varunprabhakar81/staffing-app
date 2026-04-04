@@ -5798,45 +5798,69 @@ function _cmdSearch(q) {
   // ── Projects ─────────────────────────────────────────────────────
   if (canSeeNeedsProjects) {
     const projects   = _cmdGetProjects();
-    const matchProjs = projects.filter(p =>
-      _cmdMatch(p.name, q) || _cmdMatch(p.clientName, q) || _cmdMatch(p.status, q)
-    );
-    if (matchProjs.length) {
+    const matchProjsR = [];
+    for (const p of projects) {
+      let preason = null;
+      if (_cmdMatch(p.name, q)) preason = 'name';
+      else if (_cmdMatch(p.clientName, q)) preason = 'client';
+      else if (_cmdMatch(p.status, q)) preason = 'status';
+      if (preason) matchProjsR.push({ p, preason });
+    }
+    if (matchProjsR.length) {
       groups.push({
         label: 'Projects',
-        allItems: matchProjs.map(p => ({
-          icon: '📋',
-          title: p.name,
-          subtitle: [p.clientName, p.status].filter(Boolean).join(' · '),
-          action() {
-            closeCmdPalette();
-            navigateTo('needs');
-            if (p.clientName) {
-              const client = p.clientName;
-              setTimeout(() => {
-                if (_collapsedNeedsClients.has(client)) {
-                  const header = document.querySelector(
-                    `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
-                  );
-                  if (header) toggleNeedsClientGroup(header);
-                }
-              }, 150);
-            }
-          },
-        })),
+        allItems: matchProjsR.map(({ p, preason }) => {
+          let subtitle;
+          if (preason === 'client') {
+            subtitle = [`Matched client: ${p.clientName}`, p.status].filter(Boolean).join(' · ');
+          } else {
+            subtitle = [p.clientName, p.status].filter(Boolean).join(' · ');
+          }
+          return {
+            icon: '📋',
+            title: p.name,
+            subtitle,
+            action() {
+              closeCmdPalette();
+              navigateTo('needs');
+              if (p.clientName) {
+                const client = p.clientName;
+                setTimeout(() => {
+                  if (_collapsedNeedsClients.has(client)) {
+                    const header = document.querySelector(
+                      `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
+                    );
+                    if (header) toggleNeedsClientGroup(header);
+                  }
+                }, 150);
+              }
+            },
+          };
+        }),
       });
     }
   }
 
   // ── Needs ─────────────────────────────────────────────────────────
   if (canSeeNeedsProjects) {
-    const roles      = (rawData.openNeeds && rawData.openNeeds.roles) || [];
-    const matchRoles = roles.filter(r =>
-      _cmdMatch(r.level, q) || _cmdMatch(r.skillSet, q) ||
-      _cmdMatch(r.client, q) || _cmdMatch(r.project, q) ||
-      (r.allSkillSets || []).some(s => _cmdMatch(s, q))
-    );
-    if (matchRoles.length) {
+    const roles = (rawData.openNeeds && rawData.openNeeds.roles) || [];
+    const matchRolesR = [];
+    for (const r of roles) {
+      let nreason = null;
+      const matchedSkill = (r.allSkillSets || []).find(s => _cmdMatch(s, q))
+        || (_cmdMatch(r.skillSet, q) ? r.skillSet : null);
+      if (matchedSkill) {
+        nreason = { type: 'skill', value: matchedSkill };
+      } else if (_cmdMatch(r.level, q)) {
+        nreason = 'level';
+      } else if (_cmdMatch(r.client, q)) {
+        nreason = 'client';
+      } else if (_cmdMatch(r.project, q)) {
+        nreason = 'project';
+      }
+      if (nreason) matchRolesR.push({ r, nreason });
+    }
+    if (matchRolesR.length) {
       const urgencyLabel = r => {
         if (!r.startDate) return 'Planned';
         const p = String(r.startDate).split('/');
@@ -5847,26 +5871,39 @@ function _cmdSearch(q) {
       };
       groups.push({
         label: 'Needs',
-        allItems: matchRoles.map(r => ({
-          icon: '🎯',
-          title: `${r.level || 'Role'} — ${r.project || 'Unassigned'}`,
-          subtitle: [r.client, urgencyLabel(r)].filter(Boolean).join(' · '),
-          action() {
-            closeCmdPalette();
-            navigateTo('needs');
-            const client = r.client;
-            if (client) {
-              setTimeout(() => {
-                if (_collapsedNeedsClients.has(client)) {
-                  const header = document.querySelector(
-                    `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
-                  );
-                  if (header) toggleNeedsClientGroup(header);
-                }
-              }, 150);
-            }
-          },
-        })),
+        allItems: matchRolesR.map(({ r, nreason }) => {
+          let subtitle;
+          if (nreason && nreason.type === 'skill') {
+            subtitle = [r.client, `Matched: ${nreason.value}`].filter(Boolean).join(' · ');
+          } else if (nreason === 'level') {
+            subtitle = [r.client, r.project, urgencyLabel(r)].filter(Boolean).join(' · ');
+          } else if (nreason === 'client') {
+            subtitle = [r.level, r.project, urgencyLabel(r)].filter(Boolean).join(' · ');
+          } else {
+            // project match
+            subtitle = [r.client, r.level, urgencyLabel(r)].filter(Boolean).join(' · ');
+          }
+          return {
+            icon: '🎯',
+            title: `${r.level || 'Role'} — ${r.project || 'Unassigned'}`,
+            subtitle,
+            action() {
+              closeCmdPalette();
+              navigateTo('needs');
+              const client = r.client;
+              if (client) {
+                setTimeout(() => {
+                  if (_collapsedNeedsClients.has(client)) {
+                    const header = document.querySelector(
+                      `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
+                    );
+                    if (header) toggleNeedsClientGroup(header);
+                  }
+                }, 150);
+              }
+            },
+          };
+        }),
       });
     }
   }
