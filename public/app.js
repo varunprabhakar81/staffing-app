@@ -5898,14 +5898,10 @@ function _cmdSearch(q) {
         allItems: matchRolesR.map(({ r, nreason }) => {
           let subtitle;
           if (nreason && nreason.type === 'skill') {
-            subtitle = [r.client, `Matched: Skill — ${nreason.value}`].filter(Boolean).join(' · ');
-          } else if (nreason === 'level') {
-            subtitle = [r.client, r.project, urgencyLabel(r)].filter(Boolean).join(' · ');
-          } else if (nreason === 'client') {
-            subtitle = [r.level, r.project, urgencyLabel(r)].filter(Boolean).join(' · ');
+            subtitle = [r.client, `Matched: Skill — ${nreason.value}`, urgencyLabel(r)].filter(Boolean).join(' · ');
           } else {
-            // project match
-            subtitle = [r.client, r.level, urgencyLabel(r)].filter(Boolean).join(' · ');
+            const skills = (r.allSkillSets && r.allSkillSets.length) ? r.allSkillSets.join(', ') : r.skillSet;
+            subtitle = [r.client, skills, urgencyLabel(r)].filter(Boolean).join(' · ');
           }
           return {
             icon: '🎯',
