@@ -28,6 +28,8 @@ let _cpIsDirty = false;            // tracks unsaved changes in profile editor
 let _cpSnapshot = null;            // original field values for revert
 let _cpAbortController = null;     // abort signal for dirty-tracking listeners
 let _settingsActivePanel = null;   // 'users' | 'consultants' — active Settings sub-nav panel
+let _cmdSelIdx = -1;               // command palette: currently selected result index
+let _cmdItems  = [];               // command palette: flat array of { action } for keyboard nav
 let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -89,13 +91,20 @@ function toggleSidebar() {
 // ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); return; }
+  if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
     if (e.key === '2') { e.preventDefault(); navigateTo('staffing'); return; }
     if (e.key === '3') { e.preventDefault(); navigateTo('needs');    return; }
     if (e.key === '4') { e.preventDefault(); navigateTo('ask');      return; }
+    if (e.key === 'k' || e.key === 'K') {
+      e.preventDefault();
+      const _cpo = document.getElementById('cmdPaletteOverlay');
+      if (_cpo && _cpo.classList.contains('active')) { document.getElementById('cmdPaletteInput')?.focus(); }
+      else { openCmdPalette(); }
+      return;
+    }
     if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
   }
   if (e.key === '?' && !inInput) { e.preventDefault(); toggleShortcutGuide(); }
@@ -181,11 +190,10 @@ function handleShortcutOverlayClick(e) { if (e.target === e.currentTarget) close
   let _items    = [];
   let _focusIdx = -1;
 
-  // Keyboard shortcuts: '/' focuses search (common SaaS pattern); Ctrl+K also works
+  // Keyboard shortcut: '/' focuses search (common SaaS pattern)
   document.addEventListener('keydown', e => {
     const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-    if (e.key === '/' && !inInput) { e.preventDefault(); input.focus(); input.select(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); input.focus(); input.select(); }
+    if (e.key === '/' && !inInput) { e.preventDefault(); input.focus(); input.select(); }
   });
 
   function getSearchData() {
@@ -5749,6 +5757,335 @@ const TENANT_BRANDS = {
     icon: `<svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 3 L24 24 L4 24Z" stroke="#7F77DD" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M14 10 L18 24 L10 24Z" fill="#7F77DD" opacity="0.2"/></svg>`,
   }
 };
+
+// ── Command Palette (#210) ────────────────────────────────────────
+
+function openCmdPalette() {
+  const overlay = document.getElementById('cmdPaletteOverlay');
+  const input   = document.getElementById('cmdPaletteInput');
+  if (!overlay || !input) return;
+  overlay.classList.add('active');
+  input.value = '';
+  const resultsEl = document.getElementById('cmdPaletteResults');
+  if (resultsEl) resultsEl.innerHTML = '';
+  _cmdSelIdx = -1;
+  _cmdItems  = [];
+  input.focus();
+}
+
+function closeCmdPalette() {
+  const overlay = document.getElementById('cmdPaletteOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function handleCmdPaletteOverlayClick(e) {
+  if (e.target === e.currentTarget) closeCmdPalette();
+}
+
+// Fuzzy match: case-insensitive substring OR word boundary
+function _cmdMatch(text, q) {
+  if (!text) return false;
+  const t    = String(text).toLowerCase();
+  const qLow = q.toLowerCase();
+  if (t.includes(qLow)) return true;
+  return t.split(/[\s,.\-_&/]+/).some(w => w.startsWith(qLow));
+}
+
+// Build deduped consultant list from supply (admin/RM/PM) or heatmap (executive/consultant)
+function _cmdGetConsultants() {
+  if (rawData.supply && rawData.supply.length > 0) {
+    const map = {};
+    for (const row of rawData.supply) {
+      if (!map[row.employeeName]) {
+        map[row.employeeName] = {
+          name: row.employeeName,
+          level: row.level || '',
+          skillSet: row.skillSet || '',
+          allSkillSets: row.allSkillSets || [],
+          _consultantId: row._consultantId || null,
+        };
+      }
+    }
+    return Object.values(map);
+  }
+  // Fallback for executive / consultant roles (heatmap only)
+  const emps = (rawData.heatmap && rawData.heatmap.employees) || [];
+  return emps.map(e => ({
+    name: e.name,
+    level: e.level || '',
+    skillSet: e.skillSet || '',
+    allSkillSets: e.skillSet ? [e.skillSet] : [],
+    _consultantId: null,
+  }));
+}
+
+// Build deduped project list from supply; resolve clientName from openNeeds
+function _cmdGetProjects() {
+  const clientByProject = {};
+  for (const r of (rawData.openNeeds && rawData.openNeeds.roles) || []) {
+    if (r.project && r.client) clientByProject[r.project] = r.client;
+  }
+  const map = {};
+  for (const row of rawData.supply || []) {
+    if (row.projectAssigned && !map[row.projectAssigned]) {
+      map[row.projectAssigned] = {
+        name: row.projectAssigned,
+        status: row.projectStatus || '',
+        clientName: clientByProject[row.projectAssigned] || '',
+      };
+    }
+  }
+  return Object.values(map);
+}
+
+// Main search: returns array of { label, items, more }
+function _cmdSearch(q) {
+  const role = currentUserRole;
+  const CAP  = 5;
+  const canSeeNeedsProjects =
+    role === 'admin' || role === 'resource_manager' || role === 'project_manager';
+  const groups = [];
+
+  // ── Consultants ──────────────────────────────────────────────────
+  const consultants   = _cmdGetConsultants();
+  const matchConsult  = consultants.filter(c =>
+    _cmdMatch(c.name, q) || _cmdMatch(c.level, q) ||
+    _cmdMatch(c.skillSet, q) || c.allSkillSets.some(s => _cmdMatch(s, q))
+  );
+  if (matchConsult.length) {
+    const shown = matchConsult.slice(0, CAP);
+    const more  = matchConsult.length - shown.length;
+    groups.push({
+      label: 'Consultants',
+      more,
+      items: shown.map(c => ({
+        icon: '👤',
+        title: c.name,
+        subtitle: [c.level, c.skillSet].filter(Boolean).join(' · '),
+        action() {
+          closeCmdPalette();
+          if (c._consultantId) {
+            openConsultantProfileEditor(c._consultantId, c.name);
+          } else {
+            navigateTo('staffing');
+            setTimeout(() => navigateToEmployee(c.name), 150);
+          }
+        },
+      })),
+    });
+  }
+
+  // ── Projects ─────────────────────────────────────────────────────
+  if (canSeeNeedsProjects) {
+    const projects     = _cmdGetProjects();
+    const matchProjs   = projects.filter(p =>
+      _cmdMatch(p.name, q) || _cmdMatch(p.clientName, q) || _cmdMatch(p.status, q)
+    );
+    if (matchProjs.length) {
+      const shown = matchProjs.slice(0, CAP);
+      const more  = matchProjs.length - shown.length;
+      groups.push({
+        label: 'Projects',
+        more,
+        items: shown.map(p => ({
+          icon: '📋',
+          title: p.name,
+          subtitle: [p.clientName, p.status].filter(Boolean).join(' · '),
+          action() {
+            closeCmdPalette();
+            navigateTo('needs');
+            if (p.clientName) {
+              const client = p.clientName;
+              setTimeout(() => {
+                if (_collapsedNeedsClients.has(client)) {
+                  const header = document.querySelector(
+                    `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
+                  );
+                  if (header) toggleNeedsClientGroup(header);
+                }
+              }, 150);
+            }
+          },
+        })),
+      });
+    }
+  }
+
+  // ── Needs ─────────────────────────────────────────────────────────
+  if (canSeeNeedsProjects) {
+    const roles     = (rawData.openNeeds && rawData.openNeeds.roles) || [];
+    const matchRoles = roles.filter(r =>
+      _cmdMatch(r.level, q) || _cmdMatch(r.skillSet, q) ||
+      _cmdMatch(r.client, q) || _cmdMatch(r.project, q) ||
+      (r.allSkillSets || []).some(s => _cmdMatch(s, q))
+    );
+    if (matchRoles.length) {
+      const shown = matchRoles.slice(0, CAP);
+      const more  = matchRoles.length - shown.length;
+      const urgencyLabel = r => {
+        if (!r.startDate) return 'Planned';
+        const p = String(r.startDate).split('/');
+        if (p.length < 3) return 'Planned';
+        const d    = new Date(parseInt(p[2]), parseInt(p[0]) - 1, parseInt(p[1]));
+        const days = (d - new Date()) / 86400000;
+        return days <= 14 ? 'Urgent' : days <= 28 ? 'Soon' : 'Planned';
+      };
+      groups.push({
+        label: 'Needs',
+        more,
+        items: shown.map(r => ({
+          icon: '🎯',
+          title: `${r.level || 'Role'} — ${r.project || 'Unassigned'}`,
+          subtitle: [r.client, urgencyLabel(r)].filter(Boolean).join(' · '),
+          action() {
+            closeCmdPalette();
+            navigateTo('needs');
+            const client = r.client;
+            if (client) {
+              setTimeout(() => {
+                if (_collapsedNeedsClients.has(client)) {
+                  const header = document.querySelector(
+                    `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
+                  );
+                  if (header) toggleNeedsClientGroup(header);
+                }
+              }, 150);
+            }
+          },
+        })),
+      });
+    }
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────
+  const navDefs = [
+    { title: 'Overview',            subtitle: 'Dashboard, KPIs, utilization charts', icon: '◉',
+      roles: ['admin','resource_manager','project_manager','executive'],
+      action() { closeCmdPalette(); navigateTo('overview'); } },
+    { title: 'Resource Allocation', subtitle: 'Heatmap, weekly hours, bench',         icon: '▦',
+      roles: ['admin','resource_manager','project_manager','executive','consultant'],
+      action() { closeCmdPalette(); navigateTo('staffing'); } },
+    { title: 'Open Needs',          subtitle: 'Demand pipeline, open roles',           icon: '◎',
+      roles: ['admin','resource_manager','project_manager'],
+      action() { closeCmdPalette(); navigateTo('needs'); } },
+    { title: 'Ask Claude',          subtitle: 'AI staffing Q&A',                       icon: '✦',
+      roles: ['admin','resource_manager','project_manager','executive'],
+      action() { closeCmdPalette(); navigateTo('ask'); } },
+    { title: 'Settings',            subtitle: 'Consultants, configuration',            icon: '⚙',
+      roles: ['admin','resource_manager'],
+      action() { closeCmdPalette(); navigateTo('settings'); } },
+    { title: 'Consultants',         subtitle: 'Manage consultant profiles',            icon: '👥',
+      roles: ['admin','resource_manager'],
+      action() { closeCmdPalette(); navigateTo('settings'); setTimeout(() => switchSettingsPanel('consultants'), 60); } },
+    { title: 'Users',               subtitle: 'Manage user accounts and roles',        icon: '🔑',
+      roles: ['admin'],
+      action() { closeCmdPalette(); navigateTo('settings'); setTimeout(() => switchSettingsPanel('users'), 60); } },
+  ];
+  const matchNav = navDefs.filter(n =>
+    n.roles.includes(role) && (_cmdMatch(n.title, q) || _cmdMatch(n.subtitle, q))
+  );
+  if (matchNav.length) {
+    groups.push({ label: 'Navigation', more: 0, items: matchNav.slice(0, CAP) });
+  }
+
+  return groups;
+}
+
+// Render groups into the results pane
+function _cmdRender(groups) {
+  const el = document.getElementById('cmdPaletteResults');
+  if (!el) return;
+  _cmdItems  = [];
+  _cmdSelIdx = -1;
+
+  if (!groups.length) {
+    el.innerHTML = '<div class="cmd-palette-empty">No results</div>';
+    return;
+  }
+
+  let html = '';
+  for (let gi = 0; gi < groups.length; gi++) {
+    const g = groups[gi];
+    if (gi > 0) html += '<div class="cmd-palette-divider"></div>';
+    html += `<div class="cmd-palette-category">${_esc(g.label)}</div>`;
+    for (const item of g.items) {
+      const idx = _cmdItems.length;
+      _cmdItems.push({ action: item.action });
+      html += `<div class="cmd-palette-item" data-idx="${idx}" role="option">
+        <div class="cmd-palette-item-icon">${item.icon}</div>
+        <div class="cmd-palette-item-text">
+          <div class="cmd-palette-item-title">${_esc(item.title)}</div>
+          ${item.subtitle ? `<div class="cmd-palette-item-subtitle">${_esc(item.subtitle)}</div>` : ''}
+        </div>
+      </div>`;
+    }
+    if (g.more > 0) {
+      html += `<div class="cmd-palette-more">${g.more} more…</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('.cmd-palette-item').forEach(row => {
+    // Mouse select on hover
+    row.addEventListener('mousemove', () => {
+      const idx = parseInt(row.dataset.idx, 10);
+      if (_cmdSelIdx !== idx) _cmdSetSelection(idx);
+    });
+    // Trigger on mousedown (before blur fires on input)
+    row.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const item = _cmdItems[parseInt(row.dataset.idx, 10)];
+      if (item) item.action();
+    });
+  });
+}
+
+// Highlight the selected row and scroll into view
+function _cmdSetSelection(idx) {
+  const rows = document.querySelectorAll('#cmdPaletteResults .cmd-palette-item');
+  rows.forEach(r => r.classList.remove('selected'));
+  _cmdSelIdx = Math.max(-1, Math.min(idx, _cmdItems.length - 1));
+  if (_cmdSelIdx >= 0 && rows[_cmdSelIdx]) {
+    rows[_cmdSelIdx].classList.add('selected');
+    rows[_cmdSelIdx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Wire up input and keyboard events (runs at script load — DOM already present)
+(function initCmdPalette() {
+  const input = document.getElementById('cmdPaletteInput');
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (!q) {
+      const el = document.getElementById('cmdPaletteResults');
+      if (el) el.innerHTML = '';
+      _cmdItems  = [];
+      _cmdSelIdx = -1;
+      return;
+    }
+    _cmdRender(_cmdSearch(q));
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _cmdSetSelection(_cmdSelIdx + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _cmdSetSelection(_cmdSelIdx - 1);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (_cmdSelIdx >= 0 && _cmdItems[_cmdSelIdx]) {
+        _cmdItems[_cmdSelIdx].action();
+      }
+    } else if (e.key === 'Escape') {
+      closeCmdPalette();
+    }
+  });
+})();
 
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {

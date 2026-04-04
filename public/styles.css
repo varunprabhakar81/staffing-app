@@ -3578,3 +3578,156 @@ td[data-cell-type="emp-total"]:hover {
   outline: none;
   box-shadow: 0 0 0 2px var(--accent-muted);
 }
+
+/* ── Command Palette (#210) ──────────────────────────────────────── */
+.cmd-palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 3000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.cmd-palette-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+.cmd-palette-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-emphasis);
+  border-radius: 12px;
+  width: calc(100% - 32px);
+  max-width: 560px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+  overflow: hidden;
+  animation: cmdPaletteIn 0.15s ease;
+}
+@keyframes cmdPaletteIn {
+  from { transform: translateY(-8px); opacity: 0.5; }
+  to   { transform: translateY(0);    opacity: 1;   }
+}
+.cmd-palette-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.cmd-palette-search-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+#cmdPaletteInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: inherit;
+  min-width: 0;
+  box-shadow: none;
+}
+#cmdPaletteInput::placeholder {
+  color: var(--text-muted);
+}
+.cmd-palette-esc-hint {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+.cmd-palette-results {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.cmd-palette-results::-webkit-scrollbar { width: 4px; }
+.cmd-palette-results::-webkit-scrollbar-track { background: transparent; }
+.cmd-palette-results::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+.cmd-palette-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.cmd-palette-category {
+  padding: 8px 16px 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cmd-palette-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+.cmd-palette-item:hover,
+.cmd-palette-item.selected {
+  background: var(--bg-card-hover);
+}
+.cmd-palette-item-icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+.cmd-palette-item-text {
+  flex: 1;
+  min-width: 0;
+}
+.cmd-palette-item-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmd-palette-item-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.cmd-palette-more {
+  padding: 3px 16px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=59">
+  <link rel="stylesheet" href="styles.css?v=60">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -610,7 +610,7 @@
         <div class="shortcut-section">
           <div class="shortcut-section-title">Data</div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+R</span><span class="shortcut-desc">Refresh data</span></div>
-          <div class="shortcut-row"><span class="shortcut-key">Ctrl+K</span><span class="shortcut-desc">Focus search</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+K</span><span class="shortcut-desc">Command palette</span></div>
         </div>
         <div class="shortcut-section">
           <div class="shortcut-section-title">General</div>
@@ -618,6 +618,22 @@
           <div class="shortcut-row"><span class="shortcut-key">Esc</span><span class="shortcut-desc">Close / clear</span></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── Command Palette (#210) ───────────────────────────────────── -->
+  <div id="cmdPaletteOverlay" class="cmd-palette-overlay" onclick="handleCmdPaletteOverlayClick(event)">
+    <div class="cmd-palette-modal" onclick="event.stopPropagation()">
+      <div class="cmd-palette-search">
+        <svg class="cmd-palette-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M11 11 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="text" id="cmdPaletteInput" placeholder="Search consultants, projects, needs…"
+               autocomplete="off" spellcheck="false" aria-label="Command palette search">
+        <span class="cmd-palette-esc-hint">Esc</span>
+      </div>
+      <div id="cmdPaletteResults" class="cmd-palette-results" role="listbox"></div>
     </div>
   </div>
 
@@ -1239,6 +1255,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=125"></script>
+  <script src="app.js?v=126"></script>
 </body>
 </html>
