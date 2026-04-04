@@ -5725,7 +5725,9 @@ function _cmdGetConsultants() {
 
 // Build deduped project list from supply; resolve clientName from _meta then openNeeds
 function _cmdGetProjects() {
-  const metaByName = (rawData._meta && rawData._meta.projectByName) || {};
+  // projectClientMap (name→clientName) comes from dashboard _meta — covers all projects
+  const projectClientMap = (rawData._meta && rawData._meta.projectClientMap) || {};
+  // Fallback: resolve via open needs roles for any gaps
   const clientByProject = {};
   for (const r of (rawData.openNeeds && rawData.openNeeds.roles) || []) {
     if (r.project && r.client) clientByProject[r.project] = r.client;
@@ -5733,8 +5735,7 @@ function _cmdGetProjects() {
   const map = {};
   for (const row of rawData.supply || []) {
     if (row.projectAssigned && !map[row.projectAssigned]) {
-      const metaProj = metaByName[row.projectAssigned];
-      const clientName = (metaProj && metaProj.clientName)
+      const clientName = projectClientMap[row.projectAssigned]
         || clientByProject[row.projectAssigned]
         || '';
       map[row.projectAssigned] = {

@@ -403,7 +403,12 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
 
   const openNeeds = { openNeeds: openRoles.length, roles: openRoles };
 
-  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, openNeeds, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById) } });
+  const projectClientMap = {};
+  for (const [name, proj] of Object.entries(freshData._meta.projectByName || {})) {
+    if (proj.clientName) projectClientMap[name] = proj.clientName;
+  }
+
+  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, openNeeds, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById), projectClientMap } });
 });
 
 // GET /api/heatmap
