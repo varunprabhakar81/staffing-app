@@ -5172,7 +5172,10 @@ function _cnPopulateStep2() {
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
   if (proj) {
     if (proj.startDate && cnSP) cnSP.setDate(proj.startDate);
+    else if (cnSP) cnSP.setDate(StaffingDatePicker.smartDefault());
     if (proj.endDate   && cnEP) cnEP.setDate(proj.endDate);
+  } else if (cnSP) {
+    cnSP.setDate(StaffingDatePicker.smartDefault());
   }
 
   // Show selected project name on Step 2
@@ -6266,12 +6269,16 @@ class StaffingDatePicker {
   }
 
   static smartDefault() {
+    // Always called at runtime — new Date() is evaluated when the function runs
     const t = new Date(); t.setHours(0, 0, 0, 0);
-    const sat = StaffingDatePicker.snapSat(t);
     const day = t.getDay();
-    // Friday or Saturday → use next week's Saturday
-    if (day === 5 || day === 6) sat.setDate(sat.getDate() + 7);
-    return sat;
+    const s = new Date(t);
+    if (day === 0) {
+      s.setDate(t.getDate() + 6); // Sunday → next Saturday
+    } else {
+      s.setDate(t.getDate() + (6 - day)); // Mon–Sat → this week's Saturday
+    }
+    return StaffingDatePicker.toIso(s);
   }
 
   static toIso(d) {
@@ -6311,7 +6318,7 @@ class StaffingDatePicker {
   // ── Open / Close ──────────────────────────────────────────────────
   _open() {
     if (this.dropdown) return;
-    const sel = StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.smartDefault();
+    const sel = StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.fromIso(StaffingDatePicker.smartDefault());
     this.viewYear  = sel.getFullYear();
     this.viewMonth = sel.getMonth();
     this._kbDate   = null;
@@ -6343,7 +6350,7 @@ class StaffingDatePicker {
       e.preventDefault();
       const base = this._kbDate
         ? new Date(this._kbDate)
-        : (StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.smartDefault());
+        : (StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.fromIso(StaffingDatePicker.smartDefault()));
       this._kbDate = new Date(base);
       this._kbDate.setDate(base.getDate() + arrows[e.key]);
       if (this._kbDate.getFullYear() !== this.viewYear || this._kbDate.getMonth() !== this.viewMonth) {
@@ -6366,7 +6373,7 @@ class StaffingDatePicker {
     dp.addEventListener('mousedown', e => e.preventDefault()); // prevent input blur
 
     // Quick-pick row
-    const base = StaffingDatePicker.smartDefault();
+    const base = StaffingDatePicker.fromIso(StaffingDatePicker.smartDefault());
     const qpDefs = [
       ['This wk', 0], ['Next wk', 7], ['+2 wk', 14], ['+4 wk', 28], ['+8 wk', 56], ['+12 wk', 84]
     ];
