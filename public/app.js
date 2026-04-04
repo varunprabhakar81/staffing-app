@@ -94,10 +94,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
-    if (e.key === '1') { e.preventDefault(); navigateTo('overview'); return; }
+    if (e.key === '1') { e.preventDefault(); navigateTo('overview');  return; }
     if (e.key === '2') { e.preventDefault(); navigateTo('staffing'); return; }
     if (e.key === '3') { e.preventDefault(); navigateTo('needs');    return; }
     if (e.key === '4') { e.preventDefault(); navigateTo('ask');      return; }
+    if (e.key === '5') { e.preventDefault(); navigateTo('settings'); return; }
     if (e.key === 'k' || e.key === 'K') {
       e.preventDefault();
       const _cpo = document.getElementById('cmdPaletteOverlay');
@@ -5633,15 +5634,26 @@ function openCmdPalette() {
   if (!overlay || !input) return;
   overlay.classList.add('active');
   input.value = '';
-  const resultsEl = document.getElementById('cmdPaletteResults');
-  if (resultsEl) resultsEl.innerHTML = '';
   _cmdSelIdx = -1;
   _cmdItems  = [];
   input.focus();
+  _cmdShowHint();
   // Lazily pre-fetch industry/country for admin/RM so match reasons can be shown
   if (currentUserRole === 'admin' || currentUserRole === 'resource_manager') {
     _cmdPreloadConsultantMeta();
   }
+}
+
+function _cmdShowHint() {
+  const el = document.getElementById('cmdPaletteResults');
+  if (!el) return;
+  _cmdItems  = [];
+  _cmdSelIdx = -1;
+  el.innerHTML =
+    '<div class="cmd-palette-hint">' +
+      '<div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026</div>' +
+      '<div class="cmd-palette-hint-secondary">Ctrl+1\u20135 to switch tabs\u2003\u00b7\u2003Ctrl+K or / to open this palette\u2003\u00b7\u2003? for all shortcuts</div>' +
+    '</div>';
 }
 
 async function _cmdPreloadConsultantMeta() {
@@ -5823,6 +5835,7 @@ function _cmdSearch(q) {
           if (preason === 'client') {
             subtitle = [`Matched: Client — ${p.clientName}`, p.status].filter(Boolean).join(' · ');
           } else {
+            // Always show client for context, even when match is on project name or status
             subtitle = [p.clientName, p.status].filter(Boolean).join(' · ');
           }
           return {
@@ -6037,10 +6050,7 @@ function _cmdSetSelection(idx) {
     const q = input.value.trim();
     _cmdExpandedGroups = new Set();
     if (!q) {
-      const el = document.getElementById('cmdPaletteResults');
-      if (el) el.innerHTML = '';
-      _cmdItems  = [];
-      _cmdSelIdx = -1;
+      _cmdShowHint();
       return;
     }
     _cmdRender(_cmdSearch(q));

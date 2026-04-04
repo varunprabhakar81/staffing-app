@@ -2132,6 +2132,15 @@ body {
   color: #CCD6F6;
 }
 
+.shortcut-note {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(46,50,80,0.5);
+  font-size: 11px;
+  color: #8892B0;
+  line-height: 1.5;
+}
+
 /* ── Resource Allocation Inline Edit ────────────────────────────── */
 
 .hm-header-right {
@@ -3589,6 +3598,19 @@ td[data-cell-type="emp-total"]:hover {
   text-align: center;
   color: var(--text-muted);
   font-size: 14px;
+}
+.cmd-palette-hint {
+  padding: 28px 16px;
+  text-align: center;
+}
+.cmd-palette-hint-primary {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.cmd-palette-hint-secondary {
+  color: var(--text-dim, rgba(136,146,176,0.55));
+  font-size: 12px;
 }
 .cmd-palette-category {
   padding: 8px 16px 3px;
