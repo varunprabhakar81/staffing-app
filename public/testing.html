@@ -474,6 +474,7 @@
     .tp-status-filter-tab.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); font-weight: 600; }
     .tp-status-filter-tab[data-filter="retest"].active { background: var(--warn-muted); color: var(--warn); border-color: var(--warn); }
     .tp-status-filter-tab[data-filter="failed"].active { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
+    .tp-status-filter-tab[data-filter="passed"].active { background: var(--pass-muted); color: var(--pass); border-color: var(--pass); }
     .tp-status-filter-count {
       display: inline-block; font-size: 10px; background: rgba(255,255,255,0.08);
       border-radius: 8px; padding: 1px 5px; margin-left: 3px;
@@ -1036,8 +1037,12 @@ function updateSubmitBar() {
   // Reset own button: visible whenever the user has any results
   if (resetBtn) resetBtn.classList.toggle('hidden', !hasResults && !isSubmitted);
 
-  if (isSubmitted && !hasRetest) {
-    // Fully submitted, no pending retests — hide submit button
+  const hasUnsubmitted = testCases.some(tc => {
+    const r = myResults[tc.id];
+    return r && r.status && !r.submitted_at;
+  });
+  if (isSubmitted && !hasRetest && !hasUnsubmitted) {
+    // All submitted, no retests, nothing new to submit — hide submit button
     submitBtn.classList.add('hidden');
     hint.textContent = '';
   } else {
@@ -1176,6 +1181,10 @@ function renderStatusFilter() {
     const r = myResults[tc.id];
     return !r || !r.submitted_at;
   }).length;
+  const passedCount  = testCases.filter(tc => {
+    const r = myResults[tc.id];
+    return r?.status === 'pass' && !!r.submitted_at;
+  }).length;
   const failedCount  = testCases.filter(tc => {
     const r = myResults[tc.id];
     return r?.status === 'fail' && !!r.submitted_at;
@@ -1185,6 +1194,7 @@ function renderStatusFilter() {
   const tabs = [
     { key: 'all',     label: 'All',     count: allCount },
     { key: 'pending', label: 'Pending', count: pendingCount },
+    { key: 'passed',  label: 'Passed',  count: passedCount },
     { key: 'failed',  label: 'Failed',  count: failedCount },
     { key: 'retest',  label: 'Retest',  count: retestCount },
   ];
@@ -1234,6 +1244,7 @@ function filterTestsByStatus(cases) {
   return cases.filter(tc => {
     const r = myResults[tc.id];
     if (activeStatusFilter === 'pending') return !r || !r.submitted_at;
+    if (activeStatusFilter === 'passed')  return r?.status === 'pass' && !!r.submitted_at;
     if (activeStatusFilter === 'failed')  return r?.status === 'fail' && !!r.submitted_at;
     if (activeStatusFilter === 'retest')  return r?.status === 'retest';
     return true;
