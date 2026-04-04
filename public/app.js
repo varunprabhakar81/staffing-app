@@ -4454,6 +4454,16 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   locEl.value = consultant.location || '';
   locEl.disabled = readOnly;
 
+  // Industry
+  const industryEl = document.getElementById('cpIndustry');
+  industryEl.value = consultant.industry || '';
+  industryEl.disabled = readOnly;
+
+  // Country
+  const countryEl = document.getElementById('cpCountry');
+  countryEl.value = consultant.country || '';
+  countryEl.disabled = readOnly;
+
   // Rate overrides (only visible to admin/resource_manager — hidden entirely for others)
   const billEl = document.getElementById('cpBillRate');
   const costEl = document.getElementById('cpCostRate');
@@ -4650,6 +4660,8 @@ async function submitConsultantProfile(event) {
   const name     = document.getElementById('cpName').value.trim();
   const level_id = document.getElementById('cpLevel').value || null;
   const location = document.getElementById('cpLocation').value.trim() || null;
+  const industry = document.getElementById('cpIndustry').value.trim() || null;
+  const country  = document.getElementById('cpCountry').value.trim() || null;
   const billRaw  = document.getElementById('cpBillRate').value;
   const costRaw  = document.getElementById('cpCostRate').value;
   const bill_rate_override = billRaw !== '' ? parseFloat(billRaw) : null;
@@ -4660,7 +4672,7 @@ async function submitConsultantProfile(event) {
 
   if (!name) { showToast('Name is required.', 'error'); return; }
 
-  const patchBody = { name, level_id, location, bill_rate_override, cost_rate_override };
+  const patchBody = { name, level_id, location, industry, country, bill_rate_override, cost_rate_override };
   if (currentUserRole === 'admin') {
     const linkedVal = document.getElementById('cpLinkedUser').value;
     patchBody.user_id = linkedVal || null;

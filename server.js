@@ -65,7 +65,6 @@ function employeeWeeklyAverages(supply) {
 // ── Auth middleware ──────────────────────────────────────────────────────────
 
 function requireAuth(req, res, next) {
-  console.log('requireAuth called for:', req.method, req.originalUrl);
   if (!req.session || !req.session.token) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
@@ -191,10 +190,8 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-console.log('REGISTERING set-password route');
 // POST /api/auth/set-password — invitee sets password + promotes user_metadata to app_metadata
 app.post('/api/auth/set-password', async (req, res) => {
-  console.log('SET-PASSWORD ROUTE HIT, body:', JSON.stringify(req.body));
   const { access_token, password } = req.body || {};
   if (!access_token || !password) {
     return res.status(400).json({ error: 'access_token and password are required.' });
@@ -864,7 +861,7 @@ app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_mana
   try {
     const { data: consultant, error: cErr } = await serviceClient
       .from('consultants')
-      .select('id, name, level_id, location, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable, user_id')
+      .select('id, name, level_id, location, industry, country, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable, user_id')
       .eq('tenant_id', tenantId)
       .eq('id', id)
       .single();
@@ -906,13 +903,15 @@ app.get('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_mana
 // PATCH /api/consultants/:id — update consultant profile fields
 app.patch('/api/consultants/:id', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const { id } = req.params;
-  const { name, level_id, location, bill_rate_override, cost_rate_override, user_id } = req.body || {};
+  const { name, level_id, location, industry, country, bill_rate_override, cost_rate_override, user_id } = req.body || {};
   const tenantId = tId(req);
 
   const updates = {};
   if (name              !== undefined) updates.name               = name;
   if (level_id          !== undefined) updates.level_id           = level_id;
   if (location          !== undefined) updates.location           = location;
+  if (industry          !== undefined) updates.industry           = industry;
+  if (country           !== undefined) updates.country            = country;
   if (bill_rate_override !== undefined) updates.bill_rate_override = bill_rate_override === '' ? null : bill_rate_override;
   if (cost_rate_override !== undefined) updates.cost_rate_override = cost_rate_override === '' ? null : cost_rate_override;
   if (user_id           !== undefined) updates.user_id            = user_id === '' ? null : user_id;
@@ -1338,7 +1337,6 @@ app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'projec
   }));
 
   const t2 = Date.now();
-  console.log(`[recommendations] cache ${cacheHit ? 'HIT' : 'MISS'}, readStaffingData: ${t1 - t0}ms, Claude: ${t2 - t1}ms, total: ${t2 - t0}ms`);
   res.json({ needs: needsWithMatches });
 });
 
@@ -1874,7 +1872,6 @@ app.post('/api/test-results/reset', requireAuth, async (req, res) => {
 
 // GET /api/events — Server-Sent Events endpoint
 app.get('/api/events', (req, res) => {
-  console.log('SSE client connected');
   res.setHeader('Content-Type',  'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection',    'keep-alive');
