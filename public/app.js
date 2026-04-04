@@ -5654,6 +5654,12 @@ async function _cmdPreloadConsultantMeta() {
     for (const c of list) {
       if (c.id) _cmdConsultantMeta[c.id] = { industry: c.industry || '', country: c.country || '' };
     }
+    // Re-run search in case the palette is open and a query is already typed
+    const overlay = document.getElementById('cmdPaletteOverlay');
+    const input   = document.getElementById('cmdPaletteInput');
+    if (overlay && overlay.classList.contains('active') && input && input.value.trim()) {
+      _cmdRender(_cmdSearch(input.value.trim()));
+    }
   } catch { /* ignore */ }
 }
 
@@ -5768,14 +5774,17 @@ function _cmdSearch(q) {
       label: 'Consultants',
       allItems: matchConsult.map(({ c, reason }) => {
         let subtitle;
-        if (reason === 'name' || reason === 'level') {
+        if (reason === 'name') {
           subtitle = _skillsSubtitle(c);
+        } else if (reason === 'level') {
+          const skills = c.allSkillSets.slice(0, 2).join(', ');
+          subtitle = [`Matched: Level — ${c.level}`, skills].filter(Boolean).join(' · ');
         } else if (reason.type === 'skill') {
-          subtitle = [c.level, `Matched: ${reason.value}`].filter(Boolean).join(' · ');
+          subtitle = [c.level, `Matched: Skill — ${reason.value}`].filter(Boolean).join(' · ');
         } else if (reason.type === 'industry') {
-          subtitle = [c.level, `Industry: ${reason.value}`].filter(Boolean).join(' · ');
+          subtitle = [c.level, `Matched: Industry — ${reason.value}`].filter(Boolean).join(' · ');
         } else if (reason.type === 'country') {
-          subtitle = [c.level, `Country: ${reason.value}`].filter(Boolean).join(' · ');
+          subtitle = [c.level, `Matched: Country — ${reason.value}`].filter(Boolean).join(' · ');
         }
         return {
           icon: '👤',
@@ -5812,7 +5821,7 @@ function _cmdSearch(q) {
         allItems: matchProjsR.map(({ p, preason }) => {
           let subtitle;
           if (preason === 'client') {
-            subtitle = [`Matched client: ${p.clientName}`, p.status].filter(Boolean).join(' · ');
+            subtitle = [`Matched: Client — ${p.clientName}`, p.status].filter(Boolean).join(' · ');
           } else {
             subtitle = [p.clientName, p.status].filter(Boolean).join(' · ');
           }
@@ -5874,7 +5883,7 @@ function _cmdSearch(q) {
         allItems: matchRolesR.map(({ r, nreason }) => {
           let subtitle;
           if (nreason && nreason.type === 'skill') {
-            subtitle = [r.client, `Matched: ${nreason.value}`].filter(Boolean).join(' · ');
+            subtitle = [r.client, `Matched: Skill — ${nreason.value}`].filter(Boolean).join(' · ');
           } else if (nreason === 'level') {
             subtitle = [r.client, r.project, urgencyLabel(r)].filter(Boolean).join(' · ');
           } else if (nreason === 'client') {
