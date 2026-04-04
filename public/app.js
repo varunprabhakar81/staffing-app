@@ -33,6 +33,7 @@ let _cmdItems  = [];               // command palette: flat array of { action } 
 let _cmdExpandedGroups = new Set(); // command palette: group labels expanded beyond CAP
 let _cmdLastGroups     = [];        // command palette: last rendered groups (for expand re-render)
 let _cmdConsultantMeta = null;      // command palette: lazy-loaded { [id]: { industry, country } }
+let _cmdActionMode     = false;     // command palette: true when query starts with ">"
 let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -5649,7 +5650,117 @@ function _cmdShowHint() {
   if (!el) return;
   _cmdItems  = [];
   _cmdSelIdx = -1;
-  el.innerHTML = '<div class="cmd-palette-hint"><div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026</div></div>';
+  el.innerHTML = '<div class="cmd-palette-hint"><div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026 or type &gt; for actions</div></div>';
+}
+
+function _cmdSetActionMode(on) {
+  _cmdActionMode = on;
+  const badge = document.getElementById('cmdActionModeBadge');
+  if (badge) badge.classList.toggle('hidden', !on);
+}
+
+// ── Action registry ────────────────────────────────────────────────
+function _cmdGetActions() {
+  const role = currentUserRole;
+  const ALL     = ['admin', 'resource_manager', 'project_manager', 'executive', 'consultant'];
+  const ADMIN_RM = ['admin', 'resource_manager'];
+  return [
+    {
+      id: 'add-need',
+      label: 'Add a need',
+      description: 'Open the create need modal',
+      icon: '🎯',
+      roles: ADMIN_RM,
+      handler() {
+        closeCmdPalette();
+        setTimeout(() => { navigateTo('needs'); openCreateNeedModal(); }, 60);
+      },
+    },
+    {
+      id: 'add-consultant',
+      label: 'Add a consultant',
+      description: 'Go to Settings \u2192 Consultants',
+      icon: '👤',
+      roles: ['admin'],
+      handler() {
+        closeCmdPalette();
+        navigateTo('settings');
+        setTimeout(() => switchSettingsPanel('consultants'), 60);
+      },
+    },
+    {
+      id: 'invite-user',
+      label: 'Invite a user',
+      description: 'Open the invite user modal',
+      icon: '✉️',
+      roles: ['admin'],
+      handler() {
+        closeCmdPalette();
+        setTimeout(() => openInviteModal(), 60);
+      },
+    },
+    {
+      id: 'reset-sandbox',
+      label: 'Reset sandbox',
+      description: 'Reset tenant sandbox data',
+      icon: '🔄',
+      roles: ['admin'],
+      handler() {
+        closeCmdPalette();
+        setTimeout(() => resetSandbox(), 60);
+      },
+    },
+    {
+      id: 'refresh-data',
+      label: 'Refresh data',
+      description: 'Reload dashboard + heatmap data',
+      icon: '↻',
+      roles: ALL,
+      handler() {
+        closeCmdPalette();
+        loadDashboard();
+      },
+    },
+    {
+      id: 'toggle-sidebar',
+      label: 'Toggle sidebar',
+      description: 'Show or hide the sidebar',
+      icon: '◫',
+      roles: ALL,
+      handler() {
+        closeCmdPalette();
+        toggleSidebar();
+      },
+    },
+    {
+      id: 'open-shortcuts',
+      label: 'Open keyboard shortcuts',
+      description: 'Show the shortcuts help overlay',
+      icon: '⌨',
+      roles: ALL,
+      handler() {
+        closeCmdPalette();
+        openShortcutGuide();
+      },
+    },
+  ].filter(a => a.roles.includes(role));
+}
+
+function _cmdSearchActions(q) {
+  const actions = _cmdGetActions();
+  const filtered = q
+    ? actions.filter(a => _cmdMatch(a.label, q) || _cmdMatch(a.description, q))
+    : actions;
+  if (!filtered.length) return [];
+  return [{
+    label: 'Actions',
+    allItems: filtered.map(a => ({
+      icon: a.icon,
+      title: a.label,
+      subtitle: a.description,
+      action: a.handler,
+    })),
+  }];
 }
 
 async function _cmdPreloadConsultantMeta() {
@@ -5675,6 +5786,7 @@ function closeCmdPalette() {
   const overlay = document.getElementById('cmdPaletteOverlay');
   if (overlay) overlay.classList.remove('active');
   _cmdExpandedGroups = new Set();
+  _cmdSetActionMode(false);
 }
 
 function handleCmdPaletteOverlayClick(e) {
@@ -5972,7 +6084,9 @@ function _cmdRender(groups) {
   const CAP  = 5;
 
   if (!groups.length) {
-    el.innerHTML = '<div class="cmd-palette-empty">No results</div>';
+    el.innerHTML = _cmdActionMode
+      ? '<div class="cmd-palette-empty">No matching actions<br><span style="font-size:11px">Press Backspace to return to search</span></div>'
+      : '<div class="cmd-palette-empty">No results</div>';
     return;
   }
 
@@ -5984,7 +6098,7 @@ function _cmdRender(groups) {
     const more       = g.allItems.length - CAP;
 
     if (gi > 0) html += '<div class="cmd-palette-divider"></div>';
-    html += `<div class="cmd-palette-category">${_esc(g.label)}</div>`;
+    html += `<div class="cmd-palette-category">${_esc(g.label)}${_cmdActionMode ? '<span class="cmd-palette-action-mode-note"> · Backspace to search</span>' : ''}</div>`;
 
     for (const item of display) {
       const idx = _cmdItems.length;
@@ -6047,6 +6161,15 @@ function _cmdSetSelection(idx) {
   input.addEventListener('input', () => {
     const q = input.value.trim();
     _cmdExpandedGroups = new Set();
+
+    if (q.startsWith('>')) {
+      _cmdSetActionMode(true);
+      const aq = q.slice(1).trimStart();
+      _cmdRender(_cmdSearchActions(aq));
+      return;
+    }
+
+    _cmdSetActionMode(false);
     if (!q) {
       _cmdShowHint();
       return;

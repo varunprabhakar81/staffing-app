@@ -3602,6 +3602,26 @@ td[data-cell-type="emp-total"]:hover {
   font-family: monospace;
   letter-spacing: 0.02em;
 }
+.cmd-action-mode-badge {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--accent, #86EB22);
+  background: rgba(134, 235, 34, 0.1);
+  border: 1px solid rgba(134, 235, 34, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 1.4;
+}
+.cmd-palette-action-mode-note {
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim, rgba(136,146,176,0.45));
+  margin-left: 4px;
+}
 .cmd-palette-results {
   overflow-y: auto;
   flex: 1;
