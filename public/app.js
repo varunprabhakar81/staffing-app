@@ -92,7 +92,7 @@ function toggleSidebar() {
 // ── Keyboard shortcuts ────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); return; }
+  if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); closeInviteModal(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview');  return; }
@@ -1903,7 +1903,7 @@ function renderCoverageChart(openNeeds) {
         ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
         : '';
       rows += `
-      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" style="display:none" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" data-needid="${_esc(r._needId || '')}" style="display:none" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
         <td class="col-project" style="padding-left:20px"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
         <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
         <td>${r.level || '—'}</td>
@@ -4619,6 +4619,7 @@ function openInviteModal() {
 
 function closeInviteModal() {
   const modal = document.getElementById('inviteModal');
+  if (!modal || modal.classList.contains('hidden')) return;
   modal.classList.add('hidden');
   document.getElementById('inviteForm').reset();
   document.getElementById('inviteError').classList.add('hidden');
@@ -5650,7 +5651,23 @@ function _cmdShowHint() {
   if (!el) return;
   _cmdItems  = [];
   _cmdSelIdx = -1;
-  el.innerHTML = '<div class="cmd-palette-hint"><div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026 or type &gt; for actions</div></div>';
+  el.innerHTML = `<div class="cmd-palette-hint">
+    <div class="cmd-palette-hint-primary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px;margin-right:6px;opacity:0.55"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="10" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Search consultants, projects, needs\u2026
+    </div>
+    <div class="cmd-palette-action-tip" id="cmdActionTip">
+      <span class="cmd-kbd">&gt;</span>
+      <span class="cmd-action-tip-text">Quick actions</span>
+      <span class="cmd-action-tip-desc">Add needs, invite users, refresh data\u2026</span>
+    </div>
+  </div>`;
+  document.getElementById('cmdActionTip')?.addEventListener('click', () => {
+    const input = document.getElementById('cmdPaletteInput');
+    if (!input) return;
+    input.value = '>';
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  });
 }
 
 function _cmdSetActionMode(on) {
@@ -5787,6 +5804,9 @@ function closeCmdPalette() {
   if (overlay) overlay.classList.remove('active');
   _cmdExpandedGroups = new Set();
   _cmdSetActionMode(false);
+  // Restore focus to body so Ctrl+K and / work immediately after close
+  const input = document.getElementById('cmdPaletteInput');
+  if (input) input.blur();
 }
 
 function handleCmdPaletteOverlayClick(e) {
@@ -6023,16 +6043,26 @@ function _cmdSearch(q) {
               closeCmdPalette();
               navigateTo('needs');
               const client = r.client;
-              if (client) {
+              const needId = r._needId;
+              setTimeout(() => {
+                if (client && _collapsedNeedsClients.has(client)) {
+                  const header = document.querySelector(
+                    `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
+                  );
+                  if (header) toggleNeedsClientGroup(header);
+                }
+                // Scroll to and briefly highlight the target row
                 setTimeout(() => {
-                  if (_collapsedNeedsClients.has(client)) {
-                    const header = document.querySelector(
-                      `.needs-client-header[data-client-group="${CSS.escape(client)}"]`
-                    );
-                    if (header) toggleNeedsClientGroup(header);
+                  const row = needId
+                    ? document.querySelector(`.need-row[data-needid="${CSS.escape(needId)}"]`)
+                    : null;
+                  if (row) {
+                    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    row.classList.add('cmd-palette-row-highlight');
+                    setTimeout(() => row.classList.remove('cmd-palette-row-highlight'), 1400);
                   }
-                }, 150);
-              }
+                }, 120);
+              }, 150);
             },
           };
         }),
