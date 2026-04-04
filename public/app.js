@@ -5654,6 +5654,8 @@ async function _cmdPreloadConsultantMeta() {
     for (const c of list) {
       if (c.id) _cmdConsultantMeta[c.id] = { industry: c.industry || '', country: c.country || '' };
     }
+    const sampleEntries = Object.entries(_cmdConsultantMeta).slice(0, 3);
+    console.log('[palette] preload: sample meta FULL =', sampleEntries.map(([k, v]) => ({ id: k, industry: v.industry, country: v.country })));
     // Re-run search in case the palette is open and a query is already typed
     const overlay = document.getElementById('cmdPaletteOverlay');
     const input   = document.getElementById('cmdPaletteInput');
@@ -5686,11 +5688,18 @@ function _cmdMatch(text, q) {
 function _cmdGetConsultants() {
   if (rawData.supply && rawData.supply.length > 0) {
     const map = {};
+    let _dbgCount = 0;
     for (const row of rawData.supply) {
       if (!map[row.employeeName]) {
         const meta = _cmdConsultantMeta && row._consultantId
           ? (_cmdConsultantMeta[row._consultantId] || {})
           : {};
+        if (_dbgCount < 3) {
+          const cid = row._consultantId;
+          const hasKey = _cmdConsultantMeta ? (cid in _cmdConsultantMeta) : false;
+          console.log(`[palette] merge [${_dbgCount}] name=${row.employeeName} _consultantId=${JSON.stringify(cid)} typeof=${typeof cid} hasKey=${hasKey} meta=`, meta, `=> industry=${meta.industry || ''} country=${meta.country || ''}`);
+          _dbgCount++;
+        }
         map[row.employeeName] = {
           name: row.employeeName,
           level: row.level || '',
