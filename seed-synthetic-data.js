@@ -249,6 +249,14 @@ const PROJECT_DEFS = [
 
 const PROBABILITY_MAP = { 'Proposed': 25, 'Verbal Commit': 75, 'Sold': 100 };
 
+const SEED_INDUSTRIES = [
+  'Financial Services', 'Technology', 'Healthcare', 'Manufacturing', 'Retail',
+  'Energy', 'Telecommunications', 'Government', 'Media & Entertainment', 'Professional Services',
+];
+const SEED_COUNTRIES = ['United States', 'India'];
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 const CONSULTANT_DEFS = [
   { name: 'Abby Adams',    level: 'Analyst',                             location: 'Chicago',       skills: ['Order to Cash', 'NetSuite'] },
   { name: 'Brad Baker',    level: 'Analyst',                             location: 'Detroit',       skills: ['Procure to Pay', 'NetSuite'] },
@@ -463,6 +471,8 @@ async function seedTenant(tenantId, client, { skipConfirm = false } = {}) {
     name: consultantNameMap[c.name],
     level_id: levelByName[c.level],
     location: c.location,
+    industry: pick(SEED_INDUSTRIES),
+    country: pick(SEED_COUNTRIES),
     capacity_hours_per_week: 45,
     is_active: true,
     bill_rate_override: null,

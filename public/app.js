@@ -4405,9 +4405,13 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   document.getElementById('cpSkillEmpty').classList.add('hidden');
   document.getElementById('consultantProfileModal').classList.remove('hidden');
 
-  let profile;
+  let profile, industries = [], countries = [];
   try {
-    const res = await apiFetch(`/api/consultants/${encodeURIComponent(consultantId)}`);
+    const [res, indRes, cntRes] = await Promise.all([
+      apiFetch(`/api/consultants/${encodeURIComponent(consultantId)}`),
+      apiFetch('/api/industries'),
+      apiFetch('/api/countries'),
+    ]);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       showToast(`Failed to load profile (${res.status}): ${body.error || ''}`, 'error');
@@ -4415,6 +4419,8 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
       return;
     }
     profile = await res.json();
+    if (indRes.ok) industries = await indRes.json();
+    if (cntRes.ok) countries  = await cntRes.json();
   } catch (e) {
     showToast('Failed to load profile', 'error');
     closeConsultantProfileEditor();
@@ -4454,14 +4460,28 @@ async function openConsultantProfileEditor(consultantId, consultantName) {
   locEl.value = consultant.location || '';
   locEl.disabled = readOnly;
 
-  // Industry
+  // Industry dropdown
   const industryEl = document.getElementById('cpIndustry');
-  industryEl.value = consultant.industry || '';
+  industryEl.innerHTML = '<option value="">— Select industry —</option>';
+  for (const ind of industries) {
+    const opt = document.createElement('option');
+    opt.value = ind.name;
+    opt.textContent = ind.name;
+    if (ind.name === consultant.industry) opt.selected = true;
+    industryEl.appendChild(opt);
+  }
   industryEl.disabled = readOnly;
 
-  // Country
+  // Country dropdown
   const countryEl = document.getElementById('cpCountry');
-  countryEl.value = consultant.country || '';
+  countryEl.innerHTML = '<option value="">— Select country —</option>';
+  for (const c of countries) {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    if (c.name === consultant.country) opt.selected = true;
+    countryEl.appendChild(opt);
+  }
   countryEl.disabled = readOnly;
 
   // Rate overrides (only visible to admin/resource_manager — hidden entirely for others)

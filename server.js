@@ -776,6 +776,36 @@ app.patch('/api/needs/:id', requireAuth, requireRole('admin', 'resource_manager'
   }
 });
 
+// GET /api/industries — tenant-scoped industry list for dropdown (#188)
+app.get('/api/industries', requireAuth, async (req, res) => {
+  const tenantId = tId(req);
+  try {
+    const { data, error } = await serviceClient
+      .from('industries')
+      .select('id, name')
+      .eq('tenant_id', tenantId)
+      .order('name');
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/countries — global country list for dropdown (#188)
+app.get('/api/countries', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await serviceClient
+      .from('countries')
+      .select('id, name')
+      .order('sort_order');
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/consultants — list all consultants for the Consultants Management panel (#126)
 app.get('/api/consultants', requireAuth, requireRole('admin', 'resource_manager'), async (req, res) => {
   const tenantId = tId(req);
