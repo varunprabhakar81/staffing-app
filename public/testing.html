@@ -1178,18 +1178,9 @@ function renderStatusFilter() {
   const bar = document.getElementById('statusFilterBar');
   if (!bar) return;
   const allCount     = testCases.length;
-  const pendingCount = testCases.filter(tc => {
-    const r = myResults[tc.id];
-    return !r || !r.submitted_at;
-  }).length;
-  const passedCount  = testCases.filter(tc => {
-    const r = myResults[tc.id];
-    return r?.status === 'pass' && !!r.submitted_at;
-  }).length;
-  const failedCount  = testCases.filter(tc => {
-    const r = myResults[tc.id];
-    return r?.status === 'fail' && !!r.submitted_at;
-  }).length;
+  const pendingCount = testCases.filter(tc => !myResults[tc.id]?.status).length;
+  const passedCount  = testCases.filter(tc => myResults[tc.id]?.status === 'pass').length;
+  const failedCount  = testCases.filter(tc => myResults[tc.id]?.status === 'fail').length;
   const retestCount  = testCases.filter(tc => myResults[tc.id]?.status === 'retest').length;
 
   const tabs = [
@@ -1244,9 +1235,9 @@ function filterTestsByStatus(cases) {
   if (!activeStatusFilter || activeStatusFilter === 'all') return cases;
   return cases.filter(tc => {
     const r = myResults[tc.id];
-    if (activeStatusFilter === 'pending') return !r || !r.submitted_at;
-    if (activeStatusFilter === 'passed')  return r?.status === 'pass' && !!r.submitted_at;
-    if (activeStatusFilter === 'failed')  return r?.status === 'fail' && !!r.submitted_at;
+    if (activeStatusFilter === 'pending') return !r?.status;
+    if (activeStatusFilter === 'passed')  return r?.status === 'pass';
+    if (activeStatusFilter === 'failed')  return r?.status === 'fail';
     if (activeStatusFilter === 'retest')  return r?.status === 'retest';
     return true;
   });
