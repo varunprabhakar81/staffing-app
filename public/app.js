@@ -5645,29 +5645,22 @@ function openCmdPalette() {
 }
 
 async function _cmdPreloadConsultantMeta() {
-  if (_cmdConsultantMeta) { console.log('[palette] preload skipped — already cached'); return; }
-  console.log('[palette] preload: firing fetch to /api/consultants');
+  if (_cmdConsultantMeta) return;
   try {
     const res = await apiFetch('/api/consultants');
-    console.log('[palette] preload: fetch response ok =', res.ok, 'status =', res.status);
     if (!res.ok) return;
     const list = await res.json();
-    console.log('[palette] preload: got', list.length, 'consultants');
-    console.log('[palette] preload: first 3 raw =', list.slice(0, 3).map(c => ({ id: c.id, name: c.name, industry: c.industry, country: c.country })));
     _cmdConsultantMeta = {};
     for (const c of list) {
       if (c.id) _cmdConsultantMeta[c.id] = { industry: c.industry || '', country: c.country || '' };
     }
-    console.log('[palette] preload: meta cache populated, sample keys =', Object.keys(_cmdConsultantMeta).slice(0, 3));
-    console.log('[palette] preload: sample meta values =', Object.values(_cmdConsultantMeta).slice(0, 3));
     // Re-run search in case the palette is open and a query is already typed
     const overlay = document.getElementById('cmdPaletteOverlay');
     const input   = document.getElementById('cmdPaletteInput');
     if (overlay && overlay.classList.contains('active') && input && input.value.trim()) {
-      console.log('[palette] preload: re-running search for query =', input.value.trim());
       _cmdRender(_cmdSearch(input.value.trim()));
     }
-  } catch (err) { console.error('[palette] preload error:', err); }
+  } catch { /* ignore */ }
 }
 
 function closeCmdPalette() {
@@ -5750,8 +5743,6 @@ function _cmdSearch(q) {
 
   // ── Consultants ──────────────────────────────────────────────────
   const consultants  = _cmdGetConsultants();
-  console.log('[palette] search: _cmdConsultantMeta loaded =', _cmdConsultantMeta !== null, '| consultant count =', consultants.length);
-  console.log('[palette] search: first 3 consultants =', consultants.slice(0, 3).map(c => ({ name: c.name, industry: c.industry, country: c.country, _consultantId: c._consultantId })));
   const matchConsult = [];
   for (const c of consultants) {
     let reason = null;
