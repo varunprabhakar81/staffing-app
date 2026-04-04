@@ -487,6 +487,103 @@
       margin-right: auto;
     }
     .tp-reset-own-btn:hover { border-color: var(--fail); color: var(--fail); background: var(--fail-muted); }
+
+    /* ── Admin Dashboard ── */
+    .tp-admin-top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .tp-admin-top-bar h2 { font-size: 16px; font-weight: 700; }
+    .tp-admin-top-actions { display: flex; gap: 8px; }
+    .tp-admin-top-btn {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted); font-family: var(--font);
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .tp-admin-top-btn:hover { color: var(--text-primary); border-color: var(--text-dim); }
+    .tp-admin-top-btn.danger:hover { color: var(--fail); border-color: var(--fail); background: var(--fail-muted); }
+
+    /* Tester summary cards */
+    .tp-admin-cards {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .tp-admin-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .tp-admin-card-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 10px; gap: 8px;
+    }
+    .tp-admin-card-email { font-size: 12px; font-weight: 600; color: var(--text-primary); word-break: break-all; }
+    .tp-admin-card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .tp-admin-card-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px;
+    }
+    .tp-admin-card-badge.pass    { background: var(--pass-muted); color: var(--pass); }
+    .tp-admin-card-badge.fail    { background: var(--fail-muted); color: var(--fail); }
+    .tp-admin-card-badge.retest  { background: var(--warn-muted); color: var(--warn); }
+    .tp-admin-card-badge.pending { background: var(--bg-elevated); color: var(--text-dim); }
+    .tp-admin-seg-bar {
+      display: flex; height: 5px; border-radius: 3px; overflow: hidden;
+      background: var(--border); margin-bottom: 10px;
+    }
+    .tp-admin-seg-fill { height: 100%; transition: width 0.3s; }
+    .tp-admin-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tp-admin-card-btn {
+      padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted); font-family: var(--font);
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .tp-admin-card-btn:hover      { color: var(--text-primary); border-color: var(--text-dim); }
+    .tp-admin-card-btn.warn:hover { color: var(--warn); border-color: var(--warn); background: var(--warn-muted); }
+    .tp-admin-card-btn.danger:hover { color: var(--fail); border-color: var(--fail); background: var(--fail-muted); }
+    .tp-admin-card-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Filter bar */
+    .tp-admin-filter-bar {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .tp-admin-filter-select {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-primary); font-family: var(--font); font-size: 12px;
+      padding: 5px 10px; cursor: pointer; outline: none; transition: border-color 0.15s;
+    }
+    .tp-admin-filter-select:hover, .tp-admin-filter-select:focus { border-color: var(--text-dim); }
+    .tp-admin-filter-sep { color: var(--text-dim); font-size: 11px; padding: 0 2px; }
+    .tp-admin-stat-tab {
+      padding: 5px 12px; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted);
+      font-family: var(--font); font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tp-admin-stat-tab:hover { color: var(--text-primary); border-color: var(--text-dim); }
+    .tp-admin-stat-tab.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .tp-admin-stat-tab[data-stat="fail"].active   { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
+    .tp-admin-stat-tab[data-stat="retest"].active { background: var(--warn-muted); color: var(--warn); border-color: var(--warn); }
+
+    /* Results table */
+    .tp-admin-table-wrap { overflow-x: auto; }
+    .tp-admin-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .tp-admin-table th {
+      background: var(--bg-elevated); color: var(--text-muted); font-weight: 600;
+      padding: 8px 12px; text-align: left; border: 1px solid var(--border);
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .tp-admin-table td { border: 1px solid var(--border-subtle); padding: 8px 12px; vertical-align: middle; }
+    .tp-admin-table tbody tr.is-fail   td { background: rgba(229,62,62,0.05); }
+    .tp-admin-table tbody tr.is-retest td { background: rgba(214,158,46,0.06); }
+    .tp-admin-table tbody tr:hover td             { background: rgba(255,255,255,0.02); }
+    .tp-admin-table tbody tr.is-fail:hover   td   { background: rgba(229,62,62,0.10); }
+    .tp-admin-table tbody tr.is-retest:hover td   { background: rgba(214,158,46,0.10); }
+    .tp-admin-mark-retest-btn {
+      padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted); font-family: var(--font);
+      font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .tp-admin-mark-retest-btn:hover    { color: var(--warn); border-color: var(--warn); background: var(--warn-muted); }
+    .tp-admin-mark-retest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -538,7 +635,7 @@
 <!-- Tabs -->
 <div class="tp-tabs">
   <button class="tp-tab active" data-tab="my-tests">My Tests</button>
-  <button class="tp-tab hidden" id="summaryTab" data-tab="summary">Summary</button>
+  <button class="tp-tab hidden" id="summaryTab" data-tab="summary">Admin Dashboard</button>
 </div>
 
 <!-- Body -->
@@ -581,11 +678,14 @@
     </div>
   </div>
 
-  <!-- Summary panel -->
+  <!-- Admin Dashboard panel -->
   <main class="tp-main hidden" id="panelSummary">
-    <div class="tp-summary-header">
-      <h2>Test Results Summary</h2>
-      <button class="tp-reset-all-btn" id="resetAllBtn">Reset All Testers</button>
+    <div class="tp-admin-top-bar">
+      <h2>Admin Dashboard</h2>
+      <div class="tp-admin-top-actions">
+        <button class="tp-admin-top-btn" id="adminRefreshBtn">↻ Refresh</button>
+        <button class="tp-admin-top-btn danger" id="resetAllBtn">Reset All Users</button>
+      </div>
     </div>
     <div id="summaryContent"></div>
   </main>
@@ -631,6 +731,12 @@ let activeStatusFilter = 'all'; // 'all' | 'pending' | 'failed' | 'retest'
 let myResults          = {};    // test_case_id → {status, notes, submitted_at}
 let isSubmitted        = false;
 let activeArea         = null;
+
+// ── Admin dashboard state ──────────────────────────────────────────────────
+let adminData       = [];    // flat results from GET /api/testing/results (all users)
+let adminUserFilter = '';    // '' = all users
+let adminCatFilter  = '';    // '' = all categories
+let adminStatFilter = 'all'; // 'all'|'pass'|'fail'|'retest'|'pending'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
@@ -760,7 +866,7 @@ function confirm(title, msg, okLabel, okClass, cb) {
       document.getElementById('myTestsWrapper').classList.toggle('hidden', tab !== 'my-tests');
       document.getElementById('areaSidebar').classList.toggle('hidden', tab !== 'my-tests');
       document.getElementById('panelSummary').classList.toggle('hidden', tab !== 'summary');
-      if (tab === 'summary') loadSummary();
+      if (tab === 'summary') loadAdminDashboard();
     });
   });
 
@@ -810,15 +916,27 @@ function confirm(title, msg, okLabel, okClass, cb) {
     window.location.href = '/login.html';
   });
 
-  // Reset All button
+  // Reset All Users button (admin dashboard)
   document.getElementById('resetAllBtn').addEventListener('click', () => {
     confirm(
-      'Reset All Testers',
-      'This will clear all test results for all testers across all tenants. Are you sure?',
+      'Reset All Users',
+      'This will clear ALL test results for every tester in your tenant. This cannot be undone. Continue?',
       'Reset All', '',
-      () => doReset(null)
+      async () => {
+        try {
+          const res = await apiFetch('/api/testing/results/reset-all', {
+            method: 'DELETE', headers: { 'Content-Type': 'application/json' }
+          });
+          if (!res.ok) { const e = await res.json(); showToast('Reset failed: ' + e.error, 'error'); return; }
+          showToast('All results cleared', 'ok');
+          loadAdminDashboard();
+        } catch (e) { showToast('Network error', 'error'); }
+      }
     );
   });
+
+  // Admin Refresh button
+  document.getElementById('adminRefreshBtn').addEventListener('click', () => loadAdminDashboard());
 
   // Reset own results button
   document.getElementById('resetOwnBtn').addEventListener('click', doResetOwn);
@@ -1401,157 +1519,287 @@ async function clearResult(testId, card) {
   renderStatusFilter();
 }
 
-// ── Summary ────────────────────────────────────────────────────────────────
-async function loadSummary() {
+// ── Admin Dashboard ────────────────────────────────────────────────────────
+
+async function loadAdminDashboard() {
   document.getElementById('summaryContent').innerHTML = '<div class="tp-empty"><p>Loading…</p></div>';
-  const res = await apiFetch('/api/test-results/summary');
-  if (!res.ok) {
-    document.getElementById('summaryContent').innerHTML = '<div class="tp-empty"><p style="color:var(--fail)">Could not load summary.</p></div>';
-    return;
+  try {
+    const res = await apiFetch('/api/testing/results');
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to load');
+    adminData = await res.json();
+    adminUserFilter = '';
+    adminCatFilter  = '';
+    adminStatFilter = 'all';
+    renderAdminDashboard();
+  } catch (e) {
+    document.getElementById('summaryContent').innerHTML =
+      `<div class="tp-empty"><p style="color:var(--fail)">Could not load results: ${esc(e.message)}</p></div>`;
   }
-  const data = await res.json();
-  renderSummary(data);
 }
 
-function renderSummary(data) {
-  // Group by user
-  const testers = {};
+function buildAdminTesters(data) {
+  const map = {};
   data.forEach(r => {
-    if (!testers[r.user_id]) {
-      testers[r.user_id] = {
-        user_id:    r.user_id,
-        user_email: r.user_email,
-        tenant:     r.tenants?.name || r.tenant_id,
-        results:    {},
-        submitted_at: null
-      };
+    if (r.test_case_id === 'general-feedback') return;
+    if (!map[r.user_id]) {
+      map[r.user_id] = { user_id: r.user_id, email: r.email || r.user_email || r.user_id, results: {}, submitted_at: null };
     }
-    testers[r.user_id].results[r.test_case_id] = { status: r.status, notes: r.notes };
-    if (r.submitted_at) testers[r.user_id].submitted_at = r.submitted_at;
+    map[r.user_id].results[r.test_case_id] = { status: r.status, notes: r.notes, submitted_at: r.submitted_at };
+    if (r.submitted_at && !map[r.user_id].submitted_at) map[r.user_id].submitted_at = r.submitted_at;
+  });
+  return Object.values(map).sort((a, b) => a.email.localeCompare(b.email));
+}
+
+function renderAdminDashboard() {
+  const container  = document.getElementById('summaryContent');
+  const testers    = buildAdminTesters(adminData);
+  const total      = allTestCases.length;
+
+  if (testers.length === 0) {
+    container.innerHTML = '<div class="tp-empty"><h3>No results yet</h3><p>No testers have recorded results.</p></div>';
+    return;
+  }
+
+  // ── Summary cards ──────────────────────────────────────────────────────
+  let cardsHtml = '<div class="tp-admin-cards">';
+  testers.forEach(t => {
+    const rl      = Object.values(t.results);
+    const passes  = rl.filter(r => r.status === 'pass').length;
+    const fails   = rl.filter(r => r.status === 'fail').length;
+    const retests = rl.filter(r => r.status === 'retest').length;
+    const skips   = rl.filter(r => r.status === 'skip').length;
+    const done    = passes + fails + retests + skips;
+    const pending = Math.max(0, total - done);
+    const pw      = total > 0 ? (passes  / total * 100).toFixed(1) : 0;
+    const fw      = total > 0 ? (fails   / total * 100).toFixed(1) : 0;
+    const rw      = total > 0 ? (retests / total * 100).toFixed(1) : 0;
+    const subbed  = !!t.submitted_at;
+    cardsHtml += `
+      <div class="tp-admin-card">
+        <div class="tp-admin-card-header">
+          <div class="tp-admin-card-email">${esc(t.email)}</div>
+          <span class="tp-status-pill ${subbed ? 'submitted' : 'in-progress'}" style="flex-shrink:0;font-size:9px">${subbed ? 'Submitted' : 'In Progress'}</span>
+        </div>
+        <div class="tp-admin-card-badges">
+          <span class="tp-admin-card-badge pass">Pass ${passes}</span>
+          <span class="tp-admin-card-badge fail">Fail ${fails}</span>
+          ${retests > 0 ? `<span class="tp-admin-card-badge retest">Retest ${retests}</span>` : ''}
+          <span class="tp-admin-card-badge pending">Pending ${pending}</span>
+        </div>
+        <div class="tp-admin-seg-bar">
+          <div class="tp-admin-seg-fill" style="width:${pw}%;background:var(--pass)"></div>
+          <div class="tp-admin-seg-fill" style="width:${fw}%;background:var(--fail)"></div>
+          <div class="tp-admin-seg-fill" style="width:${rw}%;background:var(--warn)"></div>
+        </div>
+        <div class="tp-admin-card-actions">
+          ${fails > 0 ? `<button class="tp-admin-card-btn warn" data-action="retest-all" data-uid="${esc(t.user_id)}">↩ Retest All Failed (${fails})</button>` : ''}
+          <button class="tp-admin-card-btn danger" data-action="reset-user" data-uid="${esc(t.user_id)}" data-email="${esc(t.email)}">Reset</button>
+        </div>
+      </div>`;
+  });
+  cardsHtml += '</div>';
+
+  // ── Filter bar ─────────────────────────────────────────────────────────
+  const cats = [...new Set(allTestCases.map(tc => tc.area))];
+  const userOpts = `<option value="">All Testers</option>` +
+    testers.map(t => `<option value="${esc(t.user_id)}"${adminUserFilter === t.user_id ? ' selected' : ''}>${esc(t.email)}</option>`).join('');
+  const catOpts = `<option value="">All Categories</option>` +
+    cats.map(c => `<option value="${esc(c)}"${adminCatFilter === c ? ' selected' : ''}>${esc(c)}</option>`).join('');
+  const statTabs = ['all', 'pass', 'fail', 'retest', 'pending'].map(s =>
+    `<button class="tp-admin-stat-tab${adminStatFilter === s ? ' active' : ''}" data-stat="${s}">${s === 'all' ? 'All' : s[0].toUpperCase() + s.slice(1)}</button>`
+  ).join('');
+  const filterHtml = `
+    <div class="tp-admin-filter-bar">
+      <select class="tp-admin-filter-select" id="adminUserSelect">${userOpts}</select>
+      <select class="tp-admin-filter-select" id="adminCatSelect">${catOpts}</select>
+      <span class="tp-admin-filter-sep">|</span>
+      ${statTabs}
+    </div>`;
+
+  container.innerHTML = cardsHtml + filterHtml + `<div class="tp-admin-table-wrap"><div id="adminTableBody"></div></div>`;
+
+  // Bind card buttons
+  container.querySelectorAll('[data-action="retest-all"]').forEach(btn => {
+    btn.addEventListener('click', () => adminRetestAllFailed(btn.dataset.uid, btn));
+  });
+  container.querySelectorAll('[data-action="reset-user"]').forEach(btn => {
+    btn.addEventListener('click', () => adminResetUser(btn.dataset.uid, btn.dataset.email));
   });
 
-  const rows = Object.values(testers).sort((a,b) => a.user_email.localeCompare(b.user_email));
-  const totalCases = testCases.length || 71; // fallback to total test count
+  // Bind filter controls
+  document.getElementById('adminUserSelect').addEventListener('change', e => { adminUserFilter = e.target.value; renderAdminTable(); });
+  document.getElementById('adminCatSelect').addEventListener('change',  e => { adminCatFilter  = e.target.value; renderAdminTable(); });
+  container.querySelectorAll('.tp-admin-stat-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminStatFilter = btn.dataset.stat;
+      container.querySelectorAll('.tp-admin-stat-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAdminTable();
+    });
+  });
+
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  const tbody = document.getElementById('adminTableBody');
+  if (!tbody) return;
+
+  // Build a test-case lookup map
+  const tcMap = {};
+  allTestCases.forEach(tc => { tcMap[tc.id] = tc; });
+  const areaOrder  = [...new Set(allTestCases.map(tc => tc.area))];
+  const tcOrderMap = {};
+  allTestCases.forEach((tc, i) => { tcOrderMap[tc.id] = i; });
+
+  // Build flat rows from adminData (exclude general-feedback)
+  let rows = adminData
+    .filter(r => r.test_case_id !== 'general-feedback')
+    .map(r => ({
+      ...r,
+      area:  tcMap[r.test_case_id]?.area  || '—',
+      title: tcMap[r.test_case_id]?.title || r.test_case_id,
+      email: r.email || r.user_email || r.user_id
+    }));
+
+  // For 'pending' filter, synthesise rows for test cases with no result
+  if (adminStatFilter === 'pending') {
+    const testers = buildAdminTesters(adminData);
+    const filterTesters = adminUserFilter ? testers.filter(t => t.user_id === adminUserFilter) : testers;
+    filterTesters.forEach(t => {
+      allTestCases.forEach(tc => {
+        if (!t.results[tc.id]) {
+          rows.push({ test_case_id: tc.id, user_id: t.user_id, email: t.email,
+            status: null, notes: null, submitted_at: null, area: tc.area, title: tc.title });
+        }
+      });
+    });
+  }
+
+  // Apply filters
+  if (adminUserFilter) rows = rows.filter(r => r.user_id === adminUserFilter);
+  if (adminCatFilter)  rows = rows.filter(r => r.area  === adminCatFilter);
+  if (adminStatFilter !== 'all') {
+    rows = rows.filter(r => adminStatFilter === 'pending' ? !r.status : r.status === adminStatFilter);
+  }
+
+  // Sort by category order, then test case order
+  rows.sort((a, b) => {
+    const ao = areaOrder.indexOf(a.area) - areaOrder.indexOf(b.area);
+    return ao !== 0 ? ao : (tcOrderMap[a.test_case_id] ?? 999) - (tcOrderMap[b.test_case_id] ?? 999);
+  });
 
   if (rows.length === 0) {
-    document.getElementById('summaryContent').innerHTML = '<div class="tp-empty"><h3>No results yet</h3><p>No testers have submitted results.</p></div>';
+    tbody.innerHTML = '<div class="tp-empty" style="padding:32px 0"><p>No results match the current filter.</p></div>';
     return;
   }
 
   let html = `
-    <table class="tp-tester-table">
-      <thead>
-        <tr>
-          <th>Tester</th>
-          <th>Organization</th>
-          <th>Status</th>
-          <th>Completed</th>
-          <th style="color:var(--pass)">Pass</th>
-          <th style="color:var(--fail)">Fail</th>
-          <th style="color:var(--skip)">Skip</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="summaryTbody">
-  `;
+    <table class="tp-admin-table">
+      <thead><tr>
+        <th>Category</th><th>Test ID</th><th>Test Name</th>
+        <th>Status</th><th>Tester</th><th>Notes</th><th>Submitted</th><th></th>
+      </tr></thead><tbody>`;
 
-  rows.forEach(t => {
-    const rList   = Object.entries(t.results).filter(([id]) => id !== 'general-feedback').map(([,r]) => r);
-    const done    = rList.length;
-    const passes  = rList.filter(r => r.status === 'pass').length;
-    const fails   = rList.filter(r => r.status === 'fail').length;
-    const skips   = rList.filter(r => r.status === 'skip').length;
-    const pct     = totalCases > 0 ? Math.round(done / totalCases * 100) : 0;
-    const subbed  = !!t.submitted_at;
-    const subDate = t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-
+  rows.forEach(r => {
+    const isFail   = r.status === 'fail';
+    const isRetest = r.status === 'retest';
+    const rowCls   = isFail ? 'is-fail' : isRetest ? 'is-retest' : '';
+    const badge    = r.status
+      ? `<span class="tp-card-status-badge ${r.status}">${r.status}</span>`
+      : `<span style="color:var(--text-dim);font-size:11px">Pending</span>`;
+    const subDate  = r.submitted_at
+      ? new Date(r.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : '—';
+    const actionBtn = isFail
+      ? `<button class="tp-admin-mark-retest-btn" data-uid="${esc(r.user_id)}" data-tcid="${esc(r.test_case_id)}">Mark Retest</button>`
+      : '';
     html += `
-      <tr class="tp-tester-row" data-uid="${esc(t.user_id)}" data-expanded="false">
-        <td>${esc(t.user_email)}</td>
-        <td style="color:var(--text-muted)">${esc(t.tenant)}</td>
-        <td><span class="tp-status-pill ${subbed?'submitted':'in-progress'}">${subbed?'Submitted '+subDate:'In Progress'}</span></td>
-        <td style="color:var(--text-muted)">${done}/${totalCases} (${pct}%)</td>
-        <td class="tp-count-pass">${passes}</td>
-        <td class="tp-count-fail">${fails}</td>
-        <td class="tp-count-skip">${skips}</td>
-        <td>
-          <button class="tp-reset-btn" data-uid="${esc(t.user_id)}" data-email="${esc(t.user_email)}">Reset</button>
-        </td>
-      </tr>
-      <tr class="tp-detail-row hidden" id="detail-${esc(t.user_id)}">
-        <td colspan="8">
-          <div class="tp-detail-inner" id="detail-inner-${esc(t.user_id)}"></div>
-        </td>
-      </tr>
-    `;
+      <tr class="${rowCls}">
+        <td style="color:var(--text-muted);white-space:nowrap">${esc(r.area)}</td>
+        <td style="color:var(--text-dim);font-size:11px;white-space:nowrap">${esc(r.test_case_id)}</td>
+        <td style="max-width:220px">${esc(r.title)}</td>
+        <td>${badge}</td>
+        <td style="color:var(--text-muted);font-size:11px">${esc(r.email)}</td>
+        <td style="max-width:180px;color:var(--text-muted);font-size:11px;font-style:italic">${r.notes ? esc(r.notes) : ''}</td>
+        <td style="color:var(--text-dim);white-space:nowrap;font-size:11px">${subDate}</td>
+        <td>${actionBtn}</td>
+      </tr>`;
   });
 
   html += '</tbody></table>';
-  document.getElementById('summaryContent').innerHTML = html;
+  tbody.innerHTML = html;
 
-  // Bind tester row click to expand/collapse
-  document.querySelectorAll('.tp-tester-row').forEach(row => {
-    row.addEventListener('click', e => {
-      if (e.target.closest('.tp-reset-btn')) return; // don't expand when clicking reset
-      const uid      = row.dataset.uid;
-      const detail   = document.getElementById('detail-' + uid);
-      const expanded = row.dataset.expanded === 'true';
-      row.dataset.expanded = !expanded;
-      detail.classList.toggle('hidden', expanded);
-      if (!expanded) {
-        // Build detail view
-        const t = rows.find(r => r.user_id === uid);
-        renderTesterDetail(uid, t);
-      }
-    });
-  });
-
-  // Bind reset buttons
-  document.querySelectorAll('.tp-reset-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const uid   = btn.dataset.uid;
-      const email = btn.dataset.email;
-      confirm(
-        'Reset Tester',
-        `This will clear ${email}'s test results. Are you sure?`,
-        'Reset', '',
-        () => doReset(uid)
-      );
-    });
+  // Bind "Mark Retest" buttons
+  tbody.querySelectorAll('.tp-admin-mark-retest-btn').forEach(btn => {
+    btn.addEventListener('click', () => adminMarkRetest(btn.dataset.uid, btn.dataset.tcid, btn));
   });
 }
 
-function renderTesterDetail(uid, tester) {
-  const inner  = document.getElementById('detail-inner-' + uid);
-  const areas  = getAreas();
-  let html     = '';
-  areas.forEach(area => {
-    const cases = testCases.filter(tc => tc.area === area);
-    if (!cases.length) return;
-    html += `<div class="tp-detail-area"><div class="tp-detail-area-title">${esc(area)}</div>`;
-    cases.forEach(tc => {
-      const r  = tester.results[tc.id];
-      const st = r?.status || 'empty';
-      html += `
-        <div class="tp-detail-test">
-          <span class="tp-detail-dot ${st}"></span>
-          <span class="tp-detail-test-id">${esc(tc.id)}</span>
-          <span class="tp-detail-test-title">${esc(tc.title)}</span>
-          ${r?.notes ? `<span class="tp-detail-notes">${esc(r.notes)}</span>` : ''}
-        </div>`;
+async function adminMarkRetest(userId, testCaseId, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '…'; }
+  try {
+    const res = await apiFetch('/api/testing/results/retest', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, test_case_ids: [testCaseId] })
     });
-    html += '</div>';
-  });
-  const gf = tester.results['general-feedback'];
-  if (gf?.notes?.trim()) {
-    html += `
-      <div class="tp-detail-feedback">
-        <div class="tp-detail-feedback-title">General feedback</div>
-        <div class="tp-detail-feedback-text">${esc(gf.notes)}</div>
-      </div>`;
+    if (!res.ok) {
+      const e = await res.json();
+      showToast('Failed: ' + e.error, 'error');
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Mark Retest'; }
+      return;
+    }
+    // Update in-place
+    const row = adminData.find(r => r.user_id === userId && r.test_case_id === testCaseId);
+    if (row) { row.status = 'retest'; row.submitted_at = null; }
+    showToast('Marked for retest', 'ok');
+    renderAdminDashboard();
+  } catch (e) {
+    showToast('Network error', 'error');
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Mark Retest'; }
   }
-  inner.innerHTML = html || '<p style="color:var(--text-dim);font-size:12px">No results recorded.</p>';
+}
+
+async function adminRetestAllFailed(userId, btnEl) {
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '…'; }
+  try {
+    const res = await apiFetch('/api/testing/results/retest-all-failed', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      showToast('Failed: ' + e.error, 'error');
+      if (btnEl) { btnEl.disabled = false; }
+      return;
+    }
+    const { count } = await res.json();
+    adminData.forEach(r => { if (r.user_id === userId && r.status === 'fail') { r.status = 'retest'; r.submitted_at = null; } });
+    showToast(`${count} test${count !== 1 ? 's' : ''} marked for retest`, 'ok');
+    renderAdminDashboard();
+  } catch (e) {
+    showToast('Network error', 'error');
+    if (btnEl) { btnEl.disabled = false; }
+  }
+}
+
+async function adminResetUser(userId, email) {
+  confirm(
+    'Reset Tester',
+    `This will clear all test results for ${email}. Are you sure?`,
+    'Reset', '',
+    async () => {
+      try {
+        const res = await apiFetch('/api/testing/results/reset', {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+        if (!res.ok) { const e = await res.json(); showToast('Reset failed: ' + e.error, 'error'); return; }
+        showToast('Tester reset', 'ok');
+        await loadAdminDashboard();
+      } catch (e) { showToast('Network error', 'error'); }
+    }
+  );
 }
 
 // ── Tab switching helper ───────────────────────────────────────────────────
