@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=64">
+  <link rel="stylesheet" href="styles.css?v=65">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -1068,15 +1068,17 @@
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <div>
       <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START DATE <span style="color:#F87171">*</span></label>
-      <input id="cn-start-date" type="date"
+      <input id="cn-start-date" type="text" readonly placeholder="Select start date"
         style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+        onclick="this.style.borderColor='#A8C7FA'">
     </div>
     <div>
       <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END DATE <span style="color:#F87171">*</span></label>
-      <input id="cn-end-date" type="date"
+      <input id="cn-end-date" type="text" readonly placeholder="Select end date"
         style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+        onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+        onclick="this.style.borderColor='#A8C7FA'">
     </div>
   </div>
 
@@ -1180,15 +1182,17 @@
         <div></div>
         <div>
           <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">START DATE <span style="color:#F87171">*</span></label>
-          <input id="en-start-date" type="date"
+          <input id="en-start-date" type="text" readonly placeholder="Select start date"
             style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+            onclick="this.style.borderColor='#A8C7FA'">
         </div>
         <div>
           <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">END DATE <span style="color:#F87171">*</span></label>
-          <input id="en-end-date" type="date"
+          <input id="en-end-date" type="text" readonly placeholder="Select end date"
             style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'"
+            onclick="this.style.borderColor='#A8C7FA'">
         </div>
       </div>
 
@@ -1263,6 +1267,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=140"></script>
+  <script src="app.js?v=141"></script>
 </body>
 </html>

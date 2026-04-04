@@ -5162,17 +5162,17 @@ function _cnStep2ClickOutside(e) {
 }
 
 function _cnPopulateStep2() {
-  document.getElementById('cn-start-date').value = '';
-  document.getElementById('cn-end-date').value   = '';
+  const cnSP = _sdpMap['cn-start-date'];
+  const cnEP = _sdpMap['cn-end-date'];
+  if (cnSP) cnSP.setDate('');
+  if (cnEP) cnEP.setDate('');
   document.getElementById('cn-step2-error').classList.add('hidden');
 
   const projectId = document.getElementById('cn-project-select').value;
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
   if (proj) {
-    const startEl = document.getElementById('cn-start-date');
-    const endEl   = document.getElementById('cn-end-date');
-    if (proj.startDate) { startEl.min = proj.startDate; startEl.value = proj.startDate; }
-    if (proj.endDate)   { endEl.max   = proj.endDate;   endEl.value   = proj.endDate; }
+    if (proj.startDate && cnSP) cnSP.setDate(proj.startDate);
+    if (proj.endDate   && cnEP) cnEP.setDate(proj.endDate);
   }
 
   // Show selected project name on Step 2
@@ -5212,8 +5212,8 @@ function _cnPopulateStep2() {
 
 async function _cnSubmit() {
   const projectId = document.getElementById('cn-project-select').value;
-  const startDate = document.getElementById('cn-start-date').value;
-  const endDate   = document.getElementById('cn-end-date').value;
+  const startDate = document.getElementById('cn-start-date').dataset.iso || '';
+  const endDate   = document.getElementById('cn-end-date').dataset.iso   || '';
   const errEl     = document.getElementById('cn-step2-error');
 
   const showErr = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
@@ -5320,8 +5320,10 @@ function openEditNeedModal(needId, event) {
 
   document.getElementById('en-level-select').value = need.level || '';
   document.getElementById('en-hours').value        = need.hoursPerWeek || '';
-  document.getElementById('en-start-date').value   = _displayDateToIso(need.startDate);
-  document.getElementById('en-end-date').value     = _displayDateToIso(need.endDate);
+  if (_sdpMap['en-start-date']) _sdpMap['en-start-date'].setDate(_displayDateToIso(need.startDate));
+  else document.getElementById('en-start-date').value = _displayDateToIso(need.startDate);
+  if (_sdpMap['en-end-date'])   _sdpMap['en-end-date'].setDate(_displayDateToIso(need.endDate));
+  else document.getElementById('en-end-date').value   = _displayDateToIso(need.endDate);
 
   _enPopulateSkills(need.allSkillSets || []);
 
@@ -5503,8 +5505,8 @@ function _enPopulateSkills(selectedNames) {
 async function _enSubmit() {
   const level       = document.getElementById('en-level-select').value;
   const hours       = document.getElementById('en-hours').value;
-  const startDate   = document.getElementById('en-start-date').value;
-  const endDate     = document.getElementById('en-end-date').value;
+  const startDate   = document.getElementById('en-start-date').dataset.iso || '';
+  const endDate     = document.getElementById('en-end-date').dataset.iso   || '';
   const skillSetIds = [...document.querySelectorAll('#en-skill-grid .cp-skill-tag.selected')]
     .map(t => t.dataset.ssId);
   const errEl = document.getElementById('en-error');
@@ -6230,6 +6232,331 @@ function _cmdSetSelection(idx) {
   });
 })();
 
+// ── StaffingDatePicker (#211) ─────────────────────────────────────
+class StaffingDatePicker {
+  constructor(inputEl, options = {}) {
+    this.input    = inputEl;
+    this.opts     = options;
+    this.dropdown = null;
+    this.viewYear  = 0;
+    this.viewMonth = 0;
+    this._iso    = options.defaultDate || '';
+    this._kbDate = null;
+
+    inputEl.type                = 'text';
+    inputEl.readOnly            = true;
+    inputEl.style.cursor        = 'pointer';
+    inputEl.style.caretColor    = 'transparent';
+
+    this._clickHandler   = () => this._open();
+    this._keydownHandler = e  => this._onKeydown(e);
+    this._outsideHandler = e  => this._onOutsideClick(e);
+    inputEl.addEventListener('click', this._clickHandler);
+
+    if (this._iso) this._applyDisplay(this._iso);
+  }
+
+  // ── Static helpers ────────────────────────────────────────────────
+  static snapSat(d) {
+    // Mon–Sat → that week's Saturday; Sunday → previous Saturday
+    const day = d.getDay();
+    const s = new Date(d);
+    s.setDate(d.getDate() + (day === 0 ? -1 : 6 - day));
+    return s;
+  }
+
+  static smartDefault() {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const sat = StaffingDatePicker.snapSat(t);
+    const day = t.getDay();
+    // Friday or Saturday → use next week's Saturday
+    if (day === 5 || day === 6) sat.setDate(sat.getDate() + 7);
+    return sat;
+  }
+
+  static toIso(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  static fromIso(s) {
+    if (!s) return null;
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  static fmtDisplay(iso) {
+    if (!iso) return '';
+    const d = StaffingDatePicker.fromIso(iso);
+    return `Wk ending ${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+  }
+
+  // ── Public API ────────────────────────────────────────────────────
+  getDate() { return this._iso; }
+
+  setDate(iso) {
+    this._iso = iso || '';
+    this._applyDisplay(this._iso);
+    if (this.dropdown) {
+      const d = StaffingDatePicker.fromIso(iso);
+      if (d) { this.viewYear = d.getFullYear(); this.viewMonth = d.getMonth(); }
+      this._renderCal();
+    }
+  }
+
+  destroy() {
+    this.close();
+    this.input.removeEventListener('click', this._clickHandler);
+  }
+
+  // ── Open / Close ──────────────────────────────────────────────────
+  _open() {
+    if (this.dropdown) return;
+    const sel = StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.smartDefault();
+    this.viewYear  = sel.getFullYear();
+    this.viewMonth = sel.getMonth();
+    this._kbDate   = null;
+    this._buildDropdown();
+    this._position();
+    document.addEventListener('keydown', this._keydownHandler, true);
+    requestAnimationFrame(() => document.addEventListener('click', this._outsideHandler));
+  }
+
+  close() {
+    if (!this.dropdown) return;
+    this.dropdown.remove();
+    this.dropdown = null;
+    document.removeEventListener('keydown', this._keydownHandler, true);
+    document.removeEventListener('click',   this._outsideHandler);
+    this._kbDate = null;
+  }
+
+  _onOutsideClick(e) {
+    if (!this.dropdown) return;
+    if (!this.dropdown.contains(e.target) && e.target !== this.input) this.close();
+  }
+
+  _onKeydown(e) {
+    if (!this.dropdown) return;
+    if (e.key === 'Escape') { e.preventDefault(); this.close(); return; }
+    const arrows = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7 };
+    if (arrows[e.key] !== undefined) {
+      e.preventDefault();
+      const base = this._kbDate
+        ? new Date(this._kbDate)
+        : (StaffingDatePicker.fromIso(this._iso) || StaffingDatePicker.smartDefault());
+      this._kbDate = new Date(base);
+      this._kbDate.setDate(base.getDate() + arrows[e.key]);
+      if (this._kbDate.getFullYear() !== this.viewYear || this._kbDate.getMonth() !== this.viewMonth) {
+        this.viewYear  = this._kbDate.getFullYear();
+        this.viewMonth = this._kbDate.getMonth();
+      }
+      this._renderCal();
+      return;
+    }
+    if (e.key === 'Enter' && this._kbDate) {
+      e.preventDefault();
+      this._select(StaffingDatePicker.toIso(StaffingDatePicker.snapSat(this._kbDate)));
+    }
+  }
+
+  // ── Build dropdown ────────────────────────────────────────────────
+  _buildDropdown() {
+    const dp = document.createElement('div');
+    dp.className = 'sdp-dropdown';
+    dp.addEventListener('mousedown', e => e.preventDefault()); // prevent input blur
+
+    // Quick-pick row
+    const base = StaffingDatePicker.smartDefault();
+    const qpDefs = [
+      ['This wk', 0], ['Next wk', 7], ['+2 wk', 14], ['+4 wk', 28], ['+8 wk', 56], ['+12 wk', 84]
+    ];
+    const qpRow = document.createElement('div');
+    qpRow.className = 'sdp-quickpicks';
+    this._qpIsos = [];
+    for (const [label, offset] of qpDefs) {
+      const d = new Date(base); d.setDate(base.getDate() + offset);
+      const iso = StaffingDatePicker.toIso(d);
+      this._qpIsos.push(iso);
+      const btn = document.createElement('button');
+      btn.type        = 'button';
+      btn.className   = 'sdp-qp' + (this._iso === iso ? ' active' : '');
+      btn.textContent = label;
+      btn.dataset.iso = iso;
+      btn.addEventListener('click', () => this._select(iso));
+      qpRow.appendChild(btn);
+    }
+    dp.appendChild(qpRow);
+
+    const cal = document.createElement('div');
+    cal.className = 'sdp-calendar';
+    dp.appendChild(cal);
+
+    this.dropdown = dp;
+    this._calEl   = cal;
+    document.body.appendChild(dp);
+    this._renderCal();
+  }
+
+  _renderCal() {
+    const cal = this._calEl;
+    cal.innerHTML = '';
+
+    const MONTHS = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+
+    // Navigation header
+    const nav = document.createElement('div');
+    nav.className = 'sdp-cal-nav';
+    const mkArrow = (txt, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sdp-nav-arrow'; b.textContent = txt;
+      b.addEventListener('click', fn); return b;
+    };
+    const lbl = document.createElement('span');
+    lbl.className   = 'sdp-month-lbl';
+    lbl.textContent = `${MONTHS[this.viewMonth]} ${this.viewYear}`;
+    nav.appendChild(mkArrow('‹', () => {
+      if (--this.viewMonth < 0)  { this.viewMonth = 11; this.viewYear--; }
+      this._renderCal();
+    }));
+    nav.appendChild(lbl);
+    nav.appendChild(mkArrow('›', () => {
+      if (++this.viewMonth > 11) { this.viewMonth = 0;  this.viewYear++; }
+      this._renderCal();
+    }));
+    cal.appendChild(nav);
+
+    // Day-of-week headers (Mon … Sun)
+    const hdrs = document.createElement('div');
+    hdrs.className = 'sdp-day-hdrs';
+    for (const h of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']) {
+      const dh = document.createElement('div');
+      dh.className = 'sdp-day-hdr'; dh.textContent = h;
+      hdrs.appendChild(dh);
+    }
+    cal.appendChild(hdrs);
+
+    // Week rows
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const first = new Date(this.viewYear, this.viewMonth, 1);
+    const dow   = first.getDay();                    // 0=Sun
+    const off   = dow === 0 ? 6 : dow - 1;           // cells before first (Mon-based)
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - off);
+
+    const weeksEl = document.createElement('div');
+    weeksEl.className = 'sdp-weeks';
+
+    for (let w = 0; w < 6; w++) {
+      const mon = new Date(gridStart); mon.setDate(gridStart.getDate() + w * 7);
+      const sat = new Date(mon);       sat.setDate(mon.getDate() + 5);
+      const satIso = StaffingDatePicker.toIso(sat);
+
+      const row = document.createElement('div');
+      row.className = 'sdp-week-row' + (this._iso === satIso ? ' selected' : '');
+
+      for (let c = 0; c < 7; c++) {
+        const cd = new Date(mon); cd.setDate(mon.getDate() + c);
+        const cdIso = StaffingDatePicker.toIso(cd);
+        const cell = document.createElement('div');
+        cell.className = 'sdp-day';
+        if (cd.getMonth() !== this.viewMonth) cell.classList.add('muted');
+        if (cd.getTime() === today.getTime())  cell.classList.add('today');
+        if (this._kbDate && StaffingDatePicker.toIso(this._kbDate) === cdIso) cell.classList.add('kb-focus');
+        cell.textContent = cd.getDate();
+        row.appendChild(cell);
+      }
+
+      row.addEventListener('click', () => this._select(satIso));
+      weeksEl.appendChild(row);
+    }
+    cal.appendChild(weeksEl);
+
+    // Sync quick-pick highlights
+    if (this.dropdown) {
+      this.dropdown.querySelectorAll('.sdp-qp').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.iso === this._iso);
+      });
+    }
+  }
+
+  // ── Selection ─────────────────────────────────────────────────────
+  _select(iso) {
+    this._iso = iso;
+    this._applyDisplay(iso);
+    this.close();
+    if (this.opts.onSelect) this.opts.onSelect(iso);
+  }
+
+  _applyDisplay(iso) {
+    this.input.value       = StaffingDatePicker.fmtDisplay(iso);
+    this.input.dataset.iso = iso;
+  }
+
+  // ── Positioning ───────────────────────────────────────────────────
+  _position() {
+    const dp   = this.dropdown;
+    const rect = this.input.getBoundingClientRect();
+    dp.style.position = 'fixed';
+    dp.style.left     = rect.left + 'px';
+    dp.style.top      = (rect.bottom + 4) + 'px';
+    dp.style.zIndex   = '10000';
+    requestAnimationFrame(() => {
+      const dpH = dp.getBoundingClientRect().height;
+      if (rect.bottom + 4 + dpH > window.innerHeight - 20) {
+        dp.style.top = (rect.top - dpH - 4) + 'px';
+      }
+    });
+  }
+}
+
+// Registry of picker instances (keyed by input element ID)
+const _sdpMap = {};
+
+function initDatePickers() {
+  // ── Add Need (bulk creation) — Step 2 ────────────────────────────
+  const cnStartEl = document.getElementById('cn-start-date');
+  const cnEndEl   = document.getElementById('cn-end-date');
+
+  if (cnStartEl && !_sdpMap['cn-start-date']) {
+    _sdpMap['cn-start-date'] = new StaffingDatePicker(cnStartEl, {
+      onSelect(iso) {
+        const ep = _sdpMap['cn-end-date'];
+        if (!ep) return;
+        if (!ep.getDate() || ep.getDate() < iso) {
+          const d = StaffingDatePicker.fromIso(iso);
+          d.setDate(d.getDate() + 28); // +4 weeks
+          ep.setDate(StaffingDatePicker.toIso(d));
+        }
+      }
+    });
+  }
+  if (cnEndEl && !_sdpMap['cn-end-date']) {
+    _sdpMap['cn-end-date'] = new StaffingDatePicker(cnEndEl, {});
+  }
+
+  // ── Edit Need ─────────────────────────────────────────────────────
+  const enStartEl = document.getElementById('en-start-date');
+  const enEndEl   = document.getElementById('en-end-date');
+
+  if (enStartEl && !_sdpMap['en-start-date']) {
+    _sdpMap['en-start-date'] = new StaffingDatePicker(enStartEl, {
+      onSelect(iso) {
+        const ep = _sdpMap['en-end-date'];
+        if (!ep) return;
+        if (!ep.getDate() || ep.getDate() < iso) {
+          const d = StaffingDatePicker.fromIso(iso);
+          d.setDate(d.getDate() + 28);
+          ep.setDate(StaffingDatePicker.toIso(d));
+        }
+      }
+    });
+  }
+  if (enEndEl && !_sdpMap['en-end-date']) {
+    _sdpMap['en-end-date'] = new StaffingDatePicker(enEndEl, {});
+  }
+}
+
 // ── Boot ──────────────────────────────────────────────────────────
 (async () => {
   try {
@@ -6345,6 +6672,7 @@ function _cmdSetSelection(idx) {
 
   loadDashboard();
   initLocationTypeahead();
+  initDatePickers();
 
   // ── Background session poll — silently checks auth every 30s ──────
   setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);
