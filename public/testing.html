@@ -1047,6 +1047,7 @@ function updateSubmitBar() {
     hint.textContent = '';
   } else {
     submitBtn.classList.remove('hidden');
+    submitBtn.disabled = !hasUnsubmitted;
     hint.textContent = `${done} of ${testCases.length} tests completed`;
   }
 }
