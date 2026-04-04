@@ -450,6 +450,43 @@
       padding: 5px 10px; cursor: pointer; outline: none; transition: border-color 0.15s;
     }
     .tp-role-filter-select:hover, .tp-role-filter-select:focus { border-color: var(--text-dim); }
+
+    /* ── Retest badge (inline in card title) ── */
+    .tp-retest-title-badge {
+      display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; padding: 1px 6px; border-radius: 3px;
+      background: var(--warn-muted); color: var(--warn); margin-left: 6px;
+      vertical-align: middle;
+    }
+    .tp-card.status-retest { border-left: 3px solid var(--warn); }
+    .tp-card-status-badge.retest { background: var(--warn-muted); color: var(--warn); }
+    .tp-detail-dot.retest { background: var(--warn); }
+
+    /* ── Status filter tabs ── */
+    .tp-status-filter-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tp-status-filter-tab {
+      padding: 5px 12px; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted);
+      font-family: var(--font); font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tp-status-filter-tab:hover { color: var(--text-primary); border-color: var(--text-dim); }
+    .tp-status-filter-tab.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+    .tp-status-filter-tab[data-filter="retest"].active { background: var(--warn-muted); color: var(--warn); border-color: var(--warn); }
+    .tp-status-filter-tab[data-filter="failed"].active { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
+    .tp-status-filter-count {
+      display: inline-block; font-size: 10px; background: rgba(255,255,255,0.08);
+      border-radius: 8px; padding: 1px 5px; margin-left: 3px;
+    }
+
+    /* ── Reset own results button ── */
+    .tp-reset-own-btn {
+      padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg-elevated); color: var(--text-muted); font-family: var(--font);
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+      margin-right: auto;
+    }
+    .tp-reset-own-btn:hover { border-color: var(--fail); color: var(--fail); background: var(--fail-muted); }
   </style>
 </head>
 <body>
@@ -533,10 +570,12 @@
         </div>
       </div>
       <div id="roleFilterBar"></div>
+      <div id="statusFilterBar"></div>
       <div id="testContent"></div>
     </main>
     <!-- Submit bar -->
     <div class="tp-submit-bar hidden" id="submitBar">
+      <button class="tp-reset-own-btn hidden" id="resetOwnBtn">Reset My Results</button>
       <span class="tp-submit-hint" id="submitHint"></span>
       <button class="tp-submit-btn" id="submitBtn">Submit for Review</button>
     </div>
@@ -583,14 +622,15 @@
 'use strict';
 
 // ── State ──────────────────────────────────────────────────────────────────
-let currentUser      = null;
-let testingRole      = null;  // 'test_admin' | 'tester' | null
-let allTestCases     = [];    // all cases from JSON, unfiltered
-let testCases        = [];    // cases currently visible (after role filter)
-let activeRoleFilter = null;  // null = All roles
-let myResults        = {};    // test_case_id → {status, notes, submitted_at}
-let isSubmitted      = false;
-let activeArea       = null;
+let currentUser        = null;
+let testingRole        = null;  // 'test_admin' | 'tester' | null
+let allTestCases       = [];    // all cases from JSON, unfiltered
+let testCases          = [];    // cases currently visible (after role filter)
+let activeRoleFilter   = null;  // null = All roles
+let activeStatusFilter = 'all'; // 'all' | 'pending' | 'failed' | 'retest'
+let myResults          = {};    // test_case_id → {status, notes, submitted_at}
+let isSubmitted        = false;
+let activeArea         = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
@@ -649,7 +689,7 @@ function confirm(title, msg, okLabel, okClass, cb) {
     try {
       [tcRes, resultsRes] = await Promise.all([
         fetch('/test-cases.json'),
-        apiFetch('/api/test-results')
+        apiFetch('/api/testing/results')
       ]);
     } catch (fetchErr) {
       console.error('Boot fetch error:', fetchErr);
@@ -680,17 +720,19 @@ function confirm(title, msg, okLabel, okClass, cb) {
         results.forEach(r => {
           myResults[r.test_case_id] = { status: r.status, notes: r.notes || '', submitted_at: r.submitted_at };
         });
-        isSubmitted = results.some(r => r.submitted_at != null);
+        // Submitted if any non-retest row has submitted_at set
+        isSubmitted = results.some(r => r.submitted_at != null && r.status !== 'retest');
       } catch (resErr) {
-        console.error('Failed to parse /api/test-results response:', resErr);
+        console.error('Failed to parse /api/testing/results response:', resErr);
         // Non-fatal: proceed with empty results
       }
     } else {
-      console.warn('/api/test-results returned', resultsRes.status, '— proceeding without saved results');
+      console.warn('/api/testing/results returned', resultsRes.status, '— proceeding without saved results');
     }
 
     renderSidebar();
     renderRoleFilter();
+    renderStatusFilter();
     renderMyTests();
     renderMySummary();
     renderGeneralFeedback();
@@ -778,6 +820,9 @@ function confirm(title, msg, okLabel, okClass, cb) {
     );
   });
 
+  // Reset own results button
+  document.getElementById('resetOwnBtn').addEventListener('click', doResetOwn);
+
   document.getElementById('feedbackClose').addEventListener('click', () => {
     document.getElementById('feedbackPanel').classList.remove('open');
   });
@@ -802,12 +847,15 @@ async function doSubmit() {
     if (!res.ok) { const e = await res.json(); showToast('Submit failed: ' + e.error, 'error'); btn.disabled = false; return; }
     const { submitted_at } = await res.json();
     isSubmitted = true;
-    // Update local state
-    Object.keys(myResults).forEach(id => { myResults[id].submitted_at = submitted_at; });
+    // Update local state — only non-retest rows get submitted_at stamped
+    Object.keys(myResults).forEach(id => {
+      if (myResults[id].status !== 'retest') myResults[id].submitted_at = submitted_at;
+    });
     showSubmittedBanner(submitted_at);
     lockUI();
     renderGeneralFeedback();
-    document.getElementById('submitBar').classList.add('hidden');
+    renderStatusFilter();
+    updateSubmitBar();
     showToast('Submitted for review', 'ok');
   } catch (e) {
     showToast('Network error', 'error');
@@ -830,9 +878,15 @@ function showSubmittedBanner(ts) {
 }
 
 function lockUI() {
-  // Disable all Pass/Fail/Skip buttons and make notes read-only
-  document.querySelectorAll('.tp-btn[data-action]').forEach(b => { b.disabled = true; });
-  document.querySelectorAll('.tp-notes').forEach(n => { n.readOnly = true; });
+  // Disable submitted, non-retest cards only; leave retest cards editable
+  document.querySelectorAll('.tp-card').forEach(card => {
+    const testId = card.dataset.id;
+    const r = myResults[testId];
+    if (r?.status === 'retest' || !r?.submitted_at) return; // skip retest and unsubmitted rows
+    card.querySelectorAll('.tp-btn[data-action]').forEach(b => { b.disabled = true; });
+    const notesEl = document.getElementById(`notes-${testId}`);
+    if (notesEl) notesEl.readOnly = true;
+  });
   const gfEl = document.getElementById('generalFeedbackTextarea');
   if (gfEl) gfEl.readOnly = true;
 }
@@ -849,12 +903,29 @@ function updateProgress() {
 }
 
 function updateSubmitBar() {
-  if (isSubmitted) { document.getElementById('submitBar').classList.add('hidden'); return; }
   const done        = testCases.filter(tc => myResults[tc.id]).length;
   const hasFeedback = !!(myResults['general-feedback']?.notes?.trim());
-  if (done === 0 && !hasFeedback) { document.getElementById('submitBar').classList.add('hidden'); return; }
-  document.getElementById('submitBar').classList.remove('hidden');
-  document.getElementById('submitHint').textContent = `${done} of ${testCases.length} tests completed`;
+  const hasResults  = done > 0 || hasFeedback;
+  const hasRetest   = testCases.some(tc => myResults[tc.id]?.status === 'retest');
+  const bar         = document.getElementById('submitBar');
+  const submitBtn   = document.getElementById('submitBtn');
+  const resetBtn    = document.getElementById('resetOwnBtn');
+  const hint        = document.getElementById('submitHint');
+
+  if (!hasResults && !isSubmitted) { bar.classList.add('hidden'); return; }
+  bar.classList.remove('hidden');
+
+  // Reset own button: visible whenever the user has any results
+  if (resetBtn) resetBtn.classList.toggle('hidden', !hasResults && !isSubmitted);
+
+  if (isSubmitted && !hasRetest) {
+    // Fully submitted, no pending retests — hide submit button
+    submitBtn.classList.add('hidden');
+    hint.textContent = '';
+  } else {
+    submitBtn.classList.remove('hidden');
+    hint.textContent = `${done} of ${testCases.length} tests completed`;
+  }
 }
 
 // ── Feedback panel positioning ─────────────────────────────────────────────
@@ -944,6 +1015,7 @@ function setRoleFilter(role) {
     history.replaceState(null, '', location.pathname + location.search);
   }
   renderRoleFilter();
+  renderStatusFilter();
   renderSidebar();
   renderMyTests();
   renderMySummary();
@@ -977,6 +1049,41 @@ function renderRoleFilter() {
   document.getElementById('roleFilterSelect').addEventListener('change', e => setRoleFilter(e.target.value || null));
 }
 
+// ── Status filter ─────────────────────────────────────────────────────────
+function renderStatusFilter() {
+  const bar = document.getElementById('statusFilterBar');
+  if (!bar) return;
+  const allCount     = testCases.length;
+  const pendingCount = testCases.filter(tc => {
+    const r = myResults[tc.id];
+    return !r || !r.submitted_at;
+  }).length;
+  const failedCount  = testCases.filter(tc => {
+    const r = myResults[tc.id];
+    return r?.status === 'fail' && !!r.submitted_at;
+  }).length;
+  const retestCount  = testCases.filter(tc => myResults[tc.id]?.status === 'retest').length;
+
+  const tabs = [
+    { key: 'all',     label: 'All',     count: allCount },
+    { key: 'pending', label: 'Pending', count: pendingCount },
+    { key: 'failed',  label: 'Failed',  count: failedCount },
+    { key: 'retest',  label: 'Retest',  count: retestCount },
+  ];
+  bar.innerHTML = `<div class="tp-status-filter-bar">${
+    tabs.map(t => `<button class="tp-status-filter-tab${activeStatusFilter === t.key ? ' active' : ''}" data-filter="${t.key}">
+      ${t.label}<span class="tp-status-filter-count">${t.count}</span>
+    </button>`).join('')
+  }</div>`;
+  bar.querySelectorAll('.tp-status-filter-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeStatusFilter = btn.dataset.filter;
+      renderStatusFilter();
+      renderMyTests();
+    });
+  });
+}
+
 // ── Sidebar ────────────────────────────────────────────────────────────────
 function getAreas() {
   const order = []; const seen = new Set();
@@ -1003,16 +1110,36 @@ function renderSidebar() {
   });
 }
 
+// ── Status filter helper ───────────────────────────────────────────────────
+function filterTestsByStatus(cases) {
+  if (!activeStatusFilter || activeStatusFilter === 'all') return cases;
+  return cases.filter(tc => {
+    const r = myResults[tc.id];
+    if (activeStatusFilter === 'pending') return !r || !r.submitted_at;
+    if (activeStatusFilter === 'failed')  return r?.status === 'fail' && !!r.submitted_at;
+    if (activeStatusFilter === 'retest')  return r?.status === 'retest';
+    return true;
+  });
+}
+
 // ── My Tests ───────────────────────────────────────────────────────────────
 function renderMyTests() {
-  const container = document.getElementById('testContent');
+  const container  = document.getElementById('testContent');
   container.innerHTML = '';
-  if (testCases.length === 0) {
-    container.innerHTML = '<div class="tp-empty"><h3>No tests for your role</h3></div>';
+  const visible = filterTestsByStatus(testCases);
+  if (visible.length === 0) {
+    const msg = activeStatusFilter === 'all'
+      ? 'No tests for your role'
+      : `No ${activeStatusFilter} tests`;
+    container.innerHTML = `<div class="tp-empty"><h3>${msg}</h3></div>`;
     return;
   }
-  getAreas().forEach(area => {
-    const cases = testCases.filter(tc => tc.area === area);
+  // Build area order from visible cases only
+  const areaOrder = []; const seenAreas = new Set();
+  visible.forEach(tc => { if (!seenAreas.has(tc.area)) { areaOrder.push(tc.area); seenAreas.add(tc.area); } });
+
+  areaOrder.forEach(area => {
+    const cases = visible.filter(tc => tc.area === area);
     if (!cases.length) return;
     const sectionId = 'area-' + area.replace(/[^a-z0-9]/gi,'-');
     const completed  = cases.filter(tc => myResults[tc.id]).length;
@@ -1038,32 +1165,41 @@ function renderMyTests() {
 }
 
 function buildCard(tc) {
-  const result = myResults[tc.id] || {};
-  const status = result.status || '';
-  const notes  = result.notes  || '';
-  const card   = document.createElement('div');
+  const result   = myResults[tc.id] || {};
+  const status   = result.status || '';
+  const notes    = result.notes  || '';
+  const isRetest = status === 'retest';
+  // Card is locked if the row has been submitted and is NOT marked for retest
+  const isCardLocked = !!(result.submitted_at) && !isRetest;
+  const card     = document.createElement('div');
   card.className = `tp-card${status ? ' status-' + status : ''}`;
   card.dataset.id = tc.id;
 
   const showNotes = !!notes || status === 'fail';
+  // Retest badge shown inline in title; other statuses shown in actions area
+  const retestTitleBadge = isRetest ? ` <span class="tp-retest-title-badge">↩ Retest</span>` : '';
+  const actionsBadge = !isRetest && status
+    ? `<span class="tp-card-status-badge ${status}">${status}</span>`
+    : '';
+
   card.innerHTML = `
     <div class="tp-card-body">
       <div class="tp-card-id">${esc(tc.id)}</div>
-      <div class="tp-card-title">${esc(tc.title)}</div>
+      <div class="tp-card-title">${esc(tc.title)}${retestTitleBadge}</div>
       <div class="tp-card-detail">
         <span class="tp-card-label">Steps</span><span class="tp-card-value">${esc(tc.steps)}</span>
         <span class="tp-card-label">Expected</span><span class="tp-card-value">${esc(tc.expected)}</span>
       </div>
     </div>
     <div class="tp-card-actions">
-      ${status ? `<span class="tp-card-status-badge ${status}">${status}</span>` : ''}
+      ${actionsBadge}
       <div class="tp-btn-group">
-        <button class="tp-btn pass${status==='pass'?' active':''}" data-action="pass" data-id="${esc(tc.id)}"${isSubmitted?' disabled':''}>Pass</button>
-        <button class="tp-btn fail${status==='fail'?' active':''}" data-action="fail" data-id="${esc(tc.id)}"${isSubmitted?' disabled':''}>Fail</button>
-        <button class="tp-btn skip${status==='skip'?' active':''}" data-action="skip" data-id="${esc(tc.id)}"${isSubmitted?' disabled':''}>Skip</button>
+        <button class="tp-btn pass${status==='pass'?' active':''}" data-action="pass" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Pass</button>
+        <button class="tp-btn fail${status==='fail'?' active':''}" data-action="fail" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Fail</button>
+        <button class="tp-btn skip${status==='skip'?' active':''}" data-action="skip" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Skip</button>
       </div>
       <div class="tp-notes-wrap" id="notes-wrap-${esc(tc.id)}" ${showNotes?'':'style="display:none"'}>
-        <textarea class="tp-notes" id="notes-${esc(tc.id)}" placeholder="Add notes…" rows="2"${isSubmitted?' readonly':''}>${esc(notes)}</textarea>
+        <textarea class="tp-notes" id="notes-${esc(tc.id)}" placeholder="Add notes…" rows="2"${isCardLocked?' readonly':''}>${esc(notes)}</textarea>
         <div class="tp-notes-hint" id="notes-hint-${esc(tc.id)}">Notes required (min 10 characters)</div>
       </div>
       ${!showNotes ? `<button class="tp-notes-add" data-notes-id="${esc(tc.id)}">+ Add note</button>` : ''}
@@ -1072,7 +1208,7 @@ function buildCard(tc) {
 
   card.querySelectorAll('.tp-btn[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (isSubmitted) return;
+      if (isCardLocked) return;
       const action  = btn.dataset.action;
       const current = myResults[tc.id]?.status;
       if (current === action) {
@@ -1237,6 +1373,7 @@ async function saveResult(testId, status, card, notesOverride) {
     updateProgress();
     updateSubmitBar();
     renderSidebar();
+    renderStatusFilter();
   }
 }
 
@@ -1261,6 +1398,7 @@ async function clearResult(testId, card) {
   updateProgress();
   updateSubmitBar();
   renderSidebar();
+  renderStatusFilter();
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────
@@ -1424,6 +1562,27 @@ function switchToMyTestsTab() {
   document.getElementById('myTestsWrapper').classList.remove('hidden');
   document.getElementById('areaSidebar').classList.remove('hidden');
   document.getElementById('panelSummary').classList.add('hidden');
+}
+
+// ── Reset own results (tester self-service) ────────────────────────────────
+function doResetOwn() {
+  confirm(
+    'Reset My Results',
+    "This will clear all your test results. You'll start from scratch. Continue?",
+    'Reset', '',
+    async () => {
+      try {
+        const res = await apiFetch('/api/testing/results/reset', {
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        if (!res.ok) { const e = await res.json(); showToast('Reset failed: ' + e.error, 'error'); return; }
+        showToast('Your results have been reset', 'ok');
+        window.location.reload();
+      } catch (e) {
+        showToast('Network error', 'error');
+      }
+    }
+  );
 }
 
 // ── Reset ──────────────────────────────────────────────────────────────────
