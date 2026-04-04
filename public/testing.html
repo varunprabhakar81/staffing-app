@@ -1100,9 +1100,9 @@ function renderMySummary() {
       <span class="tp-my-summary-title">My Progress</span>
       <div class="tp-my-summary-stat"><strong>${done}</strong> of <strong>${total}</strong> completed (${pct}%)</div>
       <div class="tp-my-summary-badges">
-        <span class="tp-my-summary-badge pass">Pass&nbsp;${passes}</span>
-        <span class="tp-my-summary-badge fail">Fail&nbsp;${fails}</span>
-        <span class="tp-my-summary-badge skip">Skip&nbsp;${skips}</span>
+        <span class="tp-my-summary-badge pass">Passed&nbsp;${passes}</span>
+        <span class="tp-my-summary-badge fail">Failed&nbsp;${fails}</span>
+        <span class="tp-my-summary-badge skip">Skipped&nbsp;${skips}</span>
       </div>
       <button class="tp-fb-btn" id="feedbackBtn" aria-label="Report general feedback">
         <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -1350,7 +1350,7 @@ function buildCard(tc) {
   }
 
   const notesEl = card.querySelector(`#notes-${tc.id}`);
-  if (notesEl && !isSubmitted) {
+  if (notesEl && !isCardLocked) {
     notesEl.addEventListener('blur', () => {
       const status = myResults[tc.id]?.status;
       if (!status) return;
