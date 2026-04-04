@@ -30,6 +30,8 @@ let _cpAbortController = null;     // abort signal for dirty-tracking listeners
 let _settingsActivePanel = null;   // 'users' | 'consultants' — active Settings sub-nav panel
 let _cmdSelIdx = -1;               // command palette: currently selected result index
 let _cmdItems  = [];               // command palette: flat array of { action } for keyboard nav
+let _cmdExpandedGroups = new Set(); // command palette: group labels expanded beyond CAP
+let _cmdLastGroups     = [];        // command palette: last rendered groups (for expand re-render)
 let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -48,9 +50,6 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
-    // Clear search input on every tab switch
-    const searchInput = document.querySelector('.hdr-search-input');
-    if (searchInput) searchInput.value = '';
     // Update bell badge on every tab switch
     updateBellBadge();
     // Re-render virtual scroll after tab layout settles (clientHeight was 0 while hidden)
@@ -108,6 +107,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'b' || e.key === 'B') { e.preventDefault(); toggleSidebar(); return; }
   }
   if (e.key === '?' && !inInput) { e.preventDefault(); toggleShortcutGuide(); }
+  if (e.key === '/' && !inInput) { e.preventDefault(); openCmdPalette(); }
 });
 
 // ── Keyboard shortcut guide ───────────────────────────────────────
@@ -175,140 +175,6 @@ function handleShortcutOverlayClick(e) { if (e.target === e.currentTarget) close
 //   document.addEventListener('click', () => { if (dropdown) dropdown.classList.add('hidden'); });
 // })();
 
-// ── Header: Search Bar (Global Typeahead Navigator) (#120) ───────
-(function initHeaderSearch() {
-  const input = document.getElementById('headerSearch');
-  const wrap  = document.querySelector('.header-search-inner');
-  if (!input || !wrap) return;
-
-  // Dropdown container
-  const dd = document.createElement('div');
-  dd.id = 'searchDropdown';
-  dd.className = 'hdr-search-dropdown hidden';
-  wrap.appendChild(dd);
-
-  let _items    = [];
-  let _focusIdx = -1;
-
-  // Keyboard shortcut: '/' focuses search (common SaaS pattern)
-  document.addEventListener('keydown', e => {
-    const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-    if (e.key === '/' && !inInput) { e.preventDefault(); input.focus(); input.select(); }
-  });
-
-  function getSearchData() {
-    const emps = (_vsData && _vsData.employees) || [];
-    const projSet = new Set();
-    for (const emp of emps) {
-      for (const wkProjs of (emp.weeklyProjects || [])) {
-        for (const p of wkProjs) if (p && p.project) projSet.add(p.project);
-      }
-    }
-    return { emps, projects: [...projSet].sort() };
-  }
-
-  function renderDropdown(query) {
-    const q = query.trim().toLowerCase();
-    if (!q) { closeDropdown(); return; }
-
-    const { emps, projects } = getSearchData();
-    const matchPeople   = emps.filter(e => e.name.toLowerCase().includes(q));
-    const matchProjects = projects.filter(p => p.toLowerCase().includes(q));
-
-    _items    = [];
-    _focusIdx = -1;
-
-    if (!matchPeople.length && !matchProjects.length) {
-      dd.innerHTML = '<div class="hdr-search-empty">No results</div>';
-      dd.classList.remove('hidden');
-      return;
-    }
-
-    let html = '';
-    if (matchPeople.length) {
-      html += `<div class="hdr-search-group">People</div>`;
-      matchPeople.slice(0, 8).forEach(emp => {
-        const idx = _items.length;
-        _items.push({ type: 'person', name: emp.name });
-        html += `<div class="hdr-search-item" data-idx="${idx}">
-          <span class="hdr-search-name">${_esc(emp.name)}</span>
-          <span class="hdr-search-sub">${_esc(emp.level || '')}</span>
-        </div>`;
-      });
-    }
-    if (matchProjects.length) {
-      html += `<div class="hdr-search-group">Projects</div>`;
-      matchProjects.slice(0, 8).forEach(proj => {
-        const idx = _items.length;
-        _items.push({ type: 'project', name: proj });
-        html += `<div class="hdr-search-item" data-idx="${idx}">
-          <span class="hdr-search-name">${_esc(proj)}</span>
-          <span class="hdr-search-sub">Project</span>
-        </div>`;
-      });
-    }
-
-    dd.innerHTML = html;
-    dd.classList.remove('hidden');
-
-    dd.querySelectorAll('.hdr-search-item').forEach(el => {
-      el.addEventListener('mousedown', e => {
-        e.preventDefault(); // prevent blur before selection
-        const item = _items[parseInt(el.dataset.idx, 10)];
-        if (item) selectItem(item);
-      });
-    });
-  }
-
-  function updateFocus(newIdx) {
-    const els = dd.querySelectorAll('.hdr-search-item');
-    els.forEach(el => el.classList.remove('active'));
-    _focusIdx = Math.max(-1, Math.min(newIdx, els.length - 1));
-    if (_focusIdx >= 0) {
-      els[_focusIdx].classList.add('active');
-      els[_focusIdx].scrollIntoView({ block: 'nearest' });
-    }
-  }
-
-  function selectItem(item) {
-    closeDropdown();
-    input.value = '';
-    input.blur();
-    if (item.type === 'person')  navigateToEmployee(item.name);
-    if (item.type === 'project') navigateToProject(item.name);
-  }
-
-  function closeDropdown() {
-    dd.classList.add('hidden');
-    dd.innerHTML = '';
-    _items    = [];
-    _focusIdx = -1;
-  }
-
-  input.addEventListener('input', () => renderDropdown(input.value));
-  input.addEventListener('focus', () => { if (input.value.trim()) renderDropdown(input.value); });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      closeDropdown();
-      input.value = '';
-      input.blur();
-      e.stopPropagation();
-      return;
-    }
-    if (dd.classList.contains('hidden')) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); updateFocus(_focusIdx + 1); }
-    if (e.key === 'ArrowUp')   { e.preventDefault(); updateFocus(_focusIdx - 1); }
-    if (e.key === 'Enter' && _focusIdx >= 0 && _focusIdx < _items.length) {
-      e.preventDefault();
-      selectItem(_items[_focusIdx]);
-    }
-  });
-
-  document.addEventListener('click', e => {
-    if (!wrap.contains(e.target)) closeDropdown();
-  });
-})();
 
 // ── Search navigator: scroll to employee row in heatmap ──────────
 function navigateToEmployee(name) {
@@ -5776,6 +5642,7 @@ function openCmdPalette() {
 function closeCmdPalette() {
   const overlay = document.getElementById('cmdPaletteOverlay');
   if (overlay) overlay.classList.remove('active');
+  _cmdExpandedGroups = new Set();
 }
 
 function handleCmdPaletteOverlayClick(e) {
@@ -5838,27 +5705,23 @@ function _cmdGetProjects() {
   return Object.values(map);
 }
 
-// Main search: returns array of { label, items, more }
+// Main search: returns array of { label, allItems }
 function _cmdSearch(q) {
   const role = currentUserRole;
-  const CAP  = 5;
   const canSeeNeedsProjects =
     role === 'admin' || role === 'resource_manager' || role === 'project_manager';
   const groups = [];
 
   // ── Consultants ──────────────────────────────────────────────────
-  const consultants   = _cmdGetConsultants();
-  const matchConsult  = consultants.filter(c =>
+  const consultants  = _cmdGetConsultants();
+  const matchConsult = consultants.filter(c =>
     _cmdMatch(c.name, q) || _cmdMatch(c.level, q) ||
     _cmdMatch(c.skillSet, q) || c.allSkillSets.some(s => _cmdMatch(s, q))
   );
   if (matchConsult.length) {
-    const shown = matchConsult.slice(0, CAP);
-    const more  = matchConsult.length - shown.length;
     groups.push({
       label: 'Consultants',
-      more,
-      items: shown.map(c => ({
+      allItems: matchConsult.map(c => ({
         icon: '👤',
         title: c.name,
         subtitle: [c.level, c.skillSet].filter(Boolean).join(' · '),
@@ -5877,17 +5740,14 @@ function _cmdSearch(q) {
 
   // ── Projects ─────────────────────────────────────────────────────
   if (canSeeNeedsProjects) {
-    const projects     = _cmdGetProjects();
-    const matchProjs   = projects.filter(p =>
+    const projects   = _cmdGetProjects();
+    const matchProjs = projects.filter(p =>
       _cmdMatch(p.name, q) || _cmdMatch(p.clientName, q) || _cmdMatch(p.status, q)
     );
     if (matchProjs.length) {
-      const shown = matchProjs.slice(0, CAP);
-      const more  = matchProjs.length - shown.length;
       groups.push({
         label: 'Projects',
-        more,
-        items: shown.map(p => ({
+        allItems: matchProjs.map(p => ({
           icon: '📋',
           title: p.name,
           subtitle: [p.clientName, p.status].filter(Boolean).join(' · '),
@@ -5913,15 +5773,13 @@ function _cmdSearch(q) {
 
   // ── Needs ─────────────────────────────────────────────────────────
   if (canSeeNeedsProjects) {
-    const roles     = (rawData.openNeeds && rawData.openNeeds.roles) || [];
+    const roles      = (rawData.openNeeds && rawData.openNeeds.roles) || [];
     const matchRoles = roles.filter(r =>
       _cmdMatch(r.level, q) || _cmdMatch(r.skillSet, q) ||
       _cmdMatch(r.client, q) || _cmdMatch(r.project, q) ||
       (r.allSkillSets || []).some(s => _cmdMatch(s, q))
     );
     if (matchRoles.length) {
-      const shown = matchRoles.slice(0, CAP);
-      const more  = matchRoles.length - shown.length;
       const urgencyLabel = r => {
         if (!r.startDate) return 'Planned';
         const p = String(r.startDate).split('/');
@@ -5932,8 +5790,7 @@ function _cmdSearch(q) {
       };
       groups.push({
         label: 'Needs',
-        more,
-        items: shown.map(r => ({
+        allItems: matchRoles.map(r => ({
           icon: '🎯',
           title: `${r.level || 'Role'} — ${r.project || 'Unassigned'}`,
           subtitle: [r.client, urgencyLabel(r)].filter(Boolean).join(' · '),
@@ -5985,7 +5842,7 @@ function _cmdSearch(q) {
     n.roles.includes(role) && (_cmdMatch(n.title, q) || _cmdMatch(n.subtitle, q))
   );
   if (matchNav.length) {
-    groups.push({ label: 'Navigation', more: 0, items: matchNav.slice(0, CAP) });
+    groups.push({ label: 'Navigation', allItems: matchNav });
   }
 
   return groups;
@@ -5993,10 +5850,12 @@ function _cmdSearch(q) {
 
 // Render groups into the results pane
 function _cmdRender(groups) {
+  _cmdLastGroups = groups;
   const el = document.getElementById('cmdPaletteResults');
   if (!el) return;
   _cmdItems  = [];
   _cmdSelIdx = -1;
+  const CAP  = 5;
 
   if (!groups.length) {
     el.innerHTML = '<div class="cmd-palette-empty">No results</div>';
@@ -6005,10 +5864,15 @@ function _cmdRender(groups) {
 
   let html = '';
   for (let gi = 0; gi < groups.length; gi++) {
-    const g = groups[gi];
+    const g          = groups[gi];
+    const isExpanded = _cmdExpandedGroups.has(g.label);
+    const display    = isExpanded ? g.allItems : g.allItems.slice(0, CAP);
+    const more       = g.allItems.length - CAP;
+
     if (gi > 0) html += '<div class="cmd-palette-divider"></div>';
     html += `<div class="cmd-palette-category">${_esc(g.label)}</div>`;
-    for (const item of g.items) {
+
+    for (const item of display) {
       const idx = _cmdItems.length;
       _cmdItems.push({ action: item.action });
       html += `<div class="cmd-palette-item" data-idx="${idx}" role="option">
@@ -6019,8 +5883,17 @@ function _cmdRender(groups) {
         </div>
       </div>`;
     }
-    if (g.more > 0) {
-      html += `<div class="cmd-palette-more">${g.more} more…</div>`;
+
+    if (!isExpanded && more > 0) {
+      const idx   = _cmdItems.length;
+      const label = g.label;
+      _cmdItems.push({ action() { _cmdExpandedGroups.add(label); _cmdRender(_cmdLastGroups); } });
+      html += `<div class="cmd-palette-item cmd-palette-more-toggle" data-idx="${idx}">${more} more…</div>`;
+    } else if (isExpanded && g.allItems.length > CAP) {
+      const idx   = _cmdItems.length;
+      const label = g.label;
+      _cmdItems.push({ action() { _cmdExpandedGroups.delete(label); _cmdRender(_cmdLastGroups); } });
+      html += `<div class="cmd-palette-item cmd-palette-more-toggle" data-idx="${idx}">Show fewer</div>`;
     }
   }
 
@@ -6059,6 +5932,7 @@ function _cmdSetSelection(idx) {
 
   input.addEventListener('input', () => {
     const q = input.value.trim();
+    _cmdExpandedGroups = new Set();
     if (!q) {
       const el = document.getElementById('cmdPaletteResults');
       if (el) el.innerHTML = '';

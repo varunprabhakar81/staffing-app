@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=60">
+  <link rel="stylesheet" href="styles.css?v=61">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -167,17 +167,16 @@
     <header class="main-header">
 
 
-      <!-- Search Bar -->
+      <!-- Ghost search trigger → command palette -->
       <div class="header-search">
-        <div class="header-search-inner">
-          <svg class="hdr-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <button class="hdr-search-ghost" onclick="openCmdPalette()" title="Search (Ctrl+K)">
+          <svg class="hdr-search-ghost-icon" width="14" height="14" viewBox="0 0 14 14" fill="none">
             <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
             <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
           </svg>
-          <input class="hdr-search-input" id="headerSearch" type="text"
-                 placeholder="Search…" autocomplete="off"/>
-          <span class="hdr-search-kbd">/</span>
-        </div>
+          <span class="hdr-search-ghost-text">Search…</span>
+          <kbd class="hdr-search-ghost-kbd">Ctrl+K</kbd>
+        </button>
       </div>
 
       <!-- Header Actions: Refresh + Bell -->
@@ -1255,6 +1254,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=126"></script>
+  <script src="app.js?v=127"></script>
 </body>
 </html>
