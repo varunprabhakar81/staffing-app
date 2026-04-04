@@ -6410,7 +6410,7 @@ class StaffingDatePicker {
     const mkArrow = (txt, fn) => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'sdp-nav-arrow'; b.textContent = txt;
-      b.addEventListener('click', fn); return b;
+      b.addEventListener('click', e => { e.stopPropagation(); fn(); }); return b;
     };
     const lbl = document.createElement('span');
     lbl.className   = 'sdp-month-lbl';
