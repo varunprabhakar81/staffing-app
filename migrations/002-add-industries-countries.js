@@ -6,9 +6,10 @@
  *
  * Seeds:
  *   - 2 countries: United States, India
- *   - 10 industries for every existing tenant
+ *   - 5 Deloitte-standard industries for every existing tenant
+ *     (deletes existing rows first so stale values don't linger)
  *
- * Safe to re-run (upsert / on-conflict ignore).
+ * Safe to re-run.
  *
  * Usage:
  *   node migrations/002-add-industries-countries.js
@@ -30,16 +31,11 @@ const COUNTRIES = [
 ];
 
 const INDUSTRY_NAMES = [
+  'Consumer',
+  'Energy, Resources & Industrials',
   'Financial Services',
-  'Technology',
-  'Healthcare',
-  'Manufacturing',
-  'Retail',
-  'Energy',
-  'Telecommunications',
-  'Government',
-  'Media & Entertainment',
-  'Professional Services',
+  'Life Sciences & Health Care',
+  'Technology, Media & Telecommunication',
 ];
 
 // ── Runner ────────────────────────────────────────────────────────────────────
@@ -72,20 +68,29 @@ async function run() {
   if (tenantsErr) throw new Error('Tenants fetch failed: ' + tenantsErr.message);
   console.log(`  Found ${tenants.length} tenant(s)`);
 
-  // 3. Seed 10 industries for every tenant
+  // 3. Replace industries for every tenant with 5 Deloitte standard groups (delete then insert)
   console.log('\nSeeding industries...');
   for (const tenant of tenants) {
-    const rows = INDUSTRY_NAMES.map(name => ({ name, tenant_id: tenant.id }));
-    const { error: indErr } = await serviceClient
+    // Delete existing rows for this tenant so stale values don't linger
+    const { error: delErr } = await serviceClient
       .from('industries')
-      .upsert(rows, { onConflict: 'name,tenant_id' });
-    if (indErr) {
-      if (indErr.message.includes('schema cache') || indErr.code === '42P01') {
+      .delete()
+      .eq('tenant_id', tenant.id);
+    if (delErr) {
+      if (delErr.message.includes('schema cache') || delErr.code === '42P01') {
         console.error('Error: "industries" table not found.');
         console.error('Please run migrations/002-add-industries-countries.sql in Supabase SQL Editor first.');
         process.exit(1);
       }
-      throw new Error(`Industries seed failed for tenant "${tenant.name}": ${indErr.message}`);
+      throw new Error(`Industries delete failed for tenant "${tenant.name}": ${delErr.message}`);
+    }
+
+    const rows = INDUSTRY_NAMES.map(name => ({ name, tenant_id: tenant.id }));
+    const { error: indErr } = await serviceClient
+      .from('industries')
+      .insert(rows);
+    if (indErr) {
+      throw new Error(`Industries insert failed for tenant "${tenant.name}": ${indErr.message}`);
     }
     console.log(`  Seeded ${rows.length} industries for: ${tenant.name} (${tenant.id})`);
   }

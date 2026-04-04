@@ -250,8 +250,11 @@ const PROJECT_DEFS = [
 const PROBABILITY_MAP = { 'Proposed': 25, 'Verbal Commit': 75, 'Sold': 100 };
 
 const SEED_INDUSTRIES = [
-  'Financial Services', 'Technology', 'Healthcare', 'Manufacturing', 'Retail',
-  'Energy', 'Telecommunications', 'Government', 'Media & Entertainment', 'Professional Services',
+  'Consumer',
+  'Energy, Resources & Industrials',
+  'Financial Services',
+  'Life Sciences & Health Care',
+  'Technology, Media & Telecommunication',
 ];
 const SEED_COUNTRIES = ['United States', 'India'];
 
