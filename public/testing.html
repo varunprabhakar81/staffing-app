@@ -149,7 +149,19 @@
     .tp-area-filter.active .tp-area-count { background: var(--accent-muted); color: var(--accent); }
 
     /* ── Main content ── */
-    .tp-main { flex: 1; overflow-y: auto; padding: 24px; }
+    .tp-main { flex: 1; overflow-y: auto; padding: 0 24px 24px; }
+
+    /* ── Sticky bars (progress + role filter + status filter) ── */
+    .tp-sticky-bars {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      padding-top: 16px;
+      padding-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+      margin-bottom: 8px;
+    }
 
     /* ── Area section ── */
     .tp-area-section { margin-bottom: 32px; }
@@ -421,7 +433,7 @@
     /* ── My Summary panel ── */
     .tp-my-summary {
       background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px 20px; margin-bottom: 24px;
+      padding: 14px 20px; margin-bottom: 12px;
       display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
     }
     .tp-my-summary-title {
@@ -442,7 +454,7 @@
     .hidden { display: none !important; }
 
     /* ── Role filter bar ── */
-    .tp-role-filter-bar { margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .tp-role-filter-bar { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
     .tp-role-filter-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
     .tp-role-filter-select {
       background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
@@ -463,7 +475,7 @@
     .tp-detail-dot.retest { background: var(--warn); }
 
     /* ── Status filter tabs ── */
-    .tp-status-filter-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+    .tp-status-filter-bar { display: flex; align-items: center; gap: 4px; margin-bottom: 0; flex-wrap: wrap; }
     .tp-status-filter-tab {
       padding: 5px 12px; border-radius: 5px; border: 1px solid var(--border);
       background: var(--bg-elevated); color: var(--text-muted);
@@ -472,9 +484,10 @@
     }
     .tp-status-filter-tab:hover { color: var(--text-primary); border-color: var(--text-dim); }
     .tp-status-filter-tab.active { background: var(--accent-muted); color: var(--accent); border-color: var(--accent); font-weight: 600; }
-    .tp-status-filter-tab[data-filter="retest"].active { background: var(--warn-muted); color: var(--warn); border-color: var(--warn); }
-    .tp-status-filter-tab[data-filter="failed"].active { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
-    .tp-status-filter-tab[data-filter="passed"].active { background: var(--pass-muted); color: var(--pass); border-color: var(--pass); }
+    .tp-status-filter-tab[data-filter="retest"].active  { background: var(--warn-muted); color: var(--warn); border-color: var(--warn); }
+    .tp-status-filter-tab[data-filter="failed"].active  { background: var(--fail-muted); color: var(--fail); border-color: var(--fail); }
+    .tp-status-filter-tab[data-filter="passed"].active  { background: var(--pass-muted); color: var(--pass); border-color: var(--pass); }
+    .tp-status-filter-tab[data-filter="skipped"].active { background: rgba(113,128,150,0.18); color: #A0AABB; border-color: #6B7A90; }
     .tp-status-filter-count {
       display: inline-block; font-size: 10px; background: rgba(255,255,255,0.08);
       border-radius: 8px; padding: 1px 5px; margin-left: 3px;
@@ -649,26 +662,28 @@
   <!-- My Tests panel -->
   <div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden" id="myTestsWrapper">
     <main class="tp-main" id="panelMyTests">
-      <div style="position:relative" id="mySummaryWrapper">
-        <div id="mySummaryPanel"></div>
-        <!-- Feedback panel — absolutely positioned within wrapper -->
-        <div class="tp-fb-panel" id="feedbackPanel" role="dialog" aria-label="General feedback">
-          <div class="tp-fb-panel-header">
-            <span class="tp-fb-panel-title">Report General Feedback</span>
-            <div class="tp-fb-panel-meta">
-              <span class="tp-status-pill submitted hidden" id="feedbackSubmittedBadge">Submitted</span>
-              <button class="tp-fb-panel-close" id="feedbackClose" aria-label="Close panel">×</button>
+      <div class="tp-sticky-bars" id="stickyBars">
+        <div style="position:relative" id="mySummaryWrapper">
+          <div id="mySummaryPanel"></div>
+          <!-- Feedback panel — absolutely positioned within wrapper -->
+          <div class="tp-fb-panel" id="feedbackPanel" role="dialog" aria-label="General feedback">
+            <div class="tp-fb-panel-header">
+              <span class="tp-fb-panel-title">Report General Feedback</span>
+              <div class="tp-fb-panel-meta">
+                <span class="tp-status-pill submitted hidden" id="feedbackSubmittedBadge">Submitted</span>
+                <button class="tp-fb-panel-close" id="feedbackClose" aria-label="Close panel">×</button>
+              </div>
+            </div>
+            <div class="tp-fb-panel-sub">Anything about the app — bugs, ideas, impressions</div>
+            <div class="tp-fb-panel-body">
+              <textarea id="generalFeedbackTextarea" rows="5" placeholder="Optional — share anything that didn't fit a specific test…"></textarea>
+              <div class="tp-fb-submitted-note hidden" id="feedbackSubmittedNote">Your feedback has been submitted.</div>
             </div>
           </div>
-          <div class="tp-fb-panel-sub">Anything about the app — bugs, ideas, impressions</div>
-          <div class="tp-fb-panel-body">
-            <textarea id="generalFeedbackTextarea" rows="5" placeholder="Optional — share anything that didn't fit a specific test…"></textarea>
-            <div class="tp-fb-submitted-note hidden" id="feedbackSubmittedNote">Your feedback has been submitted.</div>
-          </div>
         </div>
+        <div id="roleFilterBar"></div>
+        <div id="statusFilterBar"></div>
       </div>
-      <div id="roleFilterBar"></div>
-      <div id="statusFilterBar"></div>
       <div id="testContent"></div>
     </main>
     <!-- Submit bar -->
@@ -1181,6 +1196,7 @@ function renderStatusFilter() {
   const pendingCount = testCases.filter(tc => !myResults[tc.id]?.status).length;
   const passedCount  = testCases.filter(tc => myResults[tc.id]?.status === 'pass').length;
   const failedCount  = testCases.filter(tc => myResults[tc.id]?.status === 'fail').length;
+  const skippedCount = testCases.filter(tc => myResults[tc.id]?.status === 'skip').length;
   const retestCount  = testCases.filter(tc => myResults[tc.id]?.status === 'retest').length;
 
   const tabs = [
@@ -1188,6 +1204,7 @@ function renderStatusFilter() {
     { key: 'pending', label: 'Pending', count: pendingCount },
     { key: 'passed',  label: 'Passed',  count: passedCount },
     { key: 'failed',  label: 'Failed',  count: failedCount },
+    { key: 'skipped', label: 'Skipped', count: skippedCount },
     { key: 'retest',  label: 'Retest',  count: retestCount },
   ];
   bar.innerHTML = `<div class="tp-status-filter-bar">${
@@ -1238,6 +1255,7 @@ function filterTestsByStatus(cases) {
     if (activeStatusFilter === 'pending') return !r?.status;
     if (activeStatusFilter === 'passed')  return r?.status === 'pass';
     if (activeStatusFilter === 'failed')  return r?.status === 'fail';
+    if (activeStatusFilter === 'skipped') return r?.status === 'skip';
     if (activeStatusFilter === 'retest')  return r?.status === 'retest';
     return true;
   });
