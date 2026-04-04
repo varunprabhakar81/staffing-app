@@ -6379,23 +6379,18 @@ class StaffingDatePicker {
   }
 
   // ── Build dropdown ────────────────────────────────────────────────
-  _buildDropdown() {
-    const dp = document.createElement('div');
-    dp.className = 'sdp-dropdown';
-    dp.addEventListener('mousedown', e => e.preventDefault()); // prevent input blur
-
-    // Quick-pick row
-    const base = StaffingDatePicker.fromIso(StaffingDatePicker.smartDefault());
-    const qpDefs = [
+  _buildQuickPickRow() {
+    const base = StaffingDatePicker.fromIso(
+      this.opts.quickPickBase ? this.opts.quickPickBase() : StaffingDatePicker.smartDefault()
+    );
+    const qpDefs = this.opts.quickPickDefs || [
       ['This wk', 0], ['Next wk', 7], ['+2 wk', 14], ['+4 wk', 28], ['+8 wk', 56], ['+12 wk', 84]
     ];
     const qpRow = document.createElement('div');
     qpRow.className = 'sdp-quickpicks';
-    this._qpIsos = [];
     for (const [label, offset] of qpDefs) {
       const d = new Date(base); d.setDate(base.getDate() + offset);
       const iso = StaffingDatePicker.toIso(d);
-      this._qpIsos.push(iso);
       const btn = document.createElement('button');
       btn.type        = 'button';
       btn.className   = 'sdp-qp' + (this._iso === iso ? ' active' : '');
@@ -6404,7 +6399,21 @@ class StaffingDatePicker {
       btn.addEventListener('click', () => this._select(iso));
       qpRow.appendChild(btn);
     }
-    dp.appendChild(qpRow);
+    return qpRow;
+  }
+
+  refreshQuickPicks() {
+    if (!this.dropdown) return;
+    const old = this.dropdown.querySelector('.sdp-quickpicks');
+    if (old) old.replaceWith(this._buildQuickPickRow());
+  }
+
+  _buildDropdown() {
+    const dp = document.createElement('div');
+    dp.className = 'sdp-dropdown';
+    dp.addEventListener('mousedown', e => e.preventDefault()); // prevent input blur
+
+    dp.appendChild(this._buildQuickPickRow());
 
     const cal = document.createElement('div');
     cal.className = 'sdp-calendar';
@@ -6537,6 +6546,10 @@ function initDatePickers() {
   const cnStartEl = document.getElementById('cn-start-date');
   const cnEndEl   = document.getElementById('cn-end-date');
 
+  const END_DATE_QP_DEFS = [
+    ['+2 wk', 14], ['+4 wk', 28], ['+8 wk', 56], ['+12 wk', 84], ['+16 wk', 112], ['+24 wk', 168]
+  ];
+
   if (cnStartEl && !_sdpMap['cn-start-date']) {
     _sdpMap['cn-start-date'] = new StaffingDatePicker(cnStartEl, {
       onSelect(iso) {
@@ -6547,11 +6560,15 @@ function initDatePickers() {
           d.setDate(d.getDate() + 28); // +4 weeks
           ep.setDate(StaffingDatePicker.toIso(d));
         }
+        ep.refreshQuickPicks();
       }
     });
   }
   if (cnEndEl && !_sdpMap['cn-end-date']) {
-    _sdpMap['cn-end-date'] = new StaffingDatePicker(cnEndEl, {});
+    _sdpMap['cn-end-date'] = new StaffingDatePicker(cnEndEl, {
+      quickPickBase: () => _sdpMap['cn-start-date']?.getDate() || StaffingDatePicker.smartDefault(),
+      quickPickDefs: END_DATE_QP_DEFS
+    });
   }
 
   // ── Edit Need ─────────────────────────────────────────────────────
@@ -6568,11 +6585,15 @@ function initDatePickers() {
           d.setDate(d.getDate() + 28);
           ep.setDate(StaffingDatePicker.toIso(d));
         }
+        ep.refreshQuickPicks();
       }
     });
   }
   if (enEndEl && !_sdpMap['en-end-date']) {
-    _sdpMap['en-end-date'] = new StaffingDatePicker(enEndEl, {});
+    _sdpMap['en-end-date'] = new StaffingDatePicker(enEndEl, {
+      quickPickBase: () => _sdpMap['en-start-date']?.getDate() || StaffingDatePicker.smartDefault(),
+      quickPickDefs: END_DATE_QP_DEFS
+    });
   }
 }
 
