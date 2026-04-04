@@ -32,6 +32,7 @@ let _cmdSelIdx = -1;               // command palette: currently selected result
 let _cmdItems  = [];               // command palette: flat array of { action } for keyboard nav
 let _cmdExpandedGroups = new Set(); // command palette: group labels expanded beyond CAP
 let _cmdLastGroups     = [];        // command palette: last rendered groups (for expand re-render)
+let _cmdConsultantMeta = null;      // command palette: lazy-loaded { [id]: { industry, country } }
 let _umUsers = [];                 // cached user list for user-edit modal
 const _pendingStaffing = new Map(); // key = `${empName}||${weekLabel}||${project}` → hours
 
@@ -5637,6 +5638,23 @@ function openCmdPalette() {
   _cmdSelIdx = -1;
   _cmdItems  = [];
   input.focus();
+  // Lazily pre-fetch industry/country for admin/RM so match reasons can be shown
+  if (currentUserRole === 'admin' || currentUserRole === 'resource_manager') {
+    _cmdPreloadConsultantMeta();
+  }
+}
+
+async function _cmdPreloadConsultantMeta() {
+  if (_cmdConsultantMeta) return;
+  try {
+    const res = await apiFetch('/api/consultants');
+    if (!res.ok) return;
+    const list = await res.json();
+    _cmdConsultantMeta = {};
+    for (const c of list) {
+      if (c.id) _cmdConsultantMeta[c.id] = { industry: c.industry || '', country: c.country || '' };
+    }
+  } catch { /* ignore */ }
 }
 
 function closeCmdPalette() {
@@ -5664,12 +5682,16 @@ function _cmdGetConsultants() {
     const map = {};
     for (const row of rawData.supply) {
       if (!map[row.employeeName]) {
+        const meta = _cmdConsultantMeta && row._consultantId
+          ? (_cmdConsultantMeta[row._consultantId] || {})
+          : {};
         map[row.employeeName] = {
           name: row.employeeName,
           level: row.level || '',
-          skillSet: row.skillSet || '',
           allSkillSets: row.allSkillSets || [],
           _consultantId: row._consultantId || null,
+          industry: meta.industry || '',
+          country: meta.country || '',
         };
       }
     }
@@ -5680,9 +5702,10 @@ function _cmdGetConsultants() {
   return emps.map(e => ({
     name: e.name,
     level: e.level || '',
-    skillSet: e.skillSet || '',
     allSkillSets: e.skillSet ? [e.skillSet] : [],
     _consultantId: null,
+    industry: '',
+    country: '',
   }));
 }
 
@@ -5714,27 +5737,61 @@ function _cmdSearch(q) {
 
   // ── Consultants ──────────────────────────────────────────────────
   const consultants  = _cmdGetConsultants();
-  const matchConsult = consultants.filter(c =>
-    _cmdMatch(c.name, q) || _cmdMatch(c.level, q) ||
-    _cmdMatch(c.skillSet, q) || c.allSkillSets.some(s => _cmdMatch(s, q))
-  );
+  const matchConsult = [];
+  for (const c of consultants) {
+    let reason = null;
+    if (_cmdMatch(c.name, q)) {
+      reason = 'name';
+    } else if (_cmdMatch(c.level, q)) {
+      reason = 'level';
+    } else {
+      const matchedSkill = c.allSkillSets.find(s => _cmdMatch(s, q));
+      if (matchedSkill) {
+        reason = { type: 'skill', value: matchedSkill };
+      } else if (c.industry && _cmdMatch(c.industry, q)) {
+        reason = { type: 'industry', value: c.industry };
+      } else if (c.country && _cmdMatch(c.country, q)) {
+        reason = { type: 'country', value: c.country };
+      }
+    }
+    if (reason) matchConsult.push({ c, reason });
+  }
   if (matchConsult.length) {
+    const _skillsSubtitle = (c) => {
+      const skills = c.allSkillSets;
+      if (!skills.length) return c.level || '';
+      const shown = skills.slice(0, 3).join(', ');
+      const extra = skills.length > 3 ? ` +${skills.length - 3} more` : '';
+      return [c.level, shown + extra].filter(Boolean).join(' · ');
+    };
     groups.push({
       label: 'Consultants',
-      allItems: matchConsult.map(c => ({
-        icon: '👤',
-        title: c.name,
-        subtitle: [c.level, c.skillSet].filter(Boolean).join(' · '),
-        action() {
-          closeCmdPalette();
-          if (c._consultantId) {
-            openConsultantProfileEditor(c._consultantId, c.name);
-          } else {
-            navigateTo('staffing');
-            setTimeout(() => navigateToEmployee(c.name), 150);
-          }
-        },
-      })),
+      allItems: matchConsult.map(({ c, reason }) => {
+        let subtitle;
+        if (reason === 'name' || reason === 'level') {
+          subtitle = _skillsSubtitle(c);
+        } else if (reason.type === 'skill') {
+          subtitle = [c.level, `Matched: ${reason.value}`].filter(Boolean).join(' · ');
+        } else if (reason.type === 'industry') {
+          subtitle = [c.level, `Industry: ${reason.value}`].filter(Boolean).join(' · ');
+        } else if (reason.type === 'country') {
+          subtitle = [c.level, `Country: ${reason.value}`].filter(Boolean).join(' · ');
+        }
+        return {
+          icon: '👤',
+          title: c.name,
+          subtitle,
+          action() {
+            closeCmdPalette();
+            if (c._consultantId) {
+              openConsultantProfileEditor(c._consultantId, c.name);
+            } else {
+              navigateTo('staffing');
+              setTimeout(() => navigateToEmployee(c.name), 150);
+            }
+          },
+        };
+      }),
     });
   }
 
