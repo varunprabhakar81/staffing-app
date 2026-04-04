@@ -5170,13 +5170,24 @@ function _cnPopulateStep2() {
 
   const projectId = document.getElementById('cn-project-select').value;
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
+  const todayIso = StaffingDatePicker.smartDefault();
   if (proj) {
-    if (proj.startDate && cnSP) cnSP.setDate(proj.startDate);
-    else if (cnSP) { console.log('[datepicker] setting start default:', StaffingDatePicker.smartDefault()); cnSP.setDate(StaffingDatePicker.smartDefault()); }
-    if (proj.endDate   && cnEP) cnEP.setDate(proj.endDate);
+    // Start date: later of project start or today, snapped to Saturday
+    const projStart = proj.startDate || null;
+    const effectiveStart = (projStart && projStart > todayIso) ? projStart : todayIso;
+    const startSnapped = StaffingDatePicker.toIso(StaffingDatePicker.snapSat(StaffingDatePicker.fromIso(effectiveStart)));
+    if (cnSP) cnSP.setDate(startSnapped);
+
+    // End date: use project end if it's in the future; otherwise start + 4 weeks
+    if (proj.endDate && proj.endDate >= todayIso) {
+      if (cnEP) cnEP.setDate(proj.endDate);
+    } else {
+      const fallback = StaffingDatePicker.fromIso(startSnapped);
+      fallback.setDate(fallback.getDate() + 28);
+      if (cnEP) cnEP.setDate(StaffingDatePicker.toIso(fallback));
+    }
   } else if (cnSP) {
-    console.log('[datepicker] setting start default:', StaffingDatePicker.smartDefault());
-    cnSP.setDate(StaffingDatePicker.smartDefault());
+    cnSP.setDate(todayIso);
   }
 
   // Show selected project name on Step 2
@@ -6270,7 +6281,6 @@ class StaffingDatePicker {
   }
 
   static smartDefault() {
-    console.log('[datepicker] smartDefault called. new Date() =', new Date(), 'day =', new Date().getDay());
     // Always called at runtime — new Date() is evaluated when the function runs
     const t = new Date(); t.setHours(0, 0, 0, 0);
     const day = t.getDay();
@@ -6280,9 +6290,7 @@ class StaffingDatePicker {
     } else {
       s.setDate(t.getDate() + (6 - day)); // Mon–Sat → this week's Saturday
     }
-    const result = StaffingDatePicker.toIso(s);
-    console.log('[datepicker] smartDefault returning:', result);
-    return result;
+    return StaffingDatePicker.toIso(s);
   }
 
   static toIso(d) {
