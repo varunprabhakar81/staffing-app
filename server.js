@@ -1792,7 +1792,8 @@ app.get('/api/test-results', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/test-results — upsert a single result (blocked if submitted)
+// POST /api/test-results — upsert a single result
+// Blocked if this specific test case is submitted, unless it has been marked 'retest' by admin.
 app.post('/api/test-results', requireAuth, async (req, res) => {
   if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
   const { test_case_id, status, notes } = req.body || {};
@@ -1803,16 +1804,17 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'status must be pass, fail, skip, or note' });
   }
   try {
-    // Block writes if user has already submitted
+    // Block writes only if this specific test case is locked (submitted and not marked for retest)
     const { data: existing } = await serviceClient
       .from('test_results')
-      .select('submitted_at')
+      .select('submitted_at, status')
       .eq('tenant_id', tId(req))
       .eq('user_id', req.session.user.id)
-      .not('submitted_at', 'is', null)
+      .eq('test_case_id', test_case_id)
       .limit(1);
-    if (existing && existing.length > 0) {
-      return res.status(403).json({ error: 'Tests already submitted. Ask the test admin to reset your results.' });
+    const row = existing?.[0];
+    if (row?.submitted_at && row?.status !== 'retest') {
+      return res.status(403).json({ error: 'This test has been submitted. Ask the test admin to mark it for retest.' });
     }
     const { error } = await serviceClient
       .from('test_results')
@@ -1900,6 +1902,107 @@ app.post('/api/test-results/reset', requireAuth, async (req, res) => {
     if (user_id) query = query.eq('user_id', user_id);
     else         query = query.neq('id', '00000000-0000-0000-0000-000000000000'); // delete all
     const { error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Testing lifecycle endpoints (#212) ──────────────────────────────────────
+
+// GET /api/testing/results — admin: all users in tenant; tester: own results only
+app.get('/api/testing/results', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
+  try {
+    let query = serviceClient
+      .from('test_results')
+      .select('test_case_id, user_id, user_email, status, notes, submitted_at')
+      .eq('tenant_id', tId(req));
+    if (!isTestAdmin(req)) {
+      query = query.eq('user_id', req.session.user.id);
+    }
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+    res.json((data || []).map(r => ({ ...r, email: r.user_email })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/testing/results/retest — admin only; mark specific test cases for retest
+// Body: { user_id, test_case_ids: [...] }
+app.patch('/api/testing/results/retest', requireAuth, async (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
+  const { user_id, test_case_ids } = req.body || {};
+  if (!user_id || !Array.isArray(test_case_ids) || test_case_ids.length === 0) {
+    return res.status(400).json({ error: 'user_id and non-empty test_case_ids array are required' });
+  }
+  try {
+    const { error } = await serviceClient
+      .from('test_results')
+      .update({ status: 'retest', submitted_at: null })
+      .eq('tenant_id', tId(req))
+      .eq('user_id', user_id)
+      .in('test_case_id', test_case_ids);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, count: test_case_ids.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/testing/results/retest-all-failed — admin only; flip all failed → retest for a user
+// Body: { user_id }
+app.patch('/api/testing/results/retest-all-failed', requireAuth, async (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
+  const { user_id } = req.body || {};
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+  try {
+    const { data, error } = await serviceClient
+      .from('test_results')
+      .update({ status: 'retest', submitted_at: null })
+      .eq('tenant_id', tId(req))
+      .eq('user_id', user_id)
+      .eq('status', 'fail')
+      .select('test_case_id');
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, count: (data || []).length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/testing/results/reset — admin: body { user_id }; tester: resets own
+app.delete('/api/testing/results/reset', requireAuth, async (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
+  const { user_id } = req.body || {};
+  // Non-admins can only reset their own results
+  const targetUserId = isTestAdmin(req) && user_id ? user_id : req.session.user.id;
+  if (!isTestAdmin(req) && user_id && user_id !== req.session.user.id) {
+    return res.status(403).json({ error: 'Testers can only reset their own results' });
+  }
+  try {
+    const { error } = await serviceClient
+      .from('test_results')
+      .delete()
+      .eq('tenant_id', tId(req))
+      .eq('user_id', targetUserId);
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/testing/results/reset-all — admin only; wipe all results for tenant
+app.delete('/api/testing/results/reset-all', requireAuth, async (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
+  try {
+    const { error } = await serviceClient
+      .from('test_results')
+      .delete()
+      .eq('tenant_id', tId(req));
     if (error) return res.status(500).json({ error: error.message });
     res.json({ ok: true });
   } catch (err) {
