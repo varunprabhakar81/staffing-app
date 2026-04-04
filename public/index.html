@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=62">
+  <link rel="stylesheet" href="styles.css?v=63">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -130,6 +130,12 @@
         <span class="nav-label">Testing Portal</span>
       </a>
     </div>
+
+    <!-- Keyboard shortcuts -->
+    <button class="nav-item nav-item--shortcuts" onclick="openShortcutGuide()" title="Keyboard shortcuts (?)">
+      <span class="shortcuts-badge">?</span>
+      <span class="nav-label">Shortcuts</span>
+    </button>
 
     <!-- Logout -->
     <button class="nav-item nav-item--logout" onclick="logout()" title="Log out">
@@ -610,7 +616,7 @@
         <div class="shortcut-section">
           <div class="shortcut-section-title">Data</div>
           <div class="shortcut-row"><span class="shortcut-key">Ctrl+R</span><span class="shortcut-desc">Refresh data</span></div>
-          <div class="shortcut-row"><span class="shortcut-key">Ctrl+K / /</span><span class="shortcut-desc">Command palette</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Ctrl+K or /</span><span class="shortcut-desc">Command palette</span></div>
         </div>
         <div class="shortcut-section">
           <div class="shortcut-section-title">General</div>
@@ -1256,6 +1262,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=135"></script>
+  <script src="app.js?v=136"></script>
 </body>
 </html>

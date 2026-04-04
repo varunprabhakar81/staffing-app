@@ -5649,11 +5649,7 @@ function _cmdShowHint() {
   if (!el) return;
   _cmdItems  = [];
   _cmdSelIdx = -1;
-  el.innerHTML =
-    '<div class="cmd-palette-hint">' +
-      '<div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026</div>' +
-      '<div class="cmd-palette-hint-secondary">Ctrl+1\u20135 to switch tabs\u2003\u00b7\u2003Ctrl+K or / to open this palette\u2003\u00b7\u2003? for all shortcuts</div>' +
-    '</div>';
+  el.innerHTML = '<div class="cmd-palette-hint"><div class="cmd-palette-hint-primary">Search consultants, projects, needs\u2026</div></div>';
 }
 
 async function _cmdPreloadConsultantMeta() {
@@ -5727,8 +5723,9 @@ function _cmdGetConsultants() {
   }));
 }
 
-// Build deduped project list from supply; resolve clientName from openNeeds
+// Build deduped project list from supply; resolve clientName from _meta then openNeeds
 function _cmdGetProjects() {
+  const metaByName = (rawData._meta && rawData._meta.projectByName) || {};
   const clientByProject = {};
   for (const r of (rawData.openNeeds && rawData.openNeeds.roles) || []) {
     if (r.project && r.client) clientByProject[r.project] = r.client;
@@ -5736,10 +5733,14 @@ function _cmdGetProjects() {
   const map = {};
   for (const row of rawData.supply || []) {
     if (row.projectAssigned && !map[row.projectAssigned]) {
+      const metaProj = metaByName[row.projectAssigned];
+      const clientName = (metaProj && metaProj.clientName)
+        || clientByProject[row.projectAssigned]
+        || '';
       map[row.projectAssigned] = {
         name: row.projectAssigned,
         status: row.projectStatus || '',
-        clientName: clientByProject[row.projectAssigned] || '',
+        clientName,
       };
     }
   }

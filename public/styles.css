@@ -205,6 +205,25 @@ body {
 }
 .nav-item--disabled:hover { background: transparent; color: #8892B0; }
 
+.nav-item--shortcuts {
+  opacity: 0.55;
+  margin-top: 2px;
+}
+.nav-item--shortcuts:hover { opacity: 1; }
+.shortcuts-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 .nav-label {
   opacity: 1;
   transition: opacity 0.15s ease;
