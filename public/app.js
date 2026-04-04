@@ -6060,6 +6060,11 @@ function _cmdSearch(q) {
                     row.scrollIntoView({ block: 'center', behavior: 'smooth' });
                     row.classList.add('cmd-palette-row-highlight');
                     setTimeout(() => row.classList.remove('cmd-palette-row-highlight'), 1400);
+                    // Expand the need detail panel if not already open
+                    const expRow = row.nextElementSibling;
+                    if (expRow && expRow.classList.contains('need-expansion-row') && expRow.classList.contains('hidden')) {
+                      row.click();
+                    }
                   }
                 }, 120);
               }, 150);
