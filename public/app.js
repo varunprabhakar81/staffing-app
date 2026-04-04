@@ -5172,9 +5172,10 @@ function _cnPopulateStep2() {
   const proj = _cnProjects.find(p => String(p.id) === String(projectId));
   if (proj) {
     if (proj.startDate && cnSP) cnSP.setDate(proj.startDate);
-    else if (cnSP) cnSP.setDate(StaffingDatePicker.smartDefault());
+    else if (cnSP) { console.log('[datepicker] setting start default:', StaffingDatePicker.smartDefault()); cnSP.setDate(StaffingDatePicker.smartDefault()); }
     if (proj.endDate   && cnEP) cnEP.setDate(proj.endDate);
   } else if (cnSP) {
+    console.log('[datepicker] setting start default:', StaffingDatePicker.smartDefault());
     cnSP.setDate(StaffingDatePicker.smartDefault());
   }
 
@@ -6269,6 +6270,7 @@ class StaffingDatePicker {
   }
 
   static smartDefault() {
+    console.log('[datepicker] smartDefault called. new Date() =', new Date(), 'day =', new Date().getDay());
     // Always called at runtime — new Date() is evaluated when the function runs
     const t = new Date(); t.setHours(0, 0, 0, 0);
     const day = t.getDay();
@@ -6278,7 +6280,9 @@ class StaffingDatePicker {
     } else {
       s.setDate(t.getDate() + (6 - day)); // Mon–Sat → this week's Saturday
     }
-    return StaffingDatePicker.toIso(s);
+    const result = StaffingDatePicker.toIso(s);
+    console.log('[datepicker] smartDefault returning:', result);
+    return result;
   }
 
   static toIso(d) {
