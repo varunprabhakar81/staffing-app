@@ -6609,7 +6609,16 @@ function initDatePickers() {
     // Show Testing Portal link only for users with a testing_role
     if (me.testing_role) {
       const navEl = document.getElementById('testingPortalNav');
-      if (navEl) navEl.style.display = '';
+      if (navEl) {
+        navEl.style.display = '';
+        // After opening the portal in a new tab, navigate this tab back to Overview
+        const portalLink = navEl.querySelector('a');
+        if (portalLink) {
+          portalLink.addEventListener('click', () => {
+            setTimeout(() => navigateTo('overview'), 0);
+          });
+        }
+      }
     }
 
     // Populate sidebar user info
