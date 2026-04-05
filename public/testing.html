@@ -600,8 +600,8 @@
     .tp-admin-mark-retest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── Category completion states ── */
-    .tp-area-section.cat-complete  { border-left: 3px solid var(--pass);  padding-left: 0; }
-    .tp-area-section.cat-partial   { border-left: 3px solid var(--warn);  padding-left: 0; }
+    .tp-area-section.cat-complete  { border-left: 4px solid var(--pass); padding-left: 10px; background: rgba(29,158,117,0.04); border-radius: 0 var(--radius) var(--radius) 0; }
+    .tp-area-section.cat-partial   { border-left: 4px solid var(--warn); padding-left: 10px; background: rgba(214,158,46,0.04); border-radius: 0 var(--radius) var(--radius) 0; }
     .tp-area-section.cat-complete  .tp-area-heading h2 { color: var(--pass); }
     .tp-area-section.cat-partial   .tp-area-heading h2 { color: var(--warn); }
     .tp-area-heading-count.complete { background: var(--pass-muted); color: var(--pass); }
@@ -1420,7 +1420,7 @@ function renderMyTests() {
     const areaIdx    = allAreas.indexOf(area);
     const prevArea   = areaIdx > 0 ? allAreas[areaIdx - 1] : null;
     const section    = document.createElement('div');
-    section.className = 'tp-area-section' + (isLocked ? ' gated' : '') + (catState && !isLocked ? ' ' + catState : '');
+    section.className = 'tp-area-section';
     section.id        = sectionId;
     section.innerHTML = `
       <div class="tp-area-heading">
@@ -1433,7 +1433,11 @@ function renderMyTests() {
       ${isLocked && prevArea ? `<div class="tp-area-lock-hint">🔒 Complete all tests in <strong>${esc(prevArea)}</strong> to unlock</div>` : ''}
       <div class="tp-area-cards" id="cards-${sectionId}"></div>
     `;
-    if (!isLocked) {
+    // Apply state classes after innerHTML so there is no ordering ambiguity
+    if (isLocked) {
+      section.classList.add('gated');
+    } else {
+      if (catState) section.classList.add(catState);
       const cardsEl = section.querySelector('.tp-area-cards');
       cases.forEach(tc => cardsEl.appendChild(buildCard(tc)));
       section.querySelector('.tp-area-heading').addEventListener('click', () => section.classList.toggle('collapsed'));
