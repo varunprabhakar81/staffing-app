@@ -603,6 +603,58 @@
     .tp-area-section.gated .tp-area-heading { cursor: default; opacity: 0.5; }
     .tp-area-section.gated .tp-area-heading h2 { color: var(--text-dim); }
     .tp-area-section.gated .tp-area-cards { display: none !important; }
+
+    /* ── Locked category hint ── */
+    .tp-area-lock-hint {
+      font-size: 13px; color: var(--text-muted); margin: 0 0 12px; font-style: normal;
+      background: rgba(239,159,39,0.12); padding: 6px 12px; border-radius: var(--radius);
+    }
+    /* Ensure hint stays visible even inside gated (dimmed) section */
+    .tp-area-section.gated .tp-area-lock-hint { opacity: 1; }
+
+    /* ── Submit confirm tip ── */
+    .tp-confirm-tip {
+      margin-top: 14px; padding: 10px 12px;
+      background: rgba(66,153,225,0.10); border: 1px solid rgba(66,153,225,0.22);
+      border-radius: 5px; font-size: 12px; color: var(--text-muted); line-height: 1.5;
+    }
+    .tp-confirm-tip-link {
+      background: none; border: none; color: #63B3ED; font-family: var(--font);
+      font-size: 12px; cursor: pointer; padding: 0; text-decoration: underline; transition: color 0.15s;
+    }
+    .tp-confirm-tip-link:hover { color: #90CDF4; }
+
+    /* ── Admin sequential toggle ── */
+    .tp-toggle-wrap {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      font-size: 12px; color: var(--text-muted); user-select: none;
+    }
+    .tp-toggle-wrap:hover { color: var(--text-primary); }
+    .tp-toggle-switch { position: relative; width: 32px; height: 18px; flex-shrink: 0; }
+    .tp-toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .tp-toggle-slider {
+      position: absolute; inset: 0; background: var(--border); border-radius: 9px;
+      transition: background 0.2s;
+    }
+    .tp-toggle-slider::before {
+      content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px; transition: transform 0.2s;
+    }
+    .tp-toggle-switch input:checked + .tp-toggle-slider { background: var(--accent); }
+    .tp-toggle-switch input:checked + .tp-toggle-slider::before { transform: translateX(14px); }
+
+    /* ── Admin tester groups (results table) ── */
+    .tp-admin-tester-group { margin-bottom: 10px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .tp-admin-tester-header {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--bg-elevated); cursor: pointer; user-select: none;
+    }
+    .tp-admin-tester-header:hover { background: rgba(255,255,255,0.03); }
+    .tp-admin-tester-chevron { color: var(--text-dim); transition: transform 0.15s; flex-shrink: 0; }
+    .tp-admin-tester-group.collapsed .tp-admin-tester-chevron { transform: rotate(-90deg); }
+    .tp-admin-tester-group.collapsed .tp-admin-tester-body { display: none; }
+    .tp-admin-tester-email { font-size: 12px; font-weight: 600; color: var(--text-primary); min-width: 0; }
+    .tp-admin-tester-badges { display: flex; gap: 5px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -703,7 +755,13 @@
     <div class="tp-admin-top-bar">
       <h2>Admin Dashboard</h2>
       <div class="tp-admin-top-actions">
-        <button class="tp-admin-top-btn" id="adminRefreshBtn">↻ Refresh</button>
+        <label class="tp-toggle-wrap" title="When ON, testers must complete each category before the next unlocks">
+          <span class="tp-toggle-switch">
+            <input type="checkbox" id="sequentialToggle" checked>
+            <span class="tp-toggle-slider"></span>
+          </span>
+          Enforce sequential testing
+        </label>
         <button class="tp-admin-top-btn danger" id="resetAllBtn">Reset All Users</button>
       </div>
     </div>
@@ -716,6 +774,7 @@
   <div class="tp-confirm-box">
     <h3 id="confirmTitle"></h3>
     <p id="confirmMsg"></p>
+    <div class="tp-confirm-tip hidden" id="confirmTip"></div>
     <div class="tp-confirm-actions">
       <button class="tp-confirm-cancel" id="confirmCancel">Cancel</button>
       <button class="tp-confirm-ok" id="confirmOk">Confirm</button>
@@ -750,6 +809,7 @@ let activeRoleFilter   = null;  // null = All roles
 let activeStatusFilter = 'all'; // 'all' | 'pending' | 'failed' | 'retest'
 let myResults          = {};    // test_case_id → {status, notes, submitted_at}
 let isSubmitted        = false;
+let sequentialTesting  = true;  // loaded from /api/testing/settings on boot
 let activeArea         = null;
 
 // ── Admin dashboard state ──────────────────────────────────────────────────
@@ -780,6 +840,7 @@ function confirm(title, msg, okLabel, okClass, cb) {
   const overlay = document.getElementById('confirmOverlay');
   document.getElementById('confirmTitle').textContent = title;
   document.getElementById('confirmMsg').textContent   = msg;
+  document.getElementById('confirmTip').classList.add('hidden');
   const okBtn = document.getElementById('confirmOk');
   okBtn.textContent = okLabel || 'Confirm';
   okBtn.className   = 'tp-confirm-ok ' + (okClass || '');
@@ -810,12 +871,13 @@ function confirm(title, msg, okLabel, okClass, cb) {
       document.getElementById('summaryTab').classList.remove('hidden');
     }
 
-    // Load test cases + my results in parallel
-    let tcRes, resultsRes;
+    // Load test cases, my results, and testing settings in parallel
+    let tcRes, resultsRes, settingsRes;
     try {
-      [tcRes, resultsRes] = await Promise.all([
+      [tcRes, resultsRes, settingsRes] = await Promise.all([
         fetch('/test-cases.json'),
-        apiFetch('/api/testing/results')
+        apiFetch('/api/testing/results'),
+        apiFetch('/api/testing/settings')
       ]);
     } catch (fetchErr) {
       console.error('Boot fetch error:', fetchErr);
@@ -856,6 +918,17 @@ function confirm(title, msg, okLabel, okClass, cb) {
       }
     } else {
       console.warn('/api/testing/results returned', resultsRes.status, '— proceeding without saved results');
+    }
+
+    // Load sequential testing setting
+    try {
+      if (settingsRes && settingsRes.ok) {
+        const settings = await settingsRes.json();
+        sequentialTesting = settings.sequential_testing ?? true;
+      }
+    } catch (_) {}
+    if (testingRole === 'test_admin') {
+      document.getElementById('sequentialToggle').checked = sequentialTesting;
     }
 
     renderSidebar();
@@ -944,8 +1017,28 @@ function confirm(title, msg, okLabel, okClass, cb) {
     );
   });
 
-  // Admin Refresh button
-  document.getElementById('adminRefreshBtn').addEventListener('click', () => loadAdminDashboard());
+  // Sequential testing toggle (admin only)
+  document.getElementById('sequentialToggle').addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    try {
+      const res = await apiFetch('/api/testing/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sequential_testing: enabled })
+      });
+      if (!res.ok) {
+        e.target.checked = !enabled;
+        showToast('Failed to save setting', 'error');
+        return;
+      }
+      sequentialTesting = enabled;
+      renderMyTests();
+      showToast(enabled ? 'Sequential testing enabled' : 'Sequential testing disabled', 'ok');
+    } catch (_) {
+      e.target.checked = !enabled;
+      showToast('Network error', 'error');
+    }
+  });
 
   document.getElementById('feedbackClose').addEventListener('click', () => {
     document.getElementById('feedbackPanel').classList.remove('open');
@@ -956,13 +1049,21 @@ function confirm(title, msg, okLabel, okClass, cb) {
 function proceedToSubmitConfirm() {
   const done = testCases.filter(tc => myResults[tc.id]).length;
   const hasFeedback = !!(myResults['general-feedback']?.notes?.trim());
-  const tip = hasFeedback ? '' : ' Tip: You can also share general feedback using the Report General Feedback button.';
   confirm(
     'Submit for Review',
-    `Submit ${done} of ${testCases.length} test results? Once submitted, you can't change your answers until the admin resets your tests.${tip}`,
+    `Submit ${done} of ${testCases.length} test results? Once submitted, you can't change your answers until the admin resets your tests.`,
     'Submit', 'green',
     doSubmit
   );
+  if (!hasFeedback) {
+    const tipEl = document.getElementById('confirmTip');
+    tipEl.innerHTML = `💡 You can also share thoughts via <button class="tp-confirm-tip-link" id="confirmTipFbLink">Report General Feedback</button>`;
+    tipEl.classList.remove('hidden');
+    document.getElementById('confirmTipFbLink').addEventListener('click', () => {
+      document.getElementById('confirmOverlay').classList.add('hidden');
+      document.getElementById('feedbackBtn').click();
+    });
+  }
 }
 
 async function doSubmit() {
@@ -1224,6 +1325,7 @@ function getAreas() {
 
 // Returns true if the given area is unlocked for interaction
 function isCategoryUnlocked(area) {
+  if (!sequentialTesting) return true;
   // Retest filter always bypasses category gating
   if (activeStatusFilter === 'retest') return true;
   const areas = getAreas();
@@ -1283,6 +1385,7 @@ function renderMyTests() {
   const areaOrder = []; const seenAreas = new Set();
   visible.forEach(tc => { if (!seenAreas.has(tc.area)) { areaOrder.push(tc.area); seenAreas.add(tc.area); } });
 
+  const allAreas = getAreas();
   areaOrder.forEach(area => {
     const cases = visible.filter(tc => tc.area === area);
     if (!cases.length) return;
@@ -1291,6 +1394,8 @@ function renderMyTests() {
     // For count, use all testCases in area (not just status-filtered visible ones)
     const allInArea  = testCases.filter(tc => tc.area === area);
     const completed  = allInArea.filter(tc => myResults[tc.id]).length;
+    const areaIdx    = allAreas.indexOf(area);
+    const prevArea   = areaIdx > 0 ? allAreas[areaIdx - 1] : null;
     const section    = document.createElement('div');
     section.className = 'tp-area-section' + (isLocked ? ' gated' : '');
     section.id        = sectionId;
@@ -1302,6 +1407,7 @@ function renderMyTests() {
           ? `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" title="Complete the previous category to unlock"><rect x="3.5" y="6.5" width="7" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 6.5V4.5a2 2 0 0 1 4 0v2" stroke="currentColor" stroke-width="1.3"/></svg>`
           : `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
       </div>
+      ${isLocked && prevArea ? `<div class="tp-area-lock-hint">🔒 Complete all tests in <strong>${esc(prevArea)}</strong> to unlock</div>` : ''}
       <div class="tp-area-cards" id="cards-${sectionId}"></div>
     `;
     if (!isLocked) {
@@ -1354,10 +1460,10 @@ function buildCard(tc) {
 
   card.querySelectorAll('.tp-btn[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (isCardLocked) return;
-      // Bug 5 fix: real-time guard in case lock state changed after card was built
+      // Belt-and-suspenders: always check live state first regardless of disabled attr
       const liveResult = myResults[tc.id];
       if (liveResult?.submitted_at && liveResult?.status !== 'retest') return;
+      if (isCardLocked) return;
       const action  = btn.dataset.action;
       const current = myResults[tc.id]?.status;
       if (current === action) {
@@ -1522,11 +1628,15 @@ async function saveResult(testId, status, card, notesOverride) {
     updateSubmitBar();
     renderSidebar();
     renderStatusFilter();
+    renderMyTests(); // re-evaluate category gating after every result change
   }
 }
 
 // ── Clear result (toggle off) ──────────────────────────────────────────────
 async function clearResult(testId, card) {
+  // Guard: never clear a submitted non-retest result
+  const existing = myResults[testId];
+  if (existing?.submitted_at && existing?.status !== 'retest') return;
   delete myResults[testId];
   // Reset card UI
   card.className = 'tp-card';
@@ -1541,12 +1651,22 @@ async function clearResult(testId, card) {
   if (notesEl) notesEl.style.borderColor = '';
   // Fire DELETE to server (non-blocking — update UI first)
   apiFetch(`/api/test-results/${encodeURIComponent(testId)}`, { method: 'DELETE' })
-    .then(res => { if (!res.ok) res.json().then(e => showToast('Clear failed: ' + (e.error||'error'), 'error')); })
+    .then(res => {
+      if (!res.ok) {
+        res.json().then(e => {
+          // Suppress "already submitted" noise — it's never actionable for the user
+          if (e.error !== 'Tests already submitted.') {
+            showToast('Clear failed: ' + (e.error||'error'), 'error');
+          }
+        });
+      }
+    })
     .catch(() => showToast('Network error', 'error'));
   updateProgress();
   updateSubmitBar();
   renderSidebar();
   renderStatusFilter();
+  renderMyTests();
 }
 
 // ── Admin Dashboard ────────────────────────────────────────────────────────
@@ -1675,94 +1795,130 @@ function renderAdminTable() {
   const tbody = document.getElementById('adminTableBody');
   if (!tbody) return;
 
-  // Build a test-case lookup map
   const tcMap = {};
   allTestCases.forEach(tc => { tcMap[tc.id] = tc; });
   const areaOrder  = [...new Set(allTestCases.map(tc => tc.area))];
   const tcOrderMap = {};
   allTestCases.forEach((tc, i) => { tcOrderMap[tc.id] = i; });
 
-  // Build flat rows from adminData (exclude general-feedback)
-  let rows = adminData
-    .filter(r => r.test_case_id !== 'general-feedback')
-    .map(r => ({
-      ...r,
-      area:  tcMap[r.test_case_id]?.area  || '—',
-      title: tcMap[r.test_case_id]?.title || r.test_case_id,
-      email: r.email || r.user_email || r.user_id
-    }));
+  const testers = buildAdminTesters(adminData);
+  const visibleTesters = adminUserFilter ? testers.filter(t => t.user_id === adminUserFilter) : testers;
 
-  // For 'pending' filter, synthesise rows for test cases with no result
-  if (adminStatFilter === 'pending') {
-    const testers = buildAdminTesters(adminData);
-    const filterTesters = adminUserFilter ? testers.filter(t => t.user_id === adminUserFilter) : testers;
-    filterTesters.forEach(t => {
+  let anyVisible = false;
+  let html = '';
+
+  visibleTesters.forEach(t => {
+    // Build rows for this tester
+    let rows = adminData
+      .filter(r => r.test_case_id !== 'general-feedback' && r.user_id === t.user_id)
+      .map(r => ({
+        ...r,
+        area:  tcMap[r.test_case_id]?.area  || '—',
+        title: tcMap[r.test_case_id]?.title || r.test_case_id,
+        email: r.email || r.user_email || r.user_id
+      }));
+
+    // Synthesise pending rows
+    if (adminStatFilter === 'pending') {
       allTestCases.forEach(tc => {
         if (!t.results[tc.id]) {
           rows.push({ test_case_id: tc.id, user_id: t.user_id, email: t.email,
             status: null, notes: null, submitted_at: null, area: tc.area, title: tc.title });
         }
       });
+    }
+
+    // Apply category + status filters
+    if (adminCatFilter) rows = rows.filter(r => r.area === adminCatFilter);
+    if (adminStatFilter !== 'all') {
+      rows = rows.filter(r => adminStatFilter === 'pending' ? !r.status : r.status === adminStatFilter);
+    }
+
+    if (rows.length === 0) return; // skip group if nothing matches filters
+    anyVisible = true;
+
+    // Sort by category order, then test case order
+    rows.sort((a, b) => {
+      const ao = areaOrder.indexOf(a.area) - areaOrder.indexOf(b.area);
+      return ao !== 0 ? ao : (tcOrderMap[a.test_case_id] ?? 999) - (tcOrderMap[b.test_case_id] ?? 999);
     });
-  }
 
-  // Apply filters
-  if (adminUserFilter) rows = rows.filter(r => r.user_id === adminUserFilter);
-  if (adminCatFilter)  rows = rows.filter(r => r.area  === adminCatFilter);
-  if (adminStatFilter !== 'all') {
-    rows = rows.filter(r => adminStatFilter === 'pending' ? !r.status : r.status === adminStatFilter);
-  }
+    // Header counts (from ALL results, not filtered subset)
+    const allR   = Object.values(t.results);
+    const passes  = allR.filter(r => r.status === 'pass').length;
+    const fails   = allR.filter(r => r.status === 'fail').length;
+    const retests = allR.filter(r => r.status === 'retest').length;
+    const skips   = allR.filter(r => r.status === 'skip').length;
+    const done    = passes + fails + retests + skips;
+    const pending = Math.max(0, allTestCases.length - done);
+    const subbed  = !!t.submitted_at;
 
-  // Sort by category order, then test case order
-  rows.sort((a, b) => {
-    const ao = areaOrder.indexOf(a.area) - areaOrder.indexOf(b.area);
-    return ao !== 0 ? ao : (tcOrderMap[a.test_case_id] ?? 999) - (tcOrderMap[b.test_case_id] ?? 999);
+    html += `
+      <div class="tp-admin-tester-group" id="tester-group-${esc(t.user_id)}">
+        <div class="tp-admin-tester-header">
+          <svg class="tp-admin-tester-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="tp-admin-tester-email">${esc(t.email)}</span>
+          <div class="tp-admin-tester-badges">
+            ${passes  > 0 ? `<span class="tp-admin-card-badge pass">Pass ${passes}</span>` : ''}
+            ${fails   > 0 ? `<span class="tp-admin-card-badge fail">Fail ${fails}</span>` : ''}
+            ${retests > 0 ? `<span class="tp-admin-card-badge retest">↩ ${retests}</span>` : ''}
+            ${pending > 0 ? `<span class="tp-admin-card-badge pending">Pending ${pending}</span>` : ''}
+          </div>
+          <span class="tp-status-pill ${subbed ? 'submitted' : 'in-progress'}" style="font-size:9px;margin-left:auto">${subbed ? 'Submitted' : 'In Progress'}</span>
+        </div>
+        <div class="tp-admin-tester-body">
+          <table class="tp-admin-table">
+            <thead><tr>
+              <th>Category</th><th>Test ID</th><th>Test Name</th>
+              <th>Status</th><th>Notes</th><th>Submitted</th><th></th>
+            </tr></thead><tbody>`;
+
+    rows.forEach(r => {
+      const isFail   = r.status === 'fail';
+      const isRetest = r.status === 'retest';
+      const rowCls   = isFail ? 'is-fail' : isRetest ? 'is-retest' : '';
+      const badge    = r.status
+        ? `<span class="tp-card-status-badge ${r.status}">${r.status}</span>`
+        : `<span style="color:var(--text-dim);font-size:11px">Pending</span>`;
+      const subDate  = r.submitted_at
+        ? new Date(r.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '—';
+      const actionBtn = isFail
+        ? `<button class="tp-admin-mark-retest-btn" data-uid="${esc(r.user_id)}" data-tcid="${esc(r.test_case_id)}">Mark Retest</button>`
+        : '';
+      html += `
+        <tr class="${rowCls}">
+          <td style="color:var(--text-muted);white-space:nowrap">${esc(r.area)}</td>
+          <td style="color:var(--text-dim);font-size:11px;white-space:nowrap">${esc(r.test_case_id)}</td>
+          <td style="max-width:220px">${esc(r.title)}</td>
+          <td>${badge}</td>
+          <td style="max-width:180px;color:var(--text-muted);font-size:11px;font-style:italic">${r.notes ? esc(r.notes) : ''}</td>
+          <td style="color:var(--text-dim);white-space:nowrap;font-size:11px">${subDate}</td>
+          <td>${actionBtn}</td>
+        </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
   });
 
-  if (rows.length === 0) {
+  if (!anyVisible) {
     tbody.innerHTML = '<div class="tp-empty" style="padding:32px 0"><p>No results match the current filter.</p></div>';
     return;
   }
 
-  let html = `
-    <table class="tp-admin-table">
-      <thead><tr>
-        <th>Category</th><th>Test ID</th><th>Test Name</th>
-        <th>Status</th><th>Tester</th><th>Notes</th><th>Submitted</th><th></th>
-      </tr></thead><tbody>`;
-
-  rows.forEach(r => {
-    const isFail   = r.status === 'fail';
-    const isRetest = r.status === 'retest';
-    const rowCls   = isFail ? 'is-fail' : isRetest ? 'is-retest' : '';
-    const badge    = r.status
-      ? `<span class="tp-card-status-badge ${r.status}">${r.status}</span>`
-      : `<span style="color:var(--text-dim);font-size:11px">Pending</span>`;
-    const subDate  = r.submitted_at
-      ? new Date(r.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : '—';
-    const actionBtn = isFail
-      ? `<button class="tp-admin-mark-retest-btn" data-uid="${esc(r.user_id)}" data-tcid="${esc(r.test_case_id)}">Mark Retest</button>`
-      : '';
-    html += `
-      <tr class="${rowCls}">
-        <td style="color:var(--text-muted);white-space:nowrap">${esc(r.area)}</td>
-        <td style="color:var(--text-dim);font-size:11px;white-space:nowrap">${esc(r.test_case_id)}</td>
-        <td style="max-width:220px">${esc(r.title)}</td>
-        <td>${badge}</td>
-        <td style="color:var(--text-muted);font-size:11px">${esc(r.email)}</td>
-        <td style="max-width:180px;color:var(--text-muted);font-size:11px;font-style:italic">${r.notes ? esc(r.notes) : ''}</td>
-        <td style="color:var(--text-dim);white-space:nowrap;font-size:11px">${subDate}</td>
-        <td>${actionBtn}</td>
-      </tr>`;
-  });
-
-  html += '</tbody></table>';
   tbody.innerHTML = html;
 
-  // Bind "Mark Retest" buttons
+  // Bind collapse/expand on tester group headers
+  tbody.querySelectorAll('.tp-admin-tester-header').forEach(header => {
+    header.addEventListener('click', () => header.closest('.tp-admin-tester-group').classList.toggle('collapsed'));
+  });
+
+  // Bind "Mark Retest" buttons (stop propagation so header doesn't toggle)
   tbody.querySelectorAll('.tp-admin-mark-retest-btn').forEach(btn => {
-    btn.addEventListener('click', () => adminMarkRetest(btn.dataset.uid, btn.dataset.tcid, btn));
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      adminMarkRetest(btn.dataset.uid, btn.dataset.tcid, btn);
+    });
   });
 }
 

@@ -1253,6 +1253,9 @@ app.get('/api/skill-sets/:skillName/consultants', requireAuth, requireRole('admi
 const RECO_CACHE_TTL = 60_000; // 60 seconds
 const recoCacheMap = new Map(); // tenantId → { data, timestamp }
 
+// Sequential testing setting per tenant (in-memory; persists for process lifetime, defaults true)
+const sequentialTestingMap = new Map(); // tenantId → boolean
+
 // GET /api/recommendations — AI-matched consultants for each open need
 app.get('/api/recommendations', requireRole('admin', 'resource_manager', 'project_manager'), async (req, res) => {
   const t0 = Date.now();
@@ -1839,14 +1842,16 @@ app.delete('/api/test-results/:testCaseId', requireAuth, async (req, res) => {
   if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
   const { testCaseId } = req.params;
   try {
+    // Only block if THIS specific test case is submitted (not if other tests are submitted)
     const { data: existing } = await serviceClient
       .from('test_results')
-      .select('submitted_at')
+      .select('submitted_at, status')
       .eq('tenant_id', tId(req))
       .eq('user_id', req.session.user.id)
+      .eq('test_case_id', testCaseId)
       .not('submitted_at', 'is', null)
       .limit(1);
-    if (existing && existing.length > 0) {
+    if (existing && existing.length > 0 && existing[0].status !== 'retest') {
       return res.status(403).json({ error: 'Tests already submitted.' });
     }
     const { error } = await serviceClient
@@ -2008,6 +2013,26 @@ app.delete('/api/testing/results/reset-all', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/testing/settings — read sequential_testing flag (in-memory, default true)
+app.get('/api/testing/settings', requireAuth, (req, res) => {
+  if (!isTester(req)) return res.status(403).json({ error: 'Testing access required' });
+  const sequential_testing = sequentialTestingMap.has(tId(req))
+    ? sequentialTestingMap.get(tId(req))
+    : true;
+  res.json({ sequential_testing });
+});
+
+// PATCH /api/testing/settings — update sequential_testing flag (test_admin only, in-memory)
+app.patch('/api/testing/settings', requireAuth, (req, res) => {
+  if (!isTestAdmin(req)) return res.status(403).json({ error: 'Test admin access required' });
+  const { sequential_testing } = req.body || {};
+  if (typeof sequential_testing !== 'boolean') {
+    return res.status(400).json({ error: 'sequential_testing must be boolean' });
+  }
+  sequentialTestingMap.set(tId(req), sequential_testing);
+  res.json({ ok: true });
 });
 
 // GET /api/events — Server-Sent Events endpoint
