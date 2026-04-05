@@ -599,6 +599,14 @@
     .tp-admin-mark-retest-btn:hover    { color: var(--warn); border-color: var(--warn); background: var(--warn-muted); }
     .tp-admin-mark-retest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* ── Category completion states ── */
+    .tp-area-section.cat-complete  { border-left: 3px solid var(--pass);  padding-left: 0; }
+    .tp-area-section.cat-partial   { border-left: 3px solid var(--warn);  padding-left: 0; }
+    .tp-area-section.cat-complete  .tp-area-heading h2 { color: var(--pass); }
+    .tp-area-section.cat-partial   .tp-area-heading h2 { color: var(--warn); }
+    .tp-area-heading-count.complete { background: var(--pass-muted); color: var(--pass); }
+    .tp-area-heading-count.partial  { background: var(--warn-muted); color: var(--warn); }
+
     /* ── Gated (category-locked) area section ── */
     .tp-area-section.gated .tp-area-heading { cursor: default; opacity: 0.5; }
     .tp-area-section.gated .tp-area-heading h2 { color: var(--text-dim); }
@@ -1403,16 +1411,21 @@ function renderMyTests() {
     const isLocked   = !isCategoryUnlocked(area);
     // For count, use all testCases in area (not just status-filtered visible ones)
     const allInArea  = testCases.filter(tc => tc.area === area);
-    const completed  = allInArea.filter(tc => myResults[tc.id]).length;
+    const submitted  = allInArea.filter(tc => {
+      const r = myResults[tc.id];
+      return r?.status && r.status !== 'retest';
+    }).length;
+    const catState   = submitted === allInArea.length ? 'cat-complete' : submitted > 0 ? 'cat-partial' : '';
+    const countClass = submitted === allInArea.length ? 'complete' : submitted > 0 ? 'partial' : '';
     const areaIdx    = allAreas.indexOf(area);
     const prevArea   = areaIdx > 0 ? allAreas[areaIdx - 1] : null;
     const section    = document.createElement('div');
-    section.className = 'tp-area-section' + (isLocked ? ' gated' : '');
+    section.className = 'tp-area-section' + (isLocked ? ' gated' : '') + (catState && !isLocked ? ' ' + catState : '');
     section.id        = sectionId;
     section.innerHTML = `
       <div class="tp-area-heading">
         <h2>${esc(area)}</h2>
-        <span class="tp-area-heading-count">${completed}/${allInArea.length}</span>
+        <span class="tp-area-heading-count${countClass ? ' ' + countClass : ''}">${submitted}/${allInArea.length}</span>
         ${isLocked
           ? `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" title="Complete the previous category to unlock"><rect x="3.5" y="6.5" width="7" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 6.5V4.5a2 2 0 0 1 4 0v2" stroke="currentColor" stroke-width="1.3"/></svg>`
           : `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
