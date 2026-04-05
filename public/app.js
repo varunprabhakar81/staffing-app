@@ -90,6 +90,17 @@ function toggleSidebar() {
 }
 
 // ── Keyboard shortcuts ────────────────────────────────────────────
+// Capture-phase listener for Ctrl+R / Cmd+R — must run before the browser
+// processes the event, otherwise preventDefault() has no effect on page reload.
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+    e.preventDefault();
+    e.stopPropagation();
+    loadDashboard();
+    return;
+  }
+}, true); // true = capture phase
+
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
   if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); closeInviteModal(); return; }
