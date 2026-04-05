@@ -147,6 +147,10 @@
     .tp-area-filter.active { background: var(--accent-muted); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
     .tp-area-count { font-size: 10px; background: var(--bg-elevated); border-radius: 10px; padding: 1px 6px; color: var(--text-dim); }
     .tp-area-filter.active .tp-area-count { background: var(--accent-muted); color: var(--accent); }
+    .tp-area-count.complete,
+    .tp-area-filter.active .tp-area-count.complete { background: var(--pass-muted); color: var(--pass); }
+    .tp-area-count.partial,
+    .tp-area-filter.active .tp-area-count.partial  { background: var(--warn-muted); color: var(--warn); }
 
     /* ── Main content ── */
     .tp-main { flex: 1; overflow-y: auto; padding: 0 24px 24px; }
@@ -1358,11 +1362,16 @@ function renderSidebar() {
   const container = document.getElementById('areaFilters');
   container.innerHTML = '';
   getAreas().forEach(area => {
-    const total     = testCases.filter(tc => tc.area === area).length;
-    const completed = testCases.filter(tc => tc.area === area && myResults[tc.id]).length;
-    const btn       = document.createElement('button');
-    btn.className   = 'tp-area-filter' + (activeArea === area ? ' active' : '');
-    btn.innerHTML   = `<span>${esc(area)}</span><span class="tp-area-count">${completed}/${total}</span>`;
+    const total      = testCases.filter(tc => tc.area === area).length;
+    const submitted  = testCases.filter(tc => {
+      const r = myResults[tc.id];
+      return tc.area === area && r?.status && r.status !== 'retest';
+    }).length;
+    const countClass = submitted === total ? 'complete' : submitted > 0 ? 'partial' : '';
+    const checkmark  = countClass === 'complete' ? '✓ ' : '';
+    const btn        = document.createElement('button');
+    btn.className    = 'tp-area-filter' + (activeArea === area ? ' active' : '');
+    btn.innerHTML    = `<span>${esc(area)}</span><span class="tp-area-count${countClass ? ' ' + countClass : ''}">${checkmark}${submitted}/${total}</span>`;
     btn.addEventListener('click', () => {
       activeArea = area;
       renderSidebar();
