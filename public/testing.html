@@ -29,7 +29,7 @@
       --skip-muted:   rgba(113,128,150,0.15);
       --warn:         #D69E2E;
       --warn-muted:   rgba(214,158,46,0.15);
-      --font: 'Open Sans', sans-serif;
+      --font: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --radius: 8px;
     }
 
@@ -680,7 +680,7 @@
   </div>
 
   <div class="tp-header-meta">
-    <span id="headerTenant" style="color:#fff;font-weight:700;font-size:13px;line-height:1.3;white-space:nowrap"></span>
+    <span id="headerTenant" style="color:#fff;font-weight:700;font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
     <span style="color:var(--text-dim)">·</span>
     <span id="headerUser"></span>
     <span class="tp-role-badge" id="headerRole"></span>
