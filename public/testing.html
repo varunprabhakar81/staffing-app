@@ -598,6 +598,11 @@
     }
     .tp-admin-mark-retest-btn:hover    { color: var(--warn); border-color: var(--warn); background: var(--warn-muted); }
     .tp-admin-mark-retest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Gated (category-locked) area section ── */
+    .tp-area-section.gated .tp-area-heading { cursor: default; opacity: 0.5; }
+    .tp-area-section.gated .tp-area-heading h2 { color: var(--text-dim); }
+    .tp-area-section.gated .tp-area-cards { display: none !important; }
   </style>
 </head>
 <body>
@@ -908,21 +913,6 @@ function confirm(title, msg, okLabel, okClass, cb) {
       }
       return;
     }
-    // Nudge if no general feedback yet
-    const hasFeedback = !!(myResults['general-feedback']?.notes?.trim());
-    if (!hasFeedback) {
-      const nudge = document.getElementById('nudgeOverlay');
-      nudge.classList.remove('hidden');
-      document.getElementById('nudgeAddFeedback').onclick = () => {
-        nudge.classList.add('hidden');
-        openFeedbackPanel();
-      };
-      document.getElementById('nudgeSkip').onclick = () => {
-        nudge.classList.add('hidden');
-        proceedToSubmitConfirm();
-      };
-      return;
-    }
     proceedToSubmitConfirm();
   });
 
@@ -965,9 +955,11 @@ function confirm(title, msg, okLabel, okClass, cb) {
 // ── Submit ─────────────────────────────────────────────────────────────────
 function proceedToSubmitConfirm() {
   const done = testCases.filter(tc => myResults[tc.id]).length;
+  const hasFeedback = !!(myResults['general-feedback']?.notes?.trim());
+  const tip = hasFeedback ? '' : ' Tip: You can also share general feedback using the Report General Feedback button.';
   confirm(
     'Submit for Review',
-    `You have completed ${done} of ${testCases.length} tests. Once submitted, you can't change your answers until the admin resets your tests. Continue?`,
+    `Submit ${done} of ${testCases.length} test results? Once submitted, you can't change your answers until the admin resets your tests.${tip}`,
     'Submit', 'green',
     doSubmit
   );
@@ -1228,6 +1220,18 @@ function getAreas() {
   return order;
 }
 
+// Returns true if the given area is unlocked for interaction
+function isCategoryUnlocked(area) {
+  // Retest filter always bypasses category gating
+  if (activeStatusFilter === 'retest') return true;
+  const areas = getAreas();
+  const idx = areas.indexOf(area);
+  if (idx <= 0) return true; // first category always unlocked
+  // All tests in the previous category must have a status set
+  const prevArea = areas[idx - 1];
+  return testCases.filter(tc => tc.area === prevArea).every(tc => !!myResults[tc.id]?.status);
+}
+
 function renderSidebar() {
   const container = document.getElementById('areaFilters');
   container.innerHTML = '';
@@ -1280,24 +1284,29 @@ function renderMyTests() {
   areaOrder.forEach(area => {
     const cases = visible.filter(tc => tc.area === area);
     if (!cases.length) return;
-    const sectionId = 'area-' + area.replace(/[^a-z0-9]/gi,'-');
-    const completed  = cases.filter(tc => myResults[tc.id]).length;
+    const sectionId  = 'area-' + area.replace(/[^a-z0-9]/gi,'-');
+    const isLocked   = !isCategoryUnlocked(area);
+    // For count, use all testCases in area (not just status-filtered visible ones)
+    const allInArea  = testCases.filter(tc => tc.area === area);
+    const completed  = allInArea.filter(tc => myResults[tc.id]).length;
     const section    = document.createElement('div');
-    section.className = 'tp-area-section';
+    section.className = 'tp-area-section' + (isLocked ? ' gated' : '');
     section.id        = sectionId;
     section.innerHTML = `
       <div class="tp-area-heading">
         <h2>${esc(area)}</h2>
-        <span class="tp-area-heading-count">${completed}/${cases.length}</span>
-        <svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <span class="tp-area-heading-count">${completed}/${allInArea.length}</span>
+        ${isLocked
+          ? `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" title="Complete the previous category to unlock"><rect x="3.5" y="6.5" width="7" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 6.5V4.5a2 2 0 0 1 4 0v2" stroke="currentColor" stroke-width="1.3"/></svg>`
+          : `<svg class="tp-area-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
       </div>
       <div class="tp-area-cards" id="cards-${sectionId}"></div>
     `;
-    const cardsEl = section.querySelector('.tp-area-cards');
-    cases.forEach(tc => cardsEl.appendChild(buildCard(tc)));
-    section.querySelector('.tp-area-heading').addEventListener('click', () => section.classList.toggle('collapsed'));
+    if (!isLocked) {
+      const cardsEl = section.querySelector('.tp-area-cards');
+      cases.forEach(tc => cardsEl.appendChild(buildCard(tc)));
+      section.querySelector('.tp-area-heading').addEventListener('click', () => section.classList.toggle('collapsed'));
+    }
     container.appendChild(section);
   });
   if (isSubmitted) lockUI();
@@ -1315,11 +1324,8 @@ function buildCard(tc) {
   card.dataset.id = tc.id;
 
   const showNotes = !!notes || status === 'fail';
-  // Retest badge shown inline in title; other statuses shown in actions area
+  // Retest badge shown inline in title only
   const retestTitleBadge = isRetest ? ` <span class="tp-retest-title-badge">↩ Retest</span>` : '';
-  const actionsBadge = !isRetest && status
-    ? `<span class="tp-card-status-badge ${status}">${status}</span>`
-    : '';
 
   card.innerHTML = `
     <div class="tp-card-body">
@@ -1331,7 +1337,6 @@ function buildCard(tc) {
       </div>
     </div>
     <div class="tp-card-actions">
-      ${actionsBadge}
       <div class="tp-btn-group">
         <button class="tp-btn pass${status==='pass'?' active':''}" data-action="pass" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Pass</button>
         <button class="tp-btn fail${status==='fail'?' active':''}" data-action="fail" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Fail</button>
@@ -1478,10 +1483,6 @@ async function saveResult(testId, status, card, notesOverride) {
     myResults[testId] = { ...myResults[testId], status, notes }; // track pending fail
     card.className    = `tp-card status-fail`;
     card.querySelectorAll('.tp-btn[data-action]').forEach(b => b.classList.toggle('active', b.dataset.action === 'fail'));
-    let badgeEl = card.querySelector('.tp-card-status-badge');
-    if (!badgeEl) { badgeEl = document.createElement('span'); card.querySelector('.tp-card-actions').prepend(badgeEl); }
-    badgeEl.className   = 'tp-card-status-badge fail';
-    badgeEl.textContent = 'fail';
     if (hintEl) hintEl.classList.add('visible');
     if (notesEl) notesEl.focus();
     // Update counts (pending fail counts toward completion for sidebar/progress)
@@ -1502,10 +1503,6 @@ async function saveResult(testId, status, card, notesOverride) {
     const addBtn = card.querySelector(`.tp-notes-add[data-notes-id="${testId}"]`);
     if (addBtn) addBtn.remove();
   }
-  let badgeEl = card.querySelector('.tp-card-status-badge');
-  if (!badgeEl) { badgeEl = document.createElement('span'); card.querySelector('.tp-card-actions').prepend(badgeEl); }
-  badgeEl.className = `tp-card-status-badge ${status}`;
-  badgeEl.textContent = status;
   card.querySelectorAll('.tp-btn[data-action]').forEach(b => b.classList.add('saving'));
   try {
     const res = await apiFetch('/api/test-results', {
