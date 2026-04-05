@@ -693,7 +693,6 @@
     </main>
     <!-- Submit bar -->
     <div class="tp-submit-bar hidden" id="submitBar">
-      <button class="tp-reset-own-btn hidden" id="resetOwnBtn">Reset My Results</button>
       <span class="tp-submit-hint" id="submitHint"></span>
       <button class="tp-submit-btn" id="submitBtn">Submit for Review</button>
     </div>
@@ -844,11 +843,13 @@ function confirm(title, msg, okLabel, okClass, cb) {
     if (resultsRes.ok) {
       try {
         const results = await resultsRes.json();
-        results.forEach(r => {
+        // Bug 1 fix: only load current user's results into myResults (API may return all users' data for test_admin)
+        const myRaw = results.filter(r => r.user_id === currentUser.user?.id);
+        myRaw.forEach(r => {
           myResults[r.test_case_id] = { status: r.status, notes: r.notes || '', submitted_at: r.submitted_at };
         });
         // Submitted if any non-retest row has submitted_at set
-        isSubmitted = results.some(r => r.submitted_at != null && r.status !== 'retest');
+        isSubmitted = myRaw.some(r => r.submitted_at != null && r.status !== 'retest');
       } catch (resErr) {
         console.error('Failed to parse /api/testing/results response:', resErr);
         // Non-fatal: proceed with empty results
@@ -888,6 +889,8 @@ function confirm(title, msg, okLabel, okClass, cb) {
       document.getElementById('areaSidebar').classList.toggle('hidden', tab !== 'my-tests');
       document.getElementById('panelSummary').classList.toggle('hidden', tab !== 'summary');
       if (tab === 'summary') loadAdminDashboard();
+      // Bug 3 fix: re-fetch own results when switching back to My Tests so retest marks are reflected
+      if (tab === 'my-tests') refreshMyResults();
     });
   });
 
@@ -943,9 +946,6 @@ function confirm(title, msg, okLabel, okClass, cb) {
 
   // Admin Refresh button
   document.getElementById('adminRefreshBtn').addEventListener('click', () => loadAdminDashboard());
-
-  // Reset own results button
-  document.getElementById('resetOwnBtn').addEventListener('click', doResetOwn);
 
   document.getElementById('feedbackClose').addEventListener('click', () => {
     document.getElementById('feedbackPanel').classList.remove('open');
@@ -1035,14 +1035,10 @@ function updateSubmitBar() {
   const hasRetest   = testCases.some(tc => myResults[tc.id]?.status === 'retest');
   const bar         = document.getElementById('submitBar');
   const submitBtn   = document.getElementById('submitBtn');
-  const resetBtn    = document.getElementById('resetOwnBtn');
   const hint        = document.getElementById('submitHint');
 
   if (!hasResults && !isSubmitted) { bar.classList.add('hidden'); return; }
   bar.classList.remove('hidden');
-
-  // Reset own button: visible whenever the user has any results
-  if (resetBtn) resetBtn.classList.toggle('hidden', !hasResults && !isSubmitted);
 
   const hasUnsubmitted = testCases.some(tc => {
     const r = myResults[tc.id];
@@ -1091,6 +1087,7 @@ function renderMySummary() {
   const skips   = results.filter(r => r.status === 'skip').length;
   const pct     = total > 0 ? Math.round(done / total * 100) : 0;
   const hasFeedback = !!(myResults['general-feedback']?.notes?.trim());
+  const hasResults  = done > 0 || hasFeedback;
 
   let statusHtml;
   if (isSubmitted) {
@@ -1118,12 +1115,17 @@ function renderMySummary() {
         <span class="tp-fb-dot${hasFeedback ? ' visible' : ''}" id="feedbackDot"></span>
         Report General Feedback
       </button>
-      <div class="tp-my-summary-right">${statusHtml}</div>
+      <div class="tp-my-summary-right">
+        ${(hasResults || isSubmitted) ? `<button class="tp-reset-own-btn" id="resetOwnBtnInline">Reset My Results</button>` : ''}
+        ${statusHtml}
+      </div>
     </div>
   `;
 
-  // Re-bind button listener after every innerHTML replacement
+  // Re-bind button listeners after every innerHTML replacement
   document.getElementById('feedbackBtn').addEventListener('click', openFeedbackPanel);
+  const inlineResetBtn = document.getElementById('resetOwnBtnInline');
+  if (inlineResetBtn) inlineResetBtn.addEventListener('click', doResetOwn);
 }
 
 // ── Role filter ────────────────────────────────────────────────────────────
@@ -1323,7 +1325,7 @@ function buildCard(tc) {
   card.className = `tp-card${status ? ' status-' + status : ''}`;
   card.dataset.id = tc.id;
 
-  const showNotes = !!notes || status === 'fail';
+  const showNotes = !!notes || status === 'fail' || isRetest;
   // Retest badge shown inline in title only
   const retestTitleBadge = isRetest ? ` <span class="tp-retest-title-badge">↩ Retest</span>` : '';
 
@@ -1339,7 +1341,7 @@ function buildCard(tc) {
     <div class="tp-card-actions">
       <div class="tp-btn-group">
         <button class="tp-btn pass${status==='pass'?' active':''}" data-action="pass" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Pass</button>
-        <button class="tp-btn fail${status==='fail'?' active':''}" data-action="fail" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Fail</button>
+        <button class="tp-btn fail${(status==='fail'||isRetest)?' active':''}" data-action="fail" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Fail</button>
         <button class="tp-btn skip${status==='skip'?' active':''}" data-action="skip" data-id="${esc(tc.id)}"${isCardLocked?' disabled':''}>Skip</button>
       </div>
       <div class="tp-notes-wrap" id="notes-wrap-${esc(tc.id)}" ${showNotes?'':'style="display:none"'}>
@@ -1353,6 +1355,9 @@ function buildCard(tc) {
   card.querySelectorAll('.tp-btn[data-action]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (isCardLocked) return;
+      // Bug 5 fix: real-time guard in case lock state changed after card was built
+      const liveResult = myResults[tc.id];
+      if (liveResult?.submitted_at && liveResult?.status !== 'retest') return;
       const action  = btn.dataset.action;
       const current = myResults[tc.id]?.status;
       if (current === action) {
@@ -1835,6 +1840,32 @@ function switchToMyTestsTab() {
   document.getElementById('myTestsWrapper').classList.remove('hidden');
   document.getElementById('areaSidebar').classList.remove('hidden');
   document.getElementById('panelSummary').classList.add('hidden');
+}
+
+// ── Refresh own results (re-fetch from API, no page reload) ───────────────
+async function refreshMyResults() {
+  try {
+    const res = await apiFetch('/api/testing/results');
+    if (!res.ok) return;
+    const results = await res.json();
+    myResults = {};
+    const myRaw = results.filter(r => r.user_id === currentUser.user?.id);
+    myRaw.forEach(r => {
+      myResults[r.test_case_id] = { status: r.status, notes: r.notes || '', submitted_at: r.submitted_at };
+    });
+    isSubmitted = myRaw.some(r => r.submitted_at != null && r.status !== 'retest');
+    renderSidebar();
+    renderStatusFilter();
+    renderMyTests();
+    renderMySummary();
+    renderGeneralFeedback();
+    updateProgress();
+    updateSubmitBar();
+    if (isSubmitted) showSubmittedBanner();
+    else document.getElementById('submittedBanner').classList.add('hidden');
+  } catch (e) {
+    // Non-fatal: leave existing state
+  }
 }
 
 // ── Reset own results (tester self-service) ────────────────────────────────
