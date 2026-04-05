@@ -90,22 +90,22 @@ function toggleSidebar() {
 }
 
 // ── Keyboard shortcuts ────────────────────────────────────────────
-// Capture-phase listener for Ctrl+R / Cmd+R — must run before the browser
-// processes the event, otherwise preventDefault() has no effect on page reload.
+// Alt+R — in-app data refresh. Alt+R is not reserved by any browser.
+// (Ctrl+R and Ctrl+Shift+R are browser-reserved page-reload shortcuts.)
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+  if (e.altKey && !e.ctrlKey && !e.metaKey && e.key === 'r') {
     e.preventDefault();
     e.stopPropagation();
     loadDashboard();
     return;
   }
-}, true); // true = capture phase
+}, true); // capture phase keeps it before any other listener
 
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
   if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); closeInviteModal(); return; }
   if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
+    if (e.altKey && e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview');  return; }
     if (e.key === '2') { e.preventDefault(); navigateTo('staffing'); return; }
     if (e.key === '3') { e.preventDefault(); navigateTo('needs');    return; }

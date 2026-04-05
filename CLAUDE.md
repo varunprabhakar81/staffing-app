@@ -257,7 +257,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 | Key | Action |
 |-----|--------|
 | `Ctrl+1–5` | Switch tabs (5 = Settings) |
-| `Ctrl+R` | Refresh dashboard |
+| `Alt+R` | Refresh dashboard (Ctrl+R is browser-reserved) |
 | `Ctrl+B` | Toggle sidebar |
 | `Ctrl+K` or `/` | Command palette |
 | `>` (in palette) | Quick actions mode |

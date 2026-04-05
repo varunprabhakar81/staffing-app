@@ -114,9 +114,9 @@
   {
     "id": "overview-08",
     "area": "Overview",
-    "title": "Ctrl+R refreshes dashboard without full page reload",
+    "title": "Alt+R refreshes dashboard without full page reload",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "On the Overview tab, press Ctrl+R.",
+    "steps": "On the Overview tab, press Alt+R.",
     "expected": "KPIs and panels reload. No browser-level page refresh occurs (address bar stays the same, tab does not blink)."
   },
   {
@@ -786,9 +786,9 @@
   {
     "id": "cross-04",
     "area": "Cross-cutting",
-    "title": "Ctrl+R refreshes data without full page reload",
+    "title": "Alt+R refreshes data without full page reload",
     "roles": ["admin", "resource_manager"],
-    "steps": "While on any main tab, press Ctrl+R.",
+    "steps": "While on any main tab, press Alt+R.",
     "expected": "App data reloads (spinner may appear briefly). The browser does not perform a full page reload."
   },
   {
