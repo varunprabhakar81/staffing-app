@@ -213,3 +213,25 @@ Project ID: PVT_kwHOAiRn_s4BTGRI
 1. Tester onboarding — Tim/Shreyas/Nick via docs/onboarding-runbook.md
 2. #210 Phase 3 — Contextual page filters
 3. #204 — Main app header redesign
+
+---
+
+## Post-UAT CC Prompt (run after completing 113-case test suite)
+
+After completing all tests on testing.html, paste this prompt into Claude Code:
+
+Read CLAUDE.md for context.
+
+Task: Generate UAT failure report and create GitHub issue.
+
+Step 1 — Query results: Query the test_results table via serviceClient for tenant_id = '9762ee19-e1d1-48db-bc57-e96bee9ce2f8' (Meridian). Get all rows where status = 'fail'. Include test_case_id, status, notes, submitted_at.
+
+Step 2 — Enrich with test case metadata: Read public/test-cases.json. For each failed result, look up the test case to get: category (area), test name, description.
+
+Step 3 — Generate report: Build a markdown report with a summary line ("X of 113 tested. Y passed, Z failed, W skipped."), a failures table sorted by category (columns: #, Category, Test ID, Test Name, Fail Notes), and a separate skipped table if any. Only include failures and skips — do not list passes.
+
+Step 4 — Create GitHub issue: Title "UAT Round 1 — Failure report (session 36)", body is the full markdown report, labels type:bug and priority:high, milestone Pilot. Then add to project board — get the node_id via gh api repos/varunprabhakar81/staffing-app/issues/NNN --jq '.node_id', then call addProjectV2ItemById mutation with projectId PVT_kwHOAiRn_s4BTGRI and that node_id as contentId.
+
+Step 5 — Output: Print the full report to console AND the GitHub issue URL.
+
+Then paste the console output into Claude chat for batched fix prompts.
