@@ -11,12 +11,12 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:           #0D1117;
-      --bg-card:      #161B22;
-      --bg-elevated:  #1C2230;
-      --border:       #30363D;
-      --border-subtle:#21262D;
-      --text-primary: #E2E8F0;
+      --bg:           #0F0F10;
+      --bg-card:      #1E1E22;
+      --bg-elevated:  #26262B;
+      --border:       rgba(255,255,255,0.10);
+      --border-subtle:rgba(255,255,255,0.06);
+      --text-primary: #F4F4F5;
       --text-muted:   #8892B0;
       --text-dim:     #4A5568;
       --accent:       #86BC25;
@@ -78,8 +78,8 @@
       color: var(--text-muted);
     }
     .tp-role-badge {
-      font-size: 10px; font-weight: 600; padding: 2px 6px;
-      border-radius: 3px; background: var(--accent-muted); color: var(--accent);
+      font-size: 9px; font-weight: 600; padding: 2px 6px;
+      border-radius: 4px; background: var(--accent-muted); color: var(--accent);
       text-transform: uppercase; letter-spacing: 0.4px;
     }
     .tp-test-admin-badge {
@@ -680,7 +680,7 @@
   </div>
 
   <div class="tp-header-meta">
-    <span id="headerTenant" style="color:var(--text-primary);font-weight:600"></span>
+    <span id="headerTenant" style="color:#fff;font-weight:700"></span>
     <span style="color:var(--text-dim)">·</span>
     <span id="headerUser"></span>
     <span class="tp-role-badge" id="headerRole"></span>
