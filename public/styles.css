@@ -985,9 +985,9 @@ body {
 /* Col 7: Urgency */
 .coverage-table th:nth-child(7),
 .coverage-table td:nth-child(7) { width: 14%; }
-/* Col 8: Actions */
+/* Col 8: Actions — width controlled by .col-actions class, not here */
 .coverage-table th:nth-child(8),
-.coverage-table td:nth-child(8) { width: 8%; text-align: right; }
+.coverage-table td:nth-child(8) { text-align: right; }
 
 .coverage-table .col-project,
 .coverage-table th:nth-child(1) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3337,7 +3337,7 @@ td[data-cell-type="emp-total"]:hover {
 
 /* Open Needs table — Edit + Abandon actions (#164, #173) */
 .col-actions {
-  width: 200px;
+  width: 240px;
   text-align: right;
   padding-right: 12px !important;
   white-space: nowrap;

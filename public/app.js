@@ -5271,8 +5271,21 @@ async function _cnSubmit() {
   const endDate   = document.getElementById('cn-end-date').dataset.iso   || '';
   const errEl     = document.getElementById('cn-step2-error');
 
-  const showErr = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
+  const showErr = (msg, highlightRowEl) => {
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (highlightRowEl) {
+      const sel = highlightRowEl.querySelector('[data-field="level"]');
+      if (sel) {
+        sel.style.borderColor = '#F87171';
+        sel.addEventListener('change', () => { sel.style.borderColor = ''; }, { once: true });
+      }
+    }
+  };
   errEl.classList.add('hidden');
+  // Clear any previous row highlights
+  document.querySelectorAll('#cn-rows [data-field="level"]').forEach(s => { s.style.borderColor = ''; });
 
   // Validate shared date fields
   if (!startDate || !endDate) { showErr('Start date and end date are required.'); return; }
@@ -5304,11 +5317,11 @@ async function _cnSubmit() {
 
     rowNum++;
     // Level is required; skills, hours, and qty are optional
-    if (!level) { showErr(`Row ${rowNum}: Level is required.`); return; }
+    if (!level) { showErr(`Row ${rowNum}: Level is required.`, rowEls[i]); return; }
     if (hours && (Number(hours) < 1 || Number(hours) > 45)) {
-      showErr(`Row ${rowNum}: Hours per week must be between 1 and 45.`); return;
+      showErr(`Row ${rowNum}: Hours per week must be between 1 and 45.`, rowEls[i]); return;
     }
-    if (qty < 1 || qty > 10) { showErr(`Row ${rowNum}: Quantity must be between 1 and 10.`); return; }
+    if (qty < 1 || qty > 10) { showErr(`Row ${rowNum}: Quantity must be between 1 and 10.`, rowEls[i]); return; }
     rows.push({ level, hoursPerWeek: hours ? Number(hours) : 40, qty: Math.min(10, Math.max(1, qty)), skillSetIds });
   }
 
