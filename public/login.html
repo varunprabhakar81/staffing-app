@@ -345,7 +345,9 @@
         window.location.replace('/index.html');
 
       } catch (err) {
-        errorEl.textContent = err.message || 'An unexpected error occurred. Please try again.';
+        let msg = err.message || 'An unexpected error occurred. Please try again.';
+        if (msg.toLowerCase().includes('banned')) msg = 'Your account has been deactivated. Please contact your administrator.';
+        errorEl.textContent = msg;
         errorEl.classList.add('visible');
         btn.disabled    = false;
         btn.textContent = 'Sign in';

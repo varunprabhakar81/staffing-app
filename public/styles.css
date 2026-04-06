@@ -3343,7 +3343,8 @@ td[data-cell-type="emp-total"]:hover {
   white-space: nowrap;
 }
 .need-abandon-btn,
-.need-edit-btn {
+.need-edit-btn,
+.need-close-met-btn {
   padding: 3px 9px;
   font-size: 11px;
   font-weight: 500;
@@ -3364,6 +3365,10 @@ td[data-cell-type="emp-total"]:hover {
 .need-edit-btn:hover {
   color: #A8C7FA;
   border-color: rgba(168,199,250,0.35);
+}
+.need-close-met-btn:hover {
+  color: #6EE7B7;
+  border-color: rgba(110,231,183,0.35);
 }
 
 /* Create/Edit Need modals — skill grid validation state (#164, #173) */

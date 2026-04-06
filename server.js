@@ -1713,7 +1713,7 @@ app.patch('/api/admin/users/:id/reactivate', requireAuth, requireRole('admin'), 
   }
 });
 
-// POST /api/admin/users/:id/resend-invite — resend invite email to a pending user
+// POST /api/admin/users/:id/resend-invite — regenerate invite link for a pending user
 app.post('/api/admin/users/:id/resend-invite', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { data: userData, error: fetchErr } = await serviceClient.auth.admin.getUserById(req.params.id);
@@ -1725,11 +1725,16 @@ app.post('/api/admin/users/:id/resend-invite', requireAuth, requireRole('admin')
       return res.status(400).json({ error: 'User has already logged in — cannot resend invite' });
     }
 
-    const { error } = await serviceClient.auth.admin.inviteUserByEmail(user.email, {
-      data: user.user_metadata || {},
+    const { data: linkData, error } = await serviceClient.auth.admin.generateLink({
+      type: 'invite',
+      email: user.email,
+      options: {
+        data: user.user_metadata || {},
+        redirectTo: `${process.env.RAILWAY_URL || 'http://localhost:3000'}/set-password.html`,
+      },
     });
     if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true });
+    res.json({ success: true, invite_url: linkData.properties.action_link });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

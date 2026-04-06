@@ -1759,6 +1759,9 @@ function renderCoverageChart(openNeeds) {
   badge.textContent = total ? `${total} open needs` : 'No open needs';
   badge.className   = 'chart-badge ' + (total === 0 ? 'ok' : 'warn');
 
+  const donutLabel = document.getElementById('needsDonutLabel');
+  if (donutLabel) donutLabel.textContent = total ? `${total} open need${total !== 1 ? 's' : ''}` : '';
+
   // Build client → count map for donut segments
   const clientCounts = {};
   for (const r of roles) { const c = r.client || 'Unknown'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
@@ -1825,10 +1828,7 @@ function renderCoverageChart(openNeeds) {
         ctx.textBaseline = 'middle';
         ctx.font = `700 30px Inter, sans-serif`;
         ctx.fillStyle = total === 0 ? '#8892B0' : '#FFFFFF';
-        ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy - 10);
-        ctx.font = `400 11px Inter, sans-serif`;
-        ctx.fillStyle = '#8892B0';
-        ctx.fillText('open needs', cx, cy + 14);
+        ctx.fillText(total === 0 ? '—' : `${total}`, cx, cy);
         ctx.restore();
       },
     }],
@@ -1907,8 +1907,11 @@ function renderCoverageChart(openNeeds) {
       const editBtn = canEditNeed
         ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
         : '';
+      const closeMetBtn = (_hmCanEdit() && r._needId)
+        ? `<button class="need-close-met-btn" data-needid="${_esc(r._needId)}" onclick="closeNeedAsMet(this.dataset.needid,event)" title="Close as Met — need has been filled">✓ Met</button>`
+        : '';
       const abandonBtn = (_hmCanEdit() && r._needId)
-        ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)">Abandon</button>`
+        ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)" title="Close as Abandoned — need is no longer required">Abandon</button>`
         : '';
       const assignBtn = (_hmCanEdit() && r._needId)
         ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
@@ -1922,7 +1925,7 @@ function renderCoverageChart(openNeeds) {
         <td class="col-center">${fmtDate(r.startDate)}</td>
         <td class="col-center">${fmtDate(r.endDate)}</td>
         <td>${_urgencyBadge(r.startDate)}</td>
-        <td class="col-actions">${assignBtn}${editBtn}${abandonBtn}</td>
+        <td class="col-actions">${assignBtn}${editBtn}${closeMetBtn}${abandonBtn}</td>
       </tr>
       <tr class="need-expansion-row hidden" id="need-exp-${i}">
         <td colspan="8" class="need-expansion-cell">
@@ -2229,6 +2232,26 @@ async function abandonNeed(needId, event) {
     loadDashboard();
   } catch (e) {
     showToast(`Failed to abandon need: ${e.message}`, 'error');
+  }
+}
+
+async function closeNeedAsMet(needId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Close this need as Met? It will be marked as fulfilled and removed from the pipeline.')) return;
+  try {
+    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ reason: 'met' }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    showToast('Need closed as Met', 'success');
+    loadDashboard();
+  } catch (e) {
+    showToast(`Failed to close need: ${e.message}`, 'error');
   }
 }
 
@@ -4108,12 +4131,18 @@ async function saveUserEditModal() {
 async function resendInvite(userId) {
   try {
     const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/resend-invite`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      showToast(data.error || 'Failed to resend invite.');
+      showToast(data.error || 'Failed to generate invite link.', 'error');
       return;
     }
-    showToast('Invite resent successfully.');
+    // Copy the new invite link to clipboard
+    try {
+      await navigator.clipboard.writeText(data.invite_url);
+      showToast('New invite link copied to clipboard.', 'success');
+    } catch (_) {
+      window.prompt('Copy this invite link:', data.invite_url);
+    }
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
   }
@@ -5262,6 +5291,7 @@ async function _cnSubmit() {
   // Collect and validate rows
   const rows = [];
   const rowEls = document.querySelectorAll('#cn-rows > div');
+  let rowNum = 0;
   for (let i = 0; i < rowEls.length; i++) {
     const level = rowEls[i].querySelector('[data-field="level"]').value;
     const hours = rowEls[i].querySelector('[data-field="hours"]').value;
@@ -5269,13 +5299,17 @@ async function _cnSubmit() {
     const skillSetIds = [...rowEls[i].querySelectorAll('[data-field="skill-panel"] .cp-skill-tag.selected')]
       .map(t => t.dataset.ssId);
 
-    if (!level) { showErr(`Row ${i + 1}: Please select a level.`); return; }
-    if (skillSetIds.length === 0) { showErr(`Row ${i + 1}: Please select at least one skill.`); return; }
-    if (!hours || Number(hours) < 1 || Number(hours) > 45) {
-      showErr(`Row ${i + 1}: Hours per week must be between 1 and 45.`); return;
+    // Skip completely empty rows silently
+    if (!level && skillSetIds.length === 0 && (!hours || Number(hours) === 0)) continue;
+
+    rowNum++;
+    // Level is required; skills, hours, and qty are optional
+    if (!level) { showErr(`Row ${rowNum}: Level is required.`); return; }
+    if (hours && (Number(hours) < 1 || Number(hours) > 45)) {
+      showErr(`Row ${rowNum}: Hours per week must be between 1 and 45.`); return;
     }
-    if (qty < 1 || qty > 10) { showErr(`Row ${i + 1}: Quantity must be between 1 and 10.`); return; }
-    rows.push({ level, hoursPerWeek: Number(hours), qty: Math.min(10, Math.max(1, qty)), skillSetIds });
+    if (qty < 1 || qty > 10) { showErr(`Row ${rowNum}: Quantity must be between 1 and 10.`); return; }
+    rows.push({ level, hoursPerWeek: hours ? Number(hours) : 40, qty: Math.min(10, Math.max(1, qty)), skillSetIds });
   }
 
   if (rows.length === 0) { showErr('Add at least one need row.'); return; }
