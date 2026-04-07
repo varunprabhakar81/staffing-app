@@ -119,7 +119,7 @@
 
     <!-- Getting Started (visible to all roles) -->
     <div style="margin: 6px 0 2px; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 6px;">
-      <a class="nav-item" href="/walkthrough.html" target="_blank" title="Getting Started" style="text-decoration:none;" onclick="navigateTo('overview')">
+      <a class="nav-item" href="/walkthrough.html" title="Getting Started" style="text-decoration:none;" onclick="event.preventDefault(); window.open(this.href, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes'); navigateTo('overview')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M10.5 1.5C8.5 1.5 5 3 3 7l6 0 1.5-5.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
           <path d="M3 7c-.5 1-.8 2.2-.8 3.5 0 .8.7 1.5 1.5 1.5 1 0 2-.5 2.8-1.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -133,7 +133,7 @@
 
     <!-- Testing Portal (hidden until testing_role confirmed) -->
     <div id="testingPortalNav" style="margin: 2px 0; padding-top: 0; display:none;">
-      <a class="nav-item" href="/testing.html" target="_blank" title="Testing Portal" style="text-decoration:none;" onclick="navigateTo('overview')">
+      <a class="nav-item" href="/testing.html" title="Testing Portal" style="text-decoration:none;" onclick="event.preventDefault(); window.open(this.href, '_blank', 'width=1000,height=800,scrollbars=yes,resizable=yes'); navigateTo('overview')">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <rect x="1.5" y="2.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
           <path d="M5.5 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
