@@ -1326,8 +1326,8 @@ body {
   display: flex;
   flex-direction: column;
 }
-/* Level panel clips content to its border-radius */
-.ov-level-panel { overflow: hidden; }
+/* Level panel fills left column and clips content to its border-radius */
+.ov-level-panel { overflow: hidden; flex: 1; }
 .ov-cliff-panel,
 .ov-needs-panel {
   height: auto;
@@ -1557,53 +1557,6 @@ body {
   font-size: 11px;
   margin-top: 1px;
   line-height: 1.1;
-}
-
-/* Top Projects panel */
-.ov-projects-panel {
-  flex: 1;
-  min-height: 0;
-}
-.ov-projects-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.ov-project-row {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.ov-project-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.ov-project-name {
-  font-size: 11px;
-  color: #FFFFFF;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-.ov-project-hours {
-  font-size: 11px;
-  color: #8892B0;
-  white-space: nowrap;
-  margin-left: 8px;
-}
-.ov-project-bar-track {
-  height: 4px;
-  background: #2E3250;
-  border-radius: 3px;
-  overflow: hidden;
-}
-.ov-project-bar-fill {
-  height: 100%;
-  background: #A8C7FA;
-  border-radius: 3px;
-  transition: width 0.5s ease;
 }
 
 /* Empty state */

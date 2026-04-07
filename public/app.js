@@ -677,7 +677,6 @@ function renderOverviewStats(data, heatmapData) {
 
   // ── Row 2 & 3 panels ─────────────────────────────────────────────
   renderLevelBreakdown(heatmapData);
-  renderTopProjects(heatmapData);
   renderRollingOff(heatmapData);
   renderOverallocated(rawData.heatmap);
 }
@@ -756,39 +755,6 @@ function renderLevelBreakdown(heatmapData) {
     if (levelRow) drillUtilization(levelRow.dataset.level);
   };
   el.addEventListener('click', el._overallocHandler);
-}
-
-// ── Top Projects This Week (Row 2 left bottom) ────────────────────
-function renderTopProjects(heatmapData) {
-  const el = document.getElementById('ovTopProjects');
-  if (!el) return;
-  if (!heatmapData || !heatmapData.employees) {
-    el.innerHTML = '<div class="ov-empty">No data</div>'; return;
-  }
-  const projectHours = {};
-  for (const emp of heatmapData.employees) {
-    const projects = (emp.weeklyProjects && emp.weeklyProjects[0]) || [];
-    for (const { project, hours } of projects) {
-      if (project && project !== 'Unassigned') {
-        projectHours[project] = (projectHours[project] || 0) + hours;
-      }
-    }
-  }
-  const sorted = Object.entries(projectHours).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  if (!sorted.length) {
-    el.innerHTML = '<div class="ov-empty">No projects this week</div>'; return;
-  }
-  const maxHrs = sorted[0][1];
-  el.innerHTML = sorted.map(([project, hours]) => `
-    <div class="ov-project-row dd-clickable" style="cursor:pointer" onclick="navigateToProject('${_esc(project)}')" title="Click to view in Resource Allocation tab">
-      <div class="ov-project-label">
-        <span class="ov-project-name">${project}</span>
-        <span class="ov-project-hours">${hours}h</span>
-      </div>
-      <div class="ov-project-bar-track">
-        <div class="ov-project-bar-fill" style="width:${Math.round(hours / maxHrs * 100)}%"></div>
-      </div>
-    </div>`).join('');
 }
 
 // ── Rolling Off Soon (Row 2 right top) ────────────────────────────
