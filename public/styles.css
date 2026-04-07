@@ -656,12 +656,10 @@ body {
 }
 
 #tab-overview {
-  overflow-y: auto;
+  overflow: hidden;
   padding: 20px 12px 10px;
   gap: 10px;
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: #2E3250 #0F1117;
 }
 
 #tab-staffing {
@@ -1302,6 +1300,8 @@ body {
   gap: 10px;
   align-items: stretch;
   margin-top: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .ov-left-col {
@@ -1315,6 +1315,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
 }
 
 /* Panel base */
@@ -1326,8 +1327,8 @@ body {
   display: flex;
   flex-direction: column;
 }
-/* Level panel clips content to its border-radius */
-.ov-level-panel { overflow: hidden; }
+/* Level panel expands to fill left column and clips content to its border-radius */
+.ov-level-panel { overflow: hidden; flex: 1; min-height: 0; }
 
 /* Urgency panel (left column, below Upcoming Availability) */
 .ov-urgency-panel { flex-shrink: 0; }
@@ -1355,7 +1356,12 @@ body {
 .ov-urgency-label { font-size: 12px; font-weight: 600; color: #CDD9F5; }
 .ov-urgency-sub   { font-size: 11px; color: #8892B0; }
 
-.ov-cliff-panel,
+.ov-cliff-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .ov-needs-panel {
   height: auto;
   flex-shrink: 0;
@@ -1391,6 +1397,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 transparent;
 }
 .ov-level-row {
   display: flex;
@@ -1503,8 +1514,11 @@ body {
 }
 
 .ov-cliff-list {
-  height: auto;
-  overflow: visible;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #2E3250 transparent;
 }
 .ov-needs-list {
   overflow-y: auto;
