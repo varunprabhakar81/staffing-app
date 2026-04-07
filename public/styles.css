@@ -1326,8 +1326,35 @@ body {
   display: flex;
   flex-direction: column;
 }
-/* Level panel fills left column and clips content to its border-radius */
-.ov-level-panel { overflow: hidden; flex: 1; }
+/* Level panel clips content to its border-radius */
+.ov-level-panel { overflow: hidden; }
+
+/* Urgency panel (left column, below Upcoming Availability) */
+.ov-urgency-panel { flex-shrink: 0; }
+.ov-urgency-list { display: flex; flex-direction: column; gap: 8px; }
+.ov-urgency-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.ov-urgency-row:last-child { border-bottom: none; }
+.ov-urgency-count {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: right;
+  line-height: 1;
+}
+.ov-urgency-count.urgent { color: #DA291C; }
+.ov-urgency-count.soon   { color: #E8A317; }
+.ov-urgency-count.planned { color: #00A3E0; }
+.ov-urgency-count.zero   { color: #4a5568; }
+.ov-urgency-detail { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.ov-urgency-label { font-size: 12px; font-weight: 600; color: #CDD9F5; }
+.ov-urgency-sub   { font-size: 11px; color: #8892B0; }
+
 .ov-cliff-panel,
 .ov-needs-panel {
   height: auto;

@@ -677,6 +677,7 @@ function renderOverviewStats(data, heatmapData) {
 
   // ── Row 2 & 3 panels ─────────────────────────────────────────────
   renderLevelBreakdown(heatmapData);
+  renderNeedsUrgency();
   renderRollingOff(heatmapData);
   renderOverallocated(rawData.heatmap);
 }
@@ -755,6 +756,49 @@ function renderLevelBreakdown(heatmapData) {
     if (levelRow) drillUtilization(levelRow.dataset.level);
   };
   el.addEventListener('click', el._overallocHandler);
+}
+
+// ── Open Needs by Urgency (Row 2 left bottom) ─────────────────────
+function renderNeedsUrgency() {
+  const el = document.getElementById('ovNeedsUrgency');
+  if (!el) return;
+  const roles = (rawData.openNeeds && rawData.openNeeds.roles) || [];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let urgent = 0, soon = 0, planned = 0;
+  for (const r of roles) {
+    if (!r.startDate) { planned++; continue; }
+    const p = String(r.startDate).split('/');
+    if (p.length < 3) { planned++; continue; }
+    const d = new Date(parseInt(p[2]), parseInt(p[0]) - 1, parseInt(p[1]));
+    const days = (d - today) / 86400000;
+    if (days <= 14) urgent++;
+    else if (days <= 28) soon++;
+    else planned++;
+  }
+  const total = roles.length;
+
+  const titleEl = document.getElementById('ovUrgencyTitle');
+  if (titleEl) titleEl.textContent = `🎯 Open Needs by Urgency (${total})`;
+
+  if (total === 0) {
+    el.innerHTML = '<div class="ov-empty ok">✓ No open staffing needs</div>';
+    return;
+  }
+
+  const row = (cls, count, label, sub) => `
+    <div class="ov-urgency-row">
+      <span class="ov-urgency-count ${count === 0 ? 'zero' : cls}">${count}</span>
+      <div class="ov-urgency-detail">
+        <span class="ov-urgency-label">${label}</span>
+        <span class="ov-urgency-sub">${sub}</span>
+      </div>
+    </div>`;
+
+  el.innerHTML =
+    row('urgent',  urgent,  'Urgent',  'starting within 2 weeks') +
+    row('soon',    soon,    'Soon',    'starting in 2–4 weeks') +
+    row('planned', planned, 'Planned', 'starting 4+ weeks out');
 }
 
 // ── Rolling Off Soon (Row 2 right top) ────────────────────────────
