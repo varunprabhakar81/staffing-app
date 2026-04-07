@@ -1824,7 +1824,7 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
     // Block writes only if this specific test case is locked (submitted and not marked for retest)
     const { data: existing } = await serviceClient
       .from('test_results')
-      .select('submitted_at, status')
+      .select('submitted_at, status, notes')
       .eq('tenant_id', tId(req))
       .eq('user_id', req.session.user.id)
       .eq('test_case_id', test_case_id)
@@ -1832,6 +1832,12 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
     const row = existing?.[0];
     if (row?.submitted_at && row?.status !== 'retest') {
       return res.status(403).json({ error: 'This test has been submitted. Ask the test admin to mark it for retest.' });
+    }
+    // General feedback: append new notes to existing rather than overwriting
+    let resolvedNotes = notes || null;
+    if (test_case_id === 'general-feedback' && notes && row?.notes) {
+      const ts = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      resolvedNotes = `${row.notes}\n\n--- ${ts} ---\n${notes}`;
     }
     const { error } = await serviceClient
       .from('test_results')
@@ -1841,7 +1847,7 @@ app.post('/api/test-results', requireAuth, async (req, res) => {
         user_id:      req.session.user.id,
         user_email:   req.session.user.email,
         status,
-        notes:        notes || null,
+        notes:        resolvedNotes,
         tested_at:    new Date().toISOString()
       }, { onConflict: 'tenant_id,test_case_id,user_id' });
     if (error) return res.status(500).json({ error: error.message });
