@@ -1775,7 +1775,7 @@ function renderCoverageChart(openNeeds) {
 
   // Build client → count map for donut segments
   const clientCounts = {};
-  for (const r of roles) { const c = r.client || 'Unassigned'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
+  for (const r of roles) { const c = r.client || 'Non-Client'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
   const clientEntries = Object.entries(clientCounts);
   const clientColors  = clientEntries.map((_, i) => NEEDS_CLIENT_COLORS[i % NEEDS_CLIENT_COLORS.length]);
 
@@ -1880,13 +1880,13 @@ function renderCoverageChart(openNeeds) {
   // Group roles by client, preserving original index for expansion
   const grouped = {};
   roles.forEach((r, i) => {
-    const client = r.client || 'Unassigned';
+    const client = r.client || 'Non-Client';
     if (!grouped[client]) grouped[client] = [];
     grouped[client].push({ r, i });
   });
   const sortedClients = Object.keys(grouped).sort((a, b) => {
-    if (a === 'Unassigned') return 1;
-    if (b === 'Unassigned') return -1;
+    if (a === 'Non-Client') return 1;
+    if (b === 'Non-Client') return -1;
     return a.localeCompare(b);
   });
   const urgencyRank = (startDate) => {
@@ -1928,7 +1928,7 @@ function renderCoverageChart(openNeeds) {
         ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
         : '';
       rows += `
-      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Unassigned')}" data-needid="${_esc(r._needId || '')}" style="display:none" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
+      <tr class="dd-clickable need-row" data-client="${_esc(r.client || 'Non-Client')}" data-needid="${_esc(r._needId || '')}" style="display:none" onclick="toggleNeedExpansion(${i}, event)" title="Click to see AI-matched consultants">
         <td class="col-project" style="padding-left:20px"><span class="need-chevron" id="need-chev-${i}">›</span>${r.project || '—'}</td>
         <td class="col-skill">${r.skillSet ? `<span class="skill-pill clickable-pill" data-skill="${_esc(r.skillSet)}" data-need-context="${needCtx}" onclick="onSkillPillClick(this)">${_esc(r.skillSet)}</span>` : '—'}</td>
         <td>${r.level || '—'}</td>
