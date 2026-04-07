@@ -1081,13 +1081,22 @@ function confirm(title, msg, okLabel, okClass, cb) {
 
   document.getElementById('feedbackSaveBtn').addEventListener('click', async () => {
     const btn = document.getElementById('feedbackSaveBtn');
+    const ta  = document.getElementById('generalFeedbackTextarea');
+    const note = document.getElementById('feedbackSavedNote');
+    if (!ta || !ta.value.trim()) return;
     btn.disabled = true;
     await saveGeneralFeedback();
     btn.disabled = false;
-    const note = document.getElementById('feedbackSavedNote');
+    // Clear textarea — server has appended the submission; next open is a fresh slate
+    ta.value = '';
+    delete myResults['general-feedback'];
+    updateFeedbackDot();
+    updateSubmitBar();
+    // Brief success flash
     if (note) {
+      note.textContent = 'Feedback submitted ✓';
       note.classList.remove('hidden');
-      setTimeout(() => note.classList.add('hidden'), 2000);
+      setTimeout(() => note.classList.add('hidden'), 3000);
     }
   });
 })();
@@ -1589,20 +1598,13 @@ function renderGeneralFeedback() {
   const val = myResults['general-feedback']?.notes || '';
   ta.value = val;
   const footer = document.getElementById('feedbackPanelFooter');
-  const saveBtn = document.getElementById('feedbackSaveBtn');
-  if (isSubmitted) {
-    ta.readOnly = true;
-    if (badge)   badge.classList.remove('hidden');
-    if (note)    note.classList.remove('hidden');
-    if (footer)  footer.classList.add('hidden');
-  } else {
-    ta.readOnly = false;
-    if (badge)   badge.classList.add('hidden');
-    if (note)    note.classList.add('hidden');
-    if (footer)  footer.classList.remove('hidden');
-    ta.removeEventListener('blur', saveGeneralFeedback);
-    ta.addEventListener('blur', saveGeneralFeedback);
-  }
+  // General feedback is NEVER locked — textarea always editable, footer always visible
+  ta.readOnly = false;
+  if (badge)  badge.classList.add('hidden');
+  if (note)   note.classList.add('hidden');
+  if (footer) footer.classList.remove('hidden');
+  ta.removeEventListener('blur', saveGeneralFeedback);
+  ta.addEventListener('blur', saveGeneralFeedback);
   updateFeedbackDot();
 }
 
