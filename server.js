@@ -281,8 +281,8 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
     return res.status(401).json({ error: 'Session invalid. Please log in again.' });
   }
   try {
-    const { error: signInError } = await supabaseAuth.auth.signInWithPassword({ email, password: currentPassword });
-    if (signInError) {
+    const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({ email, password: currentPassword });
+    if (signInError || !signInData?.user) {
       return res.status(401).json({ error: 'Current password is incorrect.' });
     }
     const { error: updateError } = await serviceClient.auth.admin.updateUserById(userId, { password: newPassword });
