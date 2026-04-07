@@ -371,7 +371,7 @@ function updateBellBadge() {
 const charts = {};
 
 // ── Raw data store for drilldowns ─────────────────────────────────
-const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heatmap: null };
+const rawData = { supply: [], employees: [], cliffs: [], coverageRoles: [], heatmap: null, availableConsultants: [] };
 
 // ── Utilization status helper ─────────────────────────────────────
 function utilStatus(hours) {
@@ -431,8 +431,9 @@ async function loadDashboard() {
 
     rawData.supply        = supplyRes.ok    ? JSON.parse(supplyText)    : [];
     rawData.employees     = empRes.ok       ? JSON.parse(empText)       : [];
-    rawData.cliffs        = data.cliffs     || [];
-    rawData.openNeeds     = data.openNeeds;
+    rawData.cliffs               = data.cliffs              || [];
+    rawData.openNeeds            = data.openNeeds;
+    rawData.availableConsultants = data.availableConsultants || [];
     rawData.heatmap       = heatmapRes.ok   ? JSON.parse(heatmapText)   : null;
     rawData._meta         = data._meta      || {};
 
@@ -586,33 +587,30 @@ function renderOverviewStats(data, heatmapData) {
     }
   }
 
-  // ── Card 1: Available Capacity % ────────────────────────────────
-  const wTotalHrs = data.windowTotalHours !== undefined ? Math.round(data.windowTotalHours) : null;
-  const wCap      = data.windowCapacity   !== undefined ? Math.round(data.windowCapacity)   : null;
-  const windowN   = (wCap !== null && headcount > 0) ? Math.round(wCap / (45 * headcount)) : null;
-  const unbooked  = (wCap !== null && wTotalHrs !== null) ? wCap - wTotalHrs : null;
-  const availPct  = (wCap !== null && wTotalHrs !== null && wCap > 0)
-    ? Math.round((wCap - wTotalHrs) / wCap * 100) : null;
+  // ── Card 1: Available Capacity ───────────────────────────────────
+  // Count of consultants booked < 45h this week, sorted by level + most available first
+  const availConsultants = data.availableConsultants || [];
+  const availCount = availConsultants.length;
 
   const availEl = document.getElementById('overviewAvailHours');
-  if (availEl) availEl.textContent = availPct !== null ? String(availPct) : '—';
+  if (availEl) availEl.textContent = String(availCount);
 
   const availSecondary = document.getElementById('overviewAvailSecondary');
-  if (availSecondary && unbooked !== null && wCap !== null) {
-    availSecondary.textContent = `${unbooked}h unbooked of ${wCap}h available over ${windowN} weeks`;
+  if (availSecondary) {
+    availSecondary.textContent = availCount > 0
+      ? `of ${headcount} consultant${headcount !== 1 ? 's' : ''} with capacity`
+      : 'all consultants fully booked';
   }
 
   const availTrendEl = document.getElementById('overviewAvailTrend');
   if (availTrendEl) {
-    if (benchThisWeek > 0) {
-      availTrendEl.textContent = `${benchThisWeek} consultant${benchThisWeek !== 1 ? 's' : ''} fully free`;
-      availTrendEl.className = 'ov-card-trend warn';
-    } else if (totalAvail === 0) {
+    if (availCount > 0) {
+      const levelSet = new Set(availConsultants.map(c => c.level).filter(Boolean));
+      availTrendEl.textContent = `across ${levelSet.size} level${levelSet.size !== 1 ? 's' : ''}`;
+      availTrendEl.className = 'ov-card-trend';
+    } else {
       availTrendEl.textContent = '✓ Team fully booked this week';
       availTrendEl.className = 'ov-card-trend ok';
-    } else {
-      availTrendEl.textContent = 'Unbooked capacity available';
-      availTrendEl.className = 'ov-card-trend';
     }
   }
 
@@ -683,7 +681,7 @@ function renderOverviewStats(data, heatmapData) {
 }
 
 // ── Upcoming Availability (Row 2 left) ────────────────────────────
-const LEVEL_ORDER_OV = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+const LEVEL_ORDER_OV = ['Partner/Principal/Managing Director', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
 
 function renderLevelBreakdown(heatmapData) {
   const el = document.getElementById('ovLevelBreakdown');
@@ -2043,41 +2041,87 @@ function toggleNeedsClientGroup(headerTr) {
   }
   const chev = headerTr.querySelector('.needs-client-chevron');
   if (chev) chev.textContent = nowCollapsed ? '▶' : '▼';
-  document.querySelectorAll('#coverageTable .need-row').forEach(tr => {
-    if (tr.dataset.client !== client) return;
+
+  // Collect need rows scoped to THIS group: siblings between this header and the next
+  const needRowsInGroup = [];
+  let sibling = headerTr.nextElementSibling;
+  while (sibling && !sibling.classList.contains('needs-client-header')) {
+    if (sibling.classList.contains('need-row')) {
+      needRowsInGroup.push(sibling);
+    }
+    sibling = sibling.nextElementSibling;
+  }
+
+  let staggerIdx = 0;
+  needRowsInGroup.forEach(tr => {
     const inFilter = !_needsClientFilter || tr.dataset.client === _needsClientFilter;
     const show = !nowCollapsed && inFilter;
     tr.style.display = show ? '' : 'none';
     const exp = tr.nextElementSibling;
-    if (exp && exp.classList.contains('need-expansion-row') && nowCollapsed) {
-      exp.classList.add('hidden');
+    if (!exp || !exp.classList.contains('need-expansion-row')) return;
+    const idx = parseInt(exp.id.replace('need-exp-', ''), 10);
+    if (nowCollapsed) {
+      // collapsing: close expansion rows and sync _needs.expanded
+      if (!exp.classList.contains('hidden')) {
+        exp.classList.add('hidden');
+        _needs.expanded.delete(idx);
+        const expChev = document.getElementById(`need-chev-${idx}`);
+        if (expChev) expChev.classList.remove('open');
+      }
+    } else if (show && exp.classList.contains('hidden')) {
+      // expanding: stagger-open candidate panels
+      setTimeout(() => toggleNeedExpansion(idx), staggerIdx * 75);
+      staggerIdx++;
     }
   });
+
   const tableEl = document.getElementById('coverageTable');
   const headers = tableEl ? tableEl.querySelectorAll('.needs-client-header') : [];
-  const allCollapsed = Array.from(headers).every(h => _collapsedNeedsClients.has(h.dataset.clientGroup));
+  const anyCollapsed = Array.from(headers).some(h => _collapsedNeedsClients.has(h.dataset.clientGroup));
   const btn = tableEl ? tableEl.querySelector('.needs-expand-collapse-btn') : null;
-  if (btn) btn.textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+  if (btn) btn.textContent = anyCollapsed ? 'Expand All' : 'Collapse All';
 }
 
 function toggleAllNeedsClients() {
   const tableEl = document.getElementById('coverageTable');
   if (!tableEl) return;
+  const btn = tableEl.querySelector('.needs-expand-collapse-btn');
+  const isExpandAll = !btn || btn.textContent.trim() === 'Expand All';
+
   const headers = tableEl.querySelectorAll('.needs-client-header');
-  const anyExpanded = Array.from(headers).some(h => !_collapsedNeedsClients.has(h.dataset.clientGroup));
+
   headers.forEach(h => {
     const client = h.dataset.clientGroup;
-    if (anyExpanded) {
-      _collapsedNeedsClients.add(client);
-    } else {
-      _collapsedNeedsClients.delete(client);
-    }
     const chev = h.querySelector('.needs-client-chevron');
-    if (chev) chev.textContent = anyExpanded ? '▶' : '▼';
+    if (isExpandAll) {
+      _collapsedNeedsClients.delete(client);
+      if (chev) chev.textContent = '▼';
+    } else {
+      _collapsedNeedsClients.add(client);
+      if (chev) chev.textContent = '▶';
+
+      // Collapse: close any open match panels within this group
+      let sibling = h.nextElementSibling;
+      while (sibling && !sibling.classList.contains('needs-client-header')) {
+        if (sibling.classList.contains('need-row')) {
+          const exp = sibling.nextElementSibling;
+          if (exp && exp.classList.contains('need-expansion-row') && !exp.classList.contains('hidden')) {
+            const idx = parseInt(exp.id.replace('need-exp-', ''), 10);
+            exp.classList.add('hidden');
+            _needs.expanded.delete(idx);
+            const expChev = document.getElementById(`need-chev-${idx}`);
+            if (expChev) expChev.classList.remove('open');
+          }
+        }
+        sibling = sibling.nextElementSibling;
+      }
+    }
   });
+
   applyNeedsFilter();
-  const btn = tableEl.querySelector('.needs-expand-collapse-btn');
-  if (btn) btn.textContent = anyExpanded ? 'Expand All' : 'Collapse All';
+
+  const anyCollapsed = Array.from(headers).some(h => _collapsedNeedsClients.has(h.dataset.clientGroup));
+  if (btn) btn.textContent = anyCollapsed ? 'Expand All' : 'Collapse All';
 }
 
 // ── AI Recommendations: Expandable Row Logic ─────────────────────
@@ -2751,7 +2795,7 @@ function drillCoverage(roleIdx) {
 // ── KPI Card Drilldowns ───────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════
 
-const LEVEL_ORDER = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+const LEVEL_ORDER = ['Partner/Principal/Managing Director', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
 
 // ── Grouped rows helper for drilldown consultant lists ────────────
 // items: array of data objects
@@ -2794,6 +2838,37 @@ function buildGroupedRows(items, getLevelFn, renderRowFn, colCount, expanded = f
     }
   }
   return html;
+}
+
+// ── KPI Drilldown: Available Capacity ────────────────────────────
+function drillAvailCapacity() {
+  const consultants = rawData.availableConsultants || [];
+  if (!consultants.length) {
+    openDrilldown('Available Capacity — This Week',
+      '<p class="dd-empty">All consultants are fully booked this week (≥45h).</p>');
+    return;
+  }
+
+  const groupedRows = buildGroupedRows(consultants, c => c.level, c => {
+    const availColor = c.availableHours >= 30 ? '#DA291C' : c.availableHours >= 15 ? '#E8A317' : '#86BC25';
+    return `<tr>
+      <td>${_esc(c.name)}</td>
+      <td style="color:#8892B0;font-size:12px">${_esc(c.level || '—')}</td>
+      <td style="font-size:12px">${c.bookedHours}h booked</td>
+      <td style="font-size:12px;color:${availColor};font-weight:500">${c.availableHours}h free</td>
+    </tr>`;
+  }, 4, true);
+
+  openDrilldown(`Available Capacity — This Week (${consultants.length})`, `
+    <div style="padding:0 0 8px">
+      <button onclick="ddToggleExpandAll(this)" style="padding:4px 10px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#CDD9F5;font-size:11px;cursor:pointer;font-family:inherit">\u229F Collapse all</button>
+    </div>
+    <table class="dd-table">
+      <thead><tr>
+        <th>Consultant</th><th>Level</th><th>Booked</th><th>Available</th>
+      </tr></thead>
+      <tbody>${groupedRows}</tbody>
+    </table>`);
 }
 
 // ── KPI Drilldown 1: Total Headcount ──────────────────────────────
@@ -4936,97 +5011,6 @@ async function logout() {
   window.location.replace('login.html');
 }
 
-// ── Location typeahead ────────────────────────────────────────────
-const CP_CITIES = [
-  'New York, NY','Los Angeles, CA','Chicago, IL','Houston, TX','Phoenix, AZ',
-  'Philadelphia, PA','San Antonio, TX','San Diego, CA','Dallas, TX','San Jose, CA',
-  'Austin, TX','Jacksonville, FL','Fort Worth, TX','Columbus, OH','Charlotte, NC',
-  'Indianapolis, IN','San Francisco, CA','Seattle, WA','Denver, CO','Nashville, TN',
-  'Oklahoma City, OK','El Paso, TX','Washington, DC','Boston, MA','Memphis, TN',
-  'Louisville, KY','Portland, OR','Las Vegas, NV','Milwaukee, WI','Albuquerque, NM',
-  'Tucson, AZ','Fresno, CA','Sacramento, CA','Mesa, AZ','Kansas City, MO',
-  'Atlanta, GA','Omaha, NE','Colorado Springs, CO','Raleigh, NC','Long Beach, CA',
-  'Virginia Beach, VA','Minneapolis, MN','Tampa, FL','New Orleans, LA','Arlington, TX',
-  'Bakersfield, CA','Honolulu, HI','Anaheim, CA','Aurora, CO','Santa Ana, CA',
-];
-
-function initLocationTypeahead() {
-  const input = document.getElementById('cpLocation');
-  const list  = document.getElementById('cpLocationDropdown');
-  if (!input || !list) return;
-
-  let activeIdx = -1;
-
-  function closeDrop() {
-    list.style.display = 'none';
-    list.innerHTML = '';
-    activeIdx = -1;
-  }
-
-  function openDrop(matches) {
-    list.innerHTML = '';
-    activeIdx = -1;
-    if (!matches.length) { closeDrop(); return; }
-    matches.forEach((city, i) => {
-      const li = document.createElement('li');
-      li.textContent = city;
-      li.dataset.idx = i;
-      li.style.cssText = 'padding:8px 12px;cursor:pointer;color:#E2E8F0;font-size:13px;font-family:inherit;white-space:nowrap';
-      li.addEventListener('mouseenter', () => setActive(i));
-      li.addEventListener('mousedown', e => {
-        e.preventDefault(); // keep input focused
-        input.value = city;
-        closeDrop();
-      });
-      list.appendChild(li);
-    });
-    list.style.display = 'block';
-  }
-
-  function setActive(idx) {
-    const items = list.querySelectorAll('li');
-    items.forEach(el => el.style.background = '');
-    activeIdx = idx;
-    if (idx >= 0 && idx < items.length) {
-      items[idx].style.background = 'rgba(168,199,250,.12)';
-      items[idx].scrollIntoView({ block: 'nearest' });
-    }
-  }
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) { closeDrop(); return; }
-    const matches = CP_CITIES.filter(c => c.toLowerCase().includes(q));
-    openDrop(matches);
-  });
-
-  input.addEventListener('keydown', e => {
-    const items = list.querySelectorAll('li');
-    if (list.style.display === 'none' || !items.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActive(Math.min(activeIdx + 1, items.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActive(Math.max(activeIdx - 1, 0));
-    } else if (e.key === 'Enter') {
-      if (activeIdx >= 0 && activeIdx < items.length) {
-        e.preventDefault();
-        input.value = items[activeIdx].textContent;
-        closeDrop();
-      } else {
-        closeDrop(); // free-text: keep whatever was typed
-      }
-    } else if (e.key === 'Escape') {
-      closeDrop();
-    }
-  });
-
-  input.addEventListener('blur', () => {
-    // Small delay so mousedown on an item fires before blur hides the list
-    setTimeout(closeDrop, 150);
-  });
-}
 
 // ── Create New Need Modal (#164) ──────────────────────────────────
 
@@ -6956,7 +6940,6 @@ function initDatePickers() {
         }
       })
       .catch(err => console.error('[Consultant heatmap]', err));
-    initLocationTypeahead();
     setInterval(() => { apiFetch('/api/auth/me').catch(() => {}); }, 30000);
     return;
   }

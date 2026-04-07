@@ -808,6 +808,190 @@
     "expected": "The needs table filters to show only that client's needs. Click the same segment again to clear. All needs reappear."
   },
   {
+    "id": "etm-01",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Expand All opens all client groups — need rows visible, no AI match panels",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Navigate to Open Needs tab. All groups start collapsed. Click 'Expand All'.",
+    "expected": "All client group sections open and need rows become visible. No AI match panels appear. Button switches to 'Collapse All'. Action is instant with no loading spinners."
+  },
+  {
+    "id": "etm-02",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Collapse All closes all groups including Non-Client (last group)",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Expand all groups. Open a match panel by clicking a need row. Then click 'Collapse All'.",
+    "expected": "All client groups collapse including Non-Client. The open match panel closes. Button switches to 'Expand All'. No group remains open."
+  },
+  {
+    "id": "etm-03",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Rapid Expand/Collapse All — no orphaned panels or race conditions",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click 'Expand All', then immediately 'Collapse All', then 'Expand All' again, then 'Collapse All'. Do this 3-4 times quickly.",
+    "expected": "After each Collapse All, all groups are closed with no visible need rows or match panels. After each Expand All, need rows appear but no match panels open. No orphaned panels remain visible."
+  },
+  {
+    "id": "etm-04",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Client group header click — group opens AND needs stagger-expand to AI matches",
+    "roles": ["admin", "resource_manager"],
+    "steps": "With all groups collapsed, click one client group header.",
+    "expected": "That group opens and its need rows become visible. Match panels appear one by one with a stagger effect (AI candidates load). Other groups remain collapsed and unaffected."
+  },
+  {
+    "id": "etm-05",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Client group header click again — collapses group and closes match panels",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Expand a client group (so its need rows and match panels are visible). Click the same group header again.",
+    "expected": "The group collapses. Need rows and match panels within that group are hidden. Other groups are unaffected."
+  },
+  {
+    "id": "etm-06",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Collapse All then click one client header → expands to match level",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click Collapse All. Then click a single client header (e.g. Non-Client).",
+    "expected": "That group opens fully — need rows visible with AI match panels. Other groups stay collapsed."
+  },
+  {
+    "id": "etm-07",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Single need row click toggles its own match panel independently",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Expand a client group. Click one individual need row. Click the same need row again.",
+    "expected": "First click opens the match panel for that need only — other need rows are unaffected. Second click closes that match panel. No other panels open or close."
+  },
+  {
+    "id": "etm-08",
+    "area": "Open Needs Expand/Collapse",
+    "title": "Button label reflects group state — 'Expand All' when any group collapsed",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Expand all groups (button shows 'Collapse All'). Click one group header to collapse it. Check the button label. Click the button.",
+    "expected": "After collapsing one group, button immediately shows 'Expand All'. Clicking it opens the remaining collapsed groups to group level (need rows visible, no match panels). Button switches to 'Collapse All'."
+  },
+  {
+    "id": "loc-01",
+    "area": "Consultant Location",
+    "title": "Type 'Det' in Location field → browser suggests 'Detroit, MI'",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Open Settings → Consultants. Edit any consultant. Click the Location field and type 'Det'.",
+    "expected": "The browser's native datalist dropdown appears and includes 'Detroit, MI' as a suggestion."
+  },
+  {
+    "id": "loc-02",
+    "area": "Consultant Location",
+    "title": "Type 'Mum' in Location field → browser suggests 'Mumbai, India'",
+    "roles": ["admin", "resource_manager"],
+    "steps": "In the consultant edit form, click Location and type 'Mum'.",
+    "expected": "The browser datalist suggests 'Mumbai, India'."
+  },
+  {
+    "id": "loc-03",
+    "area": "Consultant Location",
+    "title": "Type 'Rem' in Location field → browser suggests 'Remote'",
+    "roles": ["admin", "resource_manager"],
+    "steps": "In the consultant edit form, click Location and type 'Rem'.",
+    "expected": "The browser datalist suggests 'Remote'."
+  },
+  {
+    "id": "loc-04",
+    "area": "Consultant Location",
+    "title": "Consulting hub cities present in datalist",
+    "roles": ["admin", "resource_manager"],
+    "steps": "In the Location field, type 'McLe', then clear and type 'Tyso', then clear and type 'Stam'.",
+    "expected": "'McLean, VA' appears for 'McLe'. 'Tysons, VA' appears for 'Tyso'. 'Stamford, CT' appears for 'Stam'."
+  },
+  {
+    "id": "loc-05",
+    "area": "Consultant Location",
+    "title": "Freeform city not in datalist saves correctly",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Edit a consultant. Type 'Reykjavik, Iceland' in Location (not in datalist). Click Save.",
+    "expected": "No validation error. Location saves as 'Reykjavik, Iceland'. Reopening the consultant shows the saved value."
+  },
+  {
+    "id": "loc-06",
+    "area": "Consultant Location",
+    "title": "Clear Location to empty — field is optional",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Edit a consultant who has a location set. Clear the Location field entirely. Click Save.",
+    "expected": "Saves without error. Reopening the consultant shows an empty Location field."
+  },
+  {
+    "id": "loc-07",
+    "area": "Consultant Location",
+    "title": "Empty Location field shows correct placeholder text",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Edit a consultant with no location set. Observe the Location input.",
+    "expected": "The placeholder text reads 'e.g. Detroit, MI or Remote'."
+  },
+  {
+    "id": "cap-01",
+    "area": "Available Capacity KPI",
+    "title": "Card shows count of consultants booked < 45h with correct secondary and trend",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Navigate to Overview tab. Observe the Available Capacity card.",
+    "expected": "The number shows the count of consultants with booked hours < 45h this week. Secondary text reads 'X of N consultants with capacity'. Trend line shows level spread (e.g. 'across 3 levels')."
+  },
+  {
+    "id": "cap-02",
+    "area": "Available Capacity KPI",
+    "title": "Card title is 'Available Capacity' — count of people, not a percentage",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Navigate to Overview tab. Observe the Available Capacity card label and unit.",
+    "expected": "Card label reads 'Available Capacity'. The unit next to the number reads 'people', not '%'."
+  },
+  {
+    "id": "cap-03",
+    "area": "Available Capacity KPI",
+    "title": "Drilldown modal shows only consultants booked < 45h — no fully booked consultants",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click the Available Capacity card. Review the consultant list in the modal.",
+    "expected": "Only consultants with booked hours < 45h this week appear. No consultant booked at 45h or above is in the list."
+  },
+  {
+    "id": "cap-04",
+    "area": "Available Capacity KPI",
+    "title": "Drilldown grouped by level — correct order, no 'Other' bucket",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click the Available Capacity card. Check the level group headers in the modal.",
+    "expected": "Groups appear in order: Partner/Principal/Managing Director → Senior Manager → Manager → Senior Consultant → Consultant → Analyst. No 'Other' bucket appears."
+  },
+  {
+    "id": "cap-05",
+    "area": "Available Capacity KPI",
+    "title": "Within each level group, consultants sorted by most available first",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click the Available Capacity card. Expand a level group with multiple consultants.",
+    "expected": "Consultants within the group are sorted by lowest booked hours first (most available at top). A consultant with 0h booked appears above one with 20h booked."
+  },
+  {
+    "id": "cap-06",
+    "area": "Available Capacity KPI",
+    "title": "Available hours color coded by availability level",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click the Available Capacity card. Find consultants with varying available hours.",
+    "expected": "Available hours ≥ 30h shown in red (#DA291C — underutilized). 15–29h shown in yellow (#E8A317). < 15h shown in green (#86BC25 — nearly fully booked)."
+  },
+  {
+    "id": "cap-07",
+    "area": "Available Capacity KPI",
+    "title": "Bench consultant (0h booked) appears at top of level group with 45h available in red",
+    "roles": ["admin", "resource_manager"],
+    "steps": "Click the Available Capacity card. Find a consultant with no assignments this week.",
+    "expected": "The consultant shows 0h booked and 45h free. They appear at the top of their level group. The 45h free value is shown in red (#DA291C)."
+  },
+  {
+    "id": "cap-08",
+    "area": "Available Capacity KPI",
+    "title": "Available Capacity is tenant-scoped — Acme Corp shows only Acme consultants",
+    "roles": ["admin"],
+    "steps": "Log in to the Acme Corp tenant. Navigate to Overview tab. Click the Available Capacity card.",
+    "expected": "The count and drilldown list contain only Acme Corp consultants. No consultants from other tenants appear."
+  },
+  {
     "id": "rbac-01",
     "area": "RBAC",
     "title": "Admin — full access: edit heatmap, close needs, manage users",

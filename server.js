@@ -366,7 +366,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     }
   }
 
-  const levelOrder = ['Analyst', 'Consultant', 'Senior Consultant', 'Manager', 'Senior Manager', 'Partner/MD'];
+  const levelOrder = ['Analyst', 'Consultant', 'Senior Consultant', 'Manager', 'Senior Manager', 'Partner/Principal/Managing Director'];
   const utilizationByLevel = levelOrder
     .filter(l => levelWeekData[l])
     .map(level => {
@@ -429,6 +429,29 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
   }
   const benchReport = Object.entries(benchBySkill).map(([skillSet, emps]) => ({ skillSet, employees: emps }));
 
+  // ── Available Capacity list ──────────────────────────────────────────────
+  // Consultants booked < 45h this week, sorted by level hierarchy then most available first.
+  // Excludes deactivated consultants (is_active === false).
+  const consultantByName = freshData._meta.consultantByName || {};
+  const availLevelOrder  = ['Partner/Principal/Managing Director', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+  const availableConsultants = employees
+    .filter(emp => {
+      if (!emp.employeeName) return false;
+      const meta = consultantByName[emp.employeeName];
+      if (meta && meta.is_active === false) return false;
+      return (recentTotals[emp.employeeName] || 0) < 45;
+    })
+    .map(emp => {
+      const bookedHours = recentTotals[emp.employeeName] || 0;
+      return { name: emp.employeeName, level: emp.level, bookedHours, availableHours: 45 - bookedHours };
+    })
+    .sort((a, b) => {
+      const li = availLevelOrder.indexOf(a.level);
+      const lj = availLevelOrder.indexOf(b.level);
+      if (li !== lj) return (li < 0 ? 99 : li) - (lj < 0 ? 99 : lj);
+      return a.bookedHours - b.bookedHours; // lowest booked = most available first
+    });
+
   // ── c. Cliffs ────────────────────────────────────────────────────────────
   // For each week: booked = sum of hours per employee; capacity = headcount × 45 (flat)
   const cliffHeadcount = empAverages.length;
@@ -470,7 +493,7 @@ app.get('/api/dashboard', requireRole('admin', 'resource_manager', 'project_mana
     if (proj.clientName) projectClientMap[name] = proj.clientName;
   }
 
-  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, cliffs, openNeeds, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById), projectClientMap } });
+  res.json({ utilizationByLevel, overallUtilizationPct, windowTotalHours, windowCapacity, benchReport, availableConsultants, cliffs, openNeeds, _meta: { weekKeyToDate: freshData._meta.weekKeyToDate, skillSets: Object.values(freshData._meta.skillSetById), projectClientMap } });
 });
 
 // GET /api/heatmap
@@ -553,7 +576,7 @@ app.get('/api/heatmap', requireRole('admin', 'resource_manager', 'project_manage
     }
   }
 
-  const levelOrder = ['Partner/MD', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
+  const levelOrder = ['Partner/Principal/Managing Director', 'Senior Manager', 'Manager', 'Senior Consultant', 'Consultant', 'Analyst'];
 
   const empList = Object.entries(empData).map(([name, weekMap]) => {
     const weeklyHours = weeksToShow.map(wk => {

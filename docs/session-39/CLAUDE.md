@@ -234,7 +234,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=181`, `styles.css?v=72`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=166`, `styles.css?v=72`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -253,11 +253,6 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Command palette searches allSkillSets** — not primary skill. Industry and country data requires a lazy preload from `/api/consultants` (not available at page load). Do not assume it's synchronously available.
 - **Inline confirm modal (_icmDoConfirm) must snapshot _icmCallback before calling _closeConfirm()** — `_closeConfirm()` nulls `_icmCallback`; executing the callback after closing will silently no-op. Always: `const cb = _icmCallback; _closeConfirm(); cb?.()`.
 - **Need action buttons use capture-phase event delegation on the table element** — do not use inline `onclick` on buttons inside need rows. The row click handler (toggleNeedExpansion) runs in bubble phase and intercepts button clicks; capture phase fires first and prevents this.
-- **Throwaway Supabase client for password verification** — POST /api/auth/change-password creates a fresh `createClient(URL, ANON_KEY)` for `signInWithPassword`. The shared `supabaseAuth` client mutates internal auth state on sign-in attempts, corrupting sessions. Check both `signInError` AND `signInData?.user` — Supabase returns null user with no error on bad credentials. Never call `signInWithPassword` on `supabaseAuth` or `serviceClient`.
-- **'Non-Client' label for null-client needs** — Needs donut, need rows, grouping, and sort all use `'Non-Client'` for needs from projects without a `client_id`. Do not use `'Unknown'` or `'Unassigned'`. Heatmap `'Unassigned'` for unstaffed consultants is separate and stays as-is.
-- **Two-tier expand on Open Needs** — Expand All / Collapse All operates at client group level only (instant, no API calls). Per-group client header click expands to AI match level (staggered). Do not reintroduce global expand-to-match. Button label is the source of truth for direction. Collapse expansion rows before calling `applyNeedsFilter()`.
-- **Full level name "Partner/Principal/Managing Director"** — Used in `LEVEL_ORDER`, `LEVEL_ORDER_OV`, `availLevelOrder`, `levelOrder`. Do not use `"Partner/MD"` shorthand.
-- **Settings tab visible to all roles** — Account sub-nav visible to everyone. Consultants: admin+RM. Users+Sandbox: admin only. Default panel: admin/RM → Consultants; PM/exec/consultant → Account.
 
 ---
 
@@ -282,7 +277,6 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - No email notifications
 - TENANT_ID is hard-coded per deployment (not parameterized for multi-tenant SaaS)
 - Excel import script (`import-to-supabase.js`) is one-time only
-- Location datalist is static HTML (~230 cities). To add cities, edit the `<datalist>` in `index.html` directly.
 
 ---
 
@@ -324,10 +318,6 @@ Completed in Pilot:
 - #219 — Donut tooltip collision with open needs count (UAT bug) ✓
 - #213 — Tester onboarding (4 users, 4 tenants) ✓
 - #214 — Overview tab UX/UI audit + redesign ✓
-- #243 — Change Password section (Settings → Account, all roles) ✓
-- #240 — Open Needs donut: Non-Client label for null-client needs ✓
-- #241 — Location autocomplete: native datalist (~230 cities) ✓
-- #239 — Available Capacity KPI: filtered <45h, level-grouped, heatmap colors ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.

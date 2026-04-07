@@ -100,7 +100,7 @@ async function readStaffingData(userToken, _client = null, tenantId = null) {
     // ── 3. Consultants + their skill sets ────────────────────────────────────
     const { data: consultantsData, error: consultantsErr } = await supabase
       .from('consultants')
-      .select('id, name, level_id, location, industry, country, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable')
+      .select('id, name, level_id, location, industry, country, capacity_hours_per_week, cost_rate_override, bill_rate_override, is_billable, is_active')
       .eq('tenant_id', tid);
     if (consultantsErr) throw consultantsErr;
 

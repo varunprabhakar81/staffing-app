@@ -249,17 +249,17 @@
       <!-- Hero KPI Cards -->
       <div class="ov-kpi-row">
 
-        <!-- Card 1: Available Capacity % -->
+        <!-- Card 1: Available Capacity -->
         <div class="ov-card" id="overviewAvailCard"
-             onclick="drillHeadcount()" title="Click for headcount breakdown">
-          <div class="ov-card-label">Available Capacity %</div>
+             onclick="drillAvailCapacity()" title="Click for availability breakdown">
+          <div class="ov-card-label">Available Capacity</div>
           <div class="ov-card-main">
             <div class="ov-card-left">
               <div class="ov-num-row">
                 <span class="ov-num" id="overviewAvailHours">—</span>
-                <span class="ov-unit">%</span>
+                <span class="ov-unit">people</span>
               </div>
-              <p class="ov-secondary" id="overviewAvailSecondary">— unbooked</p>
+              <p class="ov-secondary" id="overviewAvailSecondary">with capacity this week</p>
             </div>
           </div>
           <p class="ov-card-trend" id="overviewAvailTrend">Loading…</p>
@@ -949,10 +949,257 @@
           <div>
             <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">LOCATION</label>
             <div style="position:relative">
-              <input id="cpLocation" type="text" autocomplete="off" placeholder="e.g. New York, NY"
+              <input id="cpLocation" type="text" list="cpLocationOptions" placeholder="e.g. Detroit, MI or Remote"
                 style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
                 onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-              <ul id="cpLocationDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;margin:2px 0 0;padding:4px 0;list-style:none;background:#1A1D27;border:1px solid rgba(255,255,255,.15);border-radius:8px;max-height:200px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5)"></ul>
+              <datalist id="cpLocationOptions">
+                <option value="Remote">
+                <!-- US Cities -->
+                <option value="New York, NY">
+                <option value="Los Angeles, CA">
+                <option value="Chicago, IL">
+                <option value="Houston, TX">
+                <option value="Phoenix, AZ">
+                <option value="Philadelphia, PA">
+                <option value="San Antonio, TX">
+                <option value="San Diego, CA">
+                <option value="Dallas, TX">
+                <option value="San Jose, CA">
+                <option value="Austin, TX">
+                <option value="Jacksonville, FL">
+                <option value="Fort Worth, TX">
+                <option value="Columbus, OH">
+                <option value="Charlotte, NC">
+                <option value="Indianapolis, IN">
+                <option value="San Francisco, CA">
+                <option value="Seattle, WA">
+                <option value="Denver, CO">
+                <option value="Nashville, TN">
+                <option value="Oklahoma City, OK">
+                <option value="El Paso, TX">
+                <option value="Washington, DC">
+                <option value="Boston, MA">
+                <option value="Memphis, TN">
+                <option value="Louisville, KY">
+                <option value="Portland, OR">
+                <option value="Las Vegas, NV">
+                <option value="Milwaukee, WI">
+                <option value="Albuquerque, NM">
+                <option value="Tucson, AZ">
+                <option value="Fresno, CA">
+                <option value="Sacramento, CA">
+                <option value="Mesa, AZ">
+                <option value="Kansas City, MO">
+                <option value="Atlanta, GA">
+                <option value="Omaha, NE">
+                <option value="Colorado Springs, CO">
+                <option value="Raleigh, NC">
+                <option value="Long Beach, CA">
+                <option value="Virginia Beach, VA">
+                <option value="Minneapolis, MN">
+                <option value="Tampa, FL">
+                <option value="New Orleans, LA">
+                <option value="Arlington, TX">
+                <option value="Bakersfield, CA">
+                <option value="Honolulu, HI">
+                <option value="Anaheim, CA">
+                <option value="Aurora, CO">
+                <option value="Santa Ana, CA">
+                <option value="Corpus Christi, TX">
+                <option value="Riverside, CA">
+                <option value="Lexington, KY">
+                <option value="St. Louis, MO">
+                <option value="Pittsburgh, PA">
+                <option value="Stockton, CA">
+                <option value="Anchorage, AK">
+                <option value="Cincinnati, OH">
+                <option value="St. Paul, MN">
+                <option value="Greensboro, NC">
+                <option value="Toledo, OH">
+                <option value="Newark, NJ">
+                <option value="Plano, TX">
+                <option value="Henderson, NV">
+                <option value="Orlando, FL">
+                <option value="Chandler, AZ">
+                <option value="Fort Wayne, IN">
+                <option value="St. Petersburg, FL">
+                <option value="Laredo, TX">
+                <option value="Norfolk, VA">
+                <option value="Madison, WI">
+                <option value="Durham, NC">
+                <option value="Lubbock, TX">
+                <option value="Winston-Salem, NC">
+                <option value="Garland, TX">
+                <option value="Glendale, AZ">
+                <option value="Hialeah, FL">
+                <option value="Reno, NV">
+                <option value="Baton Rouge, LA">
+                <option value="Irvine, CA">
+                <option value="Chesapeake, VA">
+                <option value="Irving, TX">
+                <option value="Scottsdale, AZ">
+                <option value="North Las Vegas, NV">
+                <option value="Fremont, CA">
+                <option value="Gilbert, AZ">
+                <option value="San Bernardino, CA">
+                <option value="Birmingham, AL">
+                <option value="Boise, ID">
+                <option value="Rochester, NY">
+                <option value="Richmond, VA">
+                <option value="Spokane, WA">
+                <option value="Des Moines, IA">
+                <option value="Montgomery, AL">
+                <option value="Modesto, CA">
+                <option value="Fayetteville, NC">
+                <option value="Tacoma, WA">
+                <option value="Shreveport, LA">
+                <option value="Fontana, CA">
+                <option value="Moreno Valley, CA">
+                <option value="Glendale, CA">
+                <option value="Akron, OH">
+                <option value="Yonkers, NY">
+                <option value="Huntington Beach, CA">
+                <option value="Little Rock, AR">
+                <option value="Augusta, GA">
+                <option value="Columbus, GA">
+                <option value="Grand Rapids, MI">
+                <option value="Oxnard, CA">
+                <option value="Tallahassee, FL">
+                <option value="Huntsville, AL">
+                <option value="Worcester, MA">
+                <option value="Knoxville, TN">
+                <option value="Newport News, VA">
+                <option value="Providence, RI">
+                <option value="Fort Lauderdale, FL">
+                <option value="Brownsville, TX">
+                <option value="Santa Clarita, CA">
+                <option value="Garden Grove, CA">
+                <option value="Oceanside, CA">
+                <option value="Chattanooga, TN">
+                <option value="Fort Collins, CO">
+                <option value="Springfield, MO">
+                <option value="Rancho Cucamonga, CA">
+                <option value="Santa Rosa, CA">
+                <option value="Salem, OR">
+                <option value="Ontario, CA">
+                <option value="Elk Grove, CA">
+                <option value="Peoria, AZ">
+                <option value="Tempe, AZ">
+                <option value="Cape Coral, FL">
+                <option value="Cary, NC">
+                <option value="Eugene, OR">
+                <option value="Overland Park, KS">
+                <option value="Clarksville, TN">
+                <option value="Pembroke Pines, FL">
+                <option value="Hartford, CT">
+                <option value="Springfield, MA">
+                <option value="Syracuse, NY">
+                <option value="Vancouver, WA">
+                <option value="Corona, CA">
+                <option value="Springfield, IL">
+                <option value="Pasadena, CA">
+                <option value="Hayward, CA">
+                <option value="Paterson, NJ">
+                <option value="Sunnyvale, CA">
+                <option value="Salinas, CA">
+                <option value="Kansas City, KS">
+                <option value="Palmdale, CA">
+                <option value="Torrance, CA">
+                <option value="Pomona, CA">
+                <option value="Escondido, CA">
+                <option value="Jackson, MS">
+                <option value="Bridgeport, CT">
+                <option value="Alexandria, VA">
+                <option value="Roseville, CA">
+                <option value="Lakewood, CO">
+                <option value="Savannah, GA">
+                <option value="Surprise, AZ">
+                <option value="Warren, MI">
+                <option value="Mesquite, TX">
+                <option value="Pasadena, TX">
+                <option value="Macon, GA">
+                <option value="Hollywood, FL">
+                <option value="Kansas City, KS">
+                <option value="Sunnyvale, CA">
+                <option value="Bellevue, WA">
+                <option value="Detroit, MI">
+                <option value="Louisville, KY">
+                <option value="Baltimore, MD">
+                <option value="Miami, FL">
+                <option value="Minneapolis, MN">
+                <option value="Cleveland, OH">
+                <option value="New Haven, CT">
+                <option value="Buffalo, NY">
+                <option value="Pittsburgh, PA">
+                <option value="Portland, ME">
+                <option value="Salt Lake City, UT">
+                <option value="Tucson, AZ">
+                <option value="Albuquerque, NM">
+                <option value="Oakland, CA">
+                <option value="Tampa, FL">
+                <option value="Minneapolis, MN">
+                <!-- Consulting hubs -->
+                <option value="McLean, VA">
+                <option value="Tysons, VA">
+                <option value="Stamford, CT">
+                <option value="Hoboken, NJ">
+                <option value="Jersey City, NJ">
+                <option value="Princeton, NJ">
+                <option value="Bethesda, MD">
+                <option value="Alpharetta, GA">
+                <option value="Plano, TX">
+                <option value="Lake Mary, FL">
+                <option value="Rosslyn, VA">
+                <option value="Reston, VA">
+                <option value="Herndon, VA">
+                <option value="Troy, MI">
+                <option value="Southfield, MI">
+                <option value="Schaumburg, IL">
+                <option value="Westchester, NY">
+                <option value="Short Hills, NJ">
+                <option value="Parsippany, NJ">
+                <option value="Morristown, NJ">
+                <option value="Iselin, NJ">
+                <option value="Edison, NJ">
+                <option value="Florham Park, NJ">
+                <option value="Conshohocken, PA">
+                <option value="King of Prussia, PA">
+                <option value="Tysons Corner, VA">
+                <option value="Rockville, MD">
+                <option value="Columbia, MD">
+                <option value="Annapolis, MD">
+                <option value="Wilmington, DE">
+                <option value="Hartford, CT">
+                <option value="Norwalk, CT">
+                <option value="Greenwich, CT">
+                <option value="Westport, CT">
+                <option value="Overland Park, KS">
+                <option value="Sugar Land, TX">
+                <option value="The Woodlands, TX">
+                <option value="Frisco, TX">
+                <option value="Irving, TX">
+                <!-- India -->
+                <option value="Mumbai, India">
+                <option value="Delhi, India">
+                <option value="Bangalore, India">
+                <option value="Hyderabad, India">
+                <option value="Chennai, India">
+                <option value="Kolkata, India">
+                <option value="Pune, India">
+                <option value="Ahmedabad, India">
+                <option value="Jaipur, India">
+                <option value="Lucknow, India">
+                <option value="Chandigarh, India">
+                <option value="Noida, India">
+                <option value="Gurugram, India">
+                <option value="Kochi, India">
+                <option value="Indore, India">
+                <option value="Coimbatore, India">
+                <option value="Thiruvananthapuram, India">
+                <option value="Visakhapatnam, India">
+                <option value="Nagpur, India">
+                <option value="Bhopal, India">
+              </datalist>
             </div>
           </div>
           <div>
@@ -1360,6 +1607,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=171"></script>
+  <script src="app.js?v=181"></script>
 </body>
 </html>
