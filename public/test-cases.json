@@ -760,6 +760,54 @@
     "expected": "All 3 inputs and the button become enabled again. The green success message disappears. The form is ready to accept another password change."
   },
   {
+    "id": "don-01",
+    "area": "Open Needs Donut",
+    "title": "Meridian: no 'Unknown' segment — internal projects show as 'Non-Client'",
+    "roles": ["admin"],
+    "steps": "Log in to the Meridian tenant (vaprabhakar@deloitte.com). Navigate to Open Needs tab. Inspect the donut chart segments.",
+    "expected": "No segment labelled 'Unknown'. Needs from Pre-Sales Support and Internal Training appear under a segment labelled 'Non-Client'. All other segments show named clients."
+  },
+  {
+    "id": "don-02",
+    "area": "Open Needs Donut",
+    "title": "Meridian: clicking 'Non-Client' segment filters rows to non-client needs",
+    "roles": ["admin"],
+    "steps": "On the Meridian Open Needs tab, click the 'Non-Client' donut segment.",
+    "expected": "The needs table filters to show only needs belonging to projects without a client (Pre-Sales Support, Internal Training). At least one row is visible. Named-client needs are hidden."
+  },
+  {
+    "id": "don-03",
+    "area": "Open Needs Donut",
+    "title": "Meridian: clicking a named client segment filters rows to that client only",
+    "roles": ["admin"],
+    "steps": "On the Meridian Open Needs tab, click any named client segment (not 'Non-Client') in the donut chart.",
+    "expected": "The needs table shows only needs for that client. The count of visible rows matches the segment count shown in the donut tooltip."
+  },
+  {
+    "id": "don-04",
+    "area": "Open Needs Donut",
+    "title": "Clicking the active segment again clears the filter",
+    "roles": ["admin"],
+    "steps": "On the Meridian Open Needs tab, click a donut segment to filter. Then click the same segment again.",
+    "expected": "The filter clears. All open needs are visible again. No segment remains highlighted."
+  },
+  {
+    "id": "don-05",
+    "area": "Open Needs Donut",
+    "title": "Acme Corp donut shows only named client segments — no 'Non-Client' or 'Unknown'",
+    "roles": ["admin"],
+    "steps": "Log in to the Acme Corp tenant. Navigate to Open Needs tab. Inspect the donut chart segments.",
+    "expected": "All segments show named clients. No 'Non-Client' or 'Unknown' segment appears."
+  },
+  {
+    "id": "don-06",
+    "area": "Open Needs Donut",
+    "title": "Acme Corp: donut click filter works correctly",
+    "roles": ["admin"],
+    "steps": "On the Acme Corp Open Needs tab, click any client segment in the donut chart.",
+    "expected": "The needs table filters to show only that client's needs. Click the same segment again to clear. All needs reappear."
+  },
+  {
     "id": "rbac-01",
     "area": "RBAC",
     "title": "Admin — full access: edit heatmap, close needs, manage users",
