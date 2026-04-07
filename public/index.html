@@ -682,72 +682,88 @@
           onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">✕</button>
       </div>
 
-      <form id="inviteForm" onsubmit="submitInvite(event)">
+      <!-- Form section (hidden when showing result from resend/reset) -->
+      <div id="inviteFormSection">
+        <form id="inviteForm" onsubmit="submitInvite(event)">
 
-        <!-- Full Name -->
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">FULL NAME</label>
-          <input name="name" type="text" placeholder="Jane Smith" required
-            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          <!-- Full Name -->
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">FULL NAME</label>
+            <input name="name" type="text" placeholder="Jane Smith" required
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </div>
+
+          <!-- Email -->
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">EMAIL ADDRESS</label>
+            <input name="email" type="email" placeholder="jane@example.com" required
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+          </div>
+
+          <!-- Role -->
+          <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">ROLE</label>
+            <select name="role" required
+              style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
+              onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+              <option value="">Select a role…</option>
+              <option value="admin">Admin</option>
+              <option value="resource_manager">Resource Manager</option>
+              <option value="project_manager">Project Manager</option>
+              <option value="executive">Executive</option>
+              <option value="consultant">Consultant</option>
+              <option value="finance">Finance</option>
+              <option value="recruiter">Recruiter</option>
+            </select>
+          </div>
+
+          <!-- Error -->
+          <div id="inviteError" class="hidden"
+            style="margin-bottom:14px;padding:9px 12px;background:rgba(255,99,99,.12);border:1px solid rgba(255,99,99,.3);border-radius:8px;font-size:12px;color:#FCA5A5"></div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px">
+            <button type="button" onclick="closeInviteModal()"
+              style="padding:8px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#CBD5E0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"
+              onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+              Cancel
+            </button>
+            <button type="submit" id="inviteSubmitBtn"
+              style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:108px"
+              onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+              Generate Invite Link
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Invite / Reset URL result (shown after successful invite, resend, or reset) -->
+      <div id="inviteResult" class="hidden">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div style="width:32px;height:32px;background:rgba(134,188,37,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.5 3.5 6.5-7" stroke="#86BC25" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div id="inviteResultHeading" style="font-size:14px;font-weight:600;color:#E2E8F0">Invite Created</div>
+            <div id="inviteResultInfo" style="font-size:12px;color:#8892B0;margin-top:2px"></div>
+          </div>
         </div>
-
-        <!-- Email -->
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">EMAIL ADDRESS</label>
-          <input name="email" type="email" placeholder="jane@example.com" required
-            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-        </div>
-
-        <!-- Role -->
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">ROLE</label>
-          <select name="role" required
-            style="width:100%;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#E2E8F0;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box;appearance:none;cursor:pointer"
-            onfocus="this.style.borderColor='#A8C7FA'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-            <option value="">Select a role…</option>
-            <option value="admin">Admin</option>
-            <option value="resource_manager">Resource Manager</option>
-            <option value="project_manager">Project Manager</option>
-            <option value="executive">Executive</option>
-            <option value="consultant">Consultant</option>
-            <option value="finance">Finance</option>
-            <option value="recruiter">Recruiter</option>
-          </select>
-        </div>
-
-        <!-- Error -->
-        <div id="inviteError" class="hidden"
-          style="margin-bottom:14px;padding:9px 12px;background:rgba(255,99,99,.12);border:1px solid rgba(255,99,99,.3);border-radius:8px;font-size:12px;color:#FCA5A5"></div>
-
-        <!-- Actions -->
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:24px">
-          <button type="button" onclick="closeInviteModal()"
-            style="padding:8px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#CBD5E0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"
-            onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
-            Cancel
-          </button>
-          <button type="submit" id="inviteSubmitBtn"
-            style="padding:8px 18px;background:#A8C7FA;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;min-width:108px"
-            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-            Generate Invite Link
-          </button>
-        </div>
-
-      </form>
-
-      <!-- Invite URL result (shown after successful invite) -->
-      <div id="inviteResult" class="hidden" style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
-        <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">INVITE LINK</label>
+        <label style="display:block;font-size:12px;font-weight:500;color:#8892B0;margin-bottom:6px;letter-spacing:.04em">LINK (valid 7 days)</label>
         <div style="display:flex;gap:8px;align-items:flex-start">
           <textarea id="inviteUrlText" readonly rows="3"
             style="flex:1;padding:9px 12px;background:#0F1117;border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#A8C7FA;font-size:12px;font-family:monospace;outline:none;resize:none;word-break:break-all"></textarea>
           <button onclick="copyInviteLink()"
             style="flex-shrink:0;padding:9px 14px;background:rgba(168,199,250,.1);border:1px solid rgba(168,199,250,.25);border-radius:8px;color:#A8C7FA;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap"
-            id="copyInviteBtn">Copy</button>
+            id="copyInviteBtn">Copy Invite Link</button>
         </div>
-        <p style="margin-top:8px;font-size:11px;color:#6B7280">Share this link with the user. It expires in 24 hours.</p>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px">
+          <button onclick="closeInviteModal()"
+            style="padding:8px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#CBD5E0;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit"
+            onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">Done</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1307,6 +1323,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=163"></script>
+  <script src="app.js?v=166"></script>
 </body>
 </html>

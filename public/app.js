@@ -3969,7 +3969,7 @@ async function loadUsers() {
 function _renderActiveRow(u) {
   const roleColor  = UM_ROLE_COLORS[u.role] || '#8892B0';
   const roleLabel  = UM_ROLE_LABELS[u.role] || (u.role || '—');
-  const isInvited  = u.status === 'pending';
+  const isInvited  = !u.last_sign_in_at;
 
   const roleOptions = Object.entries(UM_ROLE_LABELS)
     .map(([val, label]) => `<option value="${val}"${u.role === val ? ' selected' : ''}>${label}</option>`)
@@ -3994,7 +3994,10 @@ function _renderActiveRow(u) {
        <button onclick="cancelInvite('${_esc(u.id)}')"
          style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#EF4444;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(239,68,68,.06)'" onmouseout="this.style.background='transparent'">Cancel Invite</button>`
-    : `<button onclick="deactivateUser('${_esc(u.id)}')"
+    : `<button onclick="resetPassword('${_esc(u.id)}')"
+         style="height:32px;padding:0 12px;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:6px;color:#9CA3AF;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
+         onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='transparent'">Reset Password</button>
+       <button onclick="deactivateUser('${_esc(u.id)}')"
          style="height:32px;padding:0 12px;background:rgba(252,165,165,.12);border:1px solid rgba(252,165,165,.25);border-radius:6px;color:#FCA5A5;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap"
          onmouseover="this.style.background='rgba(252,165,165,.22)'" onmouseout="this.style.background='rgba(252,165,165,.12)'">Deactivate</button>`;
 
@@ -4199,13 +4202,35 @@ async function resendInvite(userId) {
       showToast(data.error || 'Failed to generate invite link.', 'error');
       return;
     }
-    // Copy the new invite link to clipboard
-    try {
-      await navigator.clipboard.writeText(data.invite_url);
-      showToast('New invite link copied to clipboard.', 'success');
-    } catch (_) {
-      window.prompt('Copy this invite link:', data.invite_url);
+    const url = data.invite_url || data.inviteUrl || '';
+    document.getElementById('inviteUrlText').value = url;
+    document.getElementById('inviteResultInfo').textContent = 'New invite link generated. This link is valid for 7 days.';
+    document.getElementById('inviteResult').classList.remove('hidden');
+    document.getElementById('inviteResultHeading').textContent = 'Invite Link Regenerated';
+    document.getElementById('inviteModal').classList.remove('hidden');
+    document.getElementById('inviteFormSection').classList.add('hidden');
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+}
+
+async function resetPassword(userId) {
+  try {
+    const res = await apiFetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(data.error || 'Failed to generate reset link.', 'error');
+      return;
     }
+    const url = data.resetUrl || '';
+    document.getElementById('inviteUrlText').value = url;
+    document.getElementById('inviteResultInfo').textContent =
+      `Password reset link for ${data.email || 'user'}. This link is valid for 7 days.`;
+    document.getElementById('inviteResult').classList.remove('hidden');
+    document.getElementById('inviteResultHeading').textContent = 'Password Reset Link Created';
+    document.getElementById('copyInviteBtn').textContent = 'Copy Reset Link';
+    document.getElementById('inviteModal').classList.remove('hidden');
+    document.getElementById('inviteFormSection').classList.add('hidden');
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
   }
@@ -4728,7 +4753,10 @@ function closeInviteModal() {
   document.getElementById('inviteError').classList.add('hidden');
   document.getElementById('inviteResult').classList.add('hidden');
   document.getElementById('inviteUrlText').value = '';
-  document.getElementById('copyInviteBtn').textContent = 'Copy';
+  document.getElementById('copyInviteBtn').textContent = 'Copy Invite Link';
+  document.getElementById('inviteResultHeading').textContent = 'Invite Created';
+  document.getElementById('inviteFormSection').classList.remove('hidden');
+  loadUsers();
 }
 
 function handleInviteOverlayClick(e) {
@@ -4772,7 +4800,9 @@ async function submitInvite(e) {
       return;
     }
 
-    document.getElementById('inviteUrlText').value = data.invite_url;
+    document.getElementById('inviteUrlText').value = data.inviteUrl || data.invite_url || '';
+    document.getElementById('inviteResultInfo').textContent =
+      `${data.email} has been invited. This link is valid for 7 days.`;
     document.getElementById('inviteResult').classList.remove('hidden');
     btn.disabled    = false;
     btn.textContent = 'Generate Invite Link';

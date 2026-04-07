@@ -1643,7 +1643,7 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
         email:          u.email,
         name:           u.user_metadata?.name || u.email.split('@')[0],
         role:           u.app_metadata?.role   || null,
-        status:             u.banned_until ? 'deactivated' : (!u.email_confirmed_at ? 'pending' : 'active'),
+        status:             u.banned_until ? 'deactivated' : (!u.last_sign_in_at ? 'pending' : 'active'),
         last_sign_in_at:    u.last_sign_in_at,
         email_confirmed_at: u.email_confirmed_at,
         created_at:         u.created_at,
