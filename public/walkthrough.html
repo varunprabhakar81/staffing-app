@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staffing Intelligence — Your Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #0c0f14;
+    --bg-card: #141820;
+    --bg-card-hover: #1a1f2a;
+    --bg-elevated: #1e2430;
+    --green: #86BC25;
+    --green-dim: rgba(134, 188, 37, 0.12);
+    --green-glow: rgba(134, 188, 37, 0.25);
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0ab;
+    --text-muted: #5f6672;
+    --border: rgba(255,255,255,0.06);
+    --border-accent: rgba(134, 188, 37, 0.2);
+    --coral: #e8736c;
+    --yellow: #f5c542;
+    --blue: #5b9bf5;
+    --teal: #4ecdc4;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === HERO === */
+  .hero {
+    position: relative;
+    padding: 80px 40px 60px;
+    text-align: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -120px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid var(--border-accent);
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--text-primary) 40%, var(--green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 17px;
+    color: var(--text-secondary);
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* === LAYOUT === */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* === SECTION === */
+  section {
+    padding: 56px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  .section-desc {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+    max-width: 600px;
+  }
+
+  /* === TAB CARDS === */
+  .tab-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .tab-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab-card:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-accent);
+  }
+  .tab-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--green);
+    border-radius: 3px 0 0 3px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .tab-card:hover::before { opacity: 1; }
+
+  .tab-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .tab-icon {
+    width: 40px; height: 40px;
+    background: var(--green-dim);
+    border: 1px solid var(--border-accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .tab-name {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .tab-shortcut {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 5px;
+    margin-left: auto;
+  }
+  .tab-body {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+  .tab-body strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* === NUMBERED STEPS === */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    counter-reset: step;
+  }
+  .step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    counter-increment: step;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    background: var(--green-dim);
+    border: 1px solid var(--border-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .step-content p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+
+  /* === SHORTCUT GRID === */
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .shortcut-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .shortcut-action {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+  }
+  .shortcut-keys {
+    display: flex;
+    gap: 4px;
+  }
+  .key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+
+  /* === TIPS === */
+  .tip-box {
+    background: var(--green-dim);
+    border: 1px solid var(--border-accent);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .tip-box p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .tip-box strong {
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  /* === FOOTER === */
+  .footer {
+    text-align: center;
+    padding: 40px 32px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .footer a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  .footer a:hover { text-decoration: underline; }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 640px) {
+    .hero { padding: 48px 24px 40px; }
+    .hero h1 { font-size: 28px; }
+    .container { padding: 0 20px; }
+    .shortcut-grid { grid-template-columns: 1fr; }
+    .tab-shortcut { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Pilot Preview</div>
+  <h1>Staffing Intelligence</h1>
+  <p>Real-time resource planning for consulting teams. Here's everything you need to get started.</p>
+</div>
+
+<div class="container">
+
+  <!-- GETTING STARTED -->
+  <section>
+    <div class="section-label">First things first</div>
+    <div class="section-title">Getting Started</div>
+    <div class="section-desc">You'll receive an invite link that takes you to a Set Password page. After that, you're in. Here's what to do first.</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Set your password</h4>
+          <p>Click the invite link, choose a password, and you'll land on the main dashboard. You have <strong>admin access</strong> — full control over your tenant's data.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Explore the Overview</h4>
+          <p>Your first screen shows KPIs at a glance — utilization rates, bench count, upcoming rolloffs, and demand coverage. Click any card to drill down into the underlying data.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Open the Resource Allocation tab</h4>
+          <p>This is the heatmap — a 12-week view of every consultant's hours by project. Click any cell to edit hours inline. Changes save automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Check Open Needs</h4>
+          <p>See what roles are needed across projects. The donut chart groups needs by client. Click "Find Matches" on any need to see AI-powered consultant recommendations ranked by skill and availability.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>Ask Claude anything</h4>
+          <p>Natural language Q&A over your staffing data. Try: <em>"Who's on the bench next month?"</em> or <em>"Which projects are understaffed?"</em> — Claude reads your live data and answers in plain English.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip-box">
+      <p><strong>Pro tip:</strong> Press <span class="key">Ctrl+K</span> anywhere to open the command palette — search for consultants, skills, projects, or type <span class="key">&gt;</span> for quick actions.</p>
+    </div>
+  </section>
+
+  <!-- THE FIVE TABS -->
+  <section>
+    <div class="section-label">The App</div>
+    <div class="section-title">Five Tabs, One Dashboard</div>
+    <div class="section-desc">Each tab serves a distinct purpose in the staffing workflow.</div>
+
+    <div class="tab-grid">
+      <div class="tab-card">
+        <div class="tab-header">
+          <div class="tab-icon">📊</div>
+          <div class="tab-name">Overview</div>
+          <div class="tab-shortcut">Ctrl+1</div>
+        </div>
+        <div class="tab-body">
+          Your command center. <strong>Utilization gauge</strong> shows team-wide allocation. <strong>Bench list</strong> flags who's available. <strong>Rolloff timeline</strong> shows consultants finishing engagements soon. <strong>Demand coverage</strong> tracks how well open needs are being filled. Click any KPI card to drill into the underlying detail.
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-header">
+          <div class="tab-icon">🗓️</div>
+          <div class="tab-name">Resource Allocation</div>
+          <div class="tab-shortcut">Ctrl+2</div>
+        </div>
+        <div class="tab-body">
+          The heatmap — a 12-week grid of consultant hours. Each row is a person, each column is a week, cells show hours by project. <strong>Click any cell</strong> to edit inline. Color coding: green = healthy utilization, red = overbooked, gray = unassigned. Expand a row to see project-level breakdowns. Use <strong>Quick Fill</strong> to bulk-assign hours across a date range.
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-header">
+          <div class="tab-icon">📋</div>
+          <div class="tab-name">Open Needs</div>
+          <div class="tab-shortcut">Ctrl+3</div>
+        </div>
+        <div class="tab-body">
+          Demand pipeline. Each need is a role to fill — level, skill requirements, hours per week, date range. The <strong>donut chart</strong> groups needs by client. Expand a need to see details. <strong>Find Matches</strong> triggers the AI recommendations engine — it scores consultants on skill overlap and availability, with green/yellow/coral badges. <strong>Accept Match</strong> books the hours automatically.
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-header">
+          <div class="tab-icon">🤖</div>
+          <div class="tab-name">Ask Claude</div>
+          <div class="tab-shortcut">Ctrl+4</div>
+        </div>
+        <div class="tab-body">
+          Natural language interface to your staffing data. Ask questions like <em>"Who has SuiteScript experience and is available in May?"</em> or <em>"Show me all Senior Managers across projects."</em> Claude reads your consultants, assignments, needs, and skills in real time and responds conversationally. Suggested questions refresh based on your current data.
+        </div>
+      </div>
+
+      <div class="tab-card">
+        <div class="tab-header">
+          <div class="tab-icon">⚙️</div>
+          <div class="tab-name">Settings</div>
+          <div class="tab-shortcut">Ctrl+5</div>
+        </div>
+        <div class="tab-body">
+          Two panels: <strong>Consultants</strong> (add, edit profiles, manage skills, deactivate) and <strong>Users</strong> (invite teammates, assign roles, manage access). As an admin, you can invite others to your tenant and control who sees what.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KEYBOARD SHORTCUTS -->
+  <section>
+    <div class="section-label">Power user</div>
+    <div class="section-title">Keyboard Shortcuts</div>
+    <div class="section-desc">Navigate faster once you're comfortable.</div>
+
+    <div class="shortcut-grid">
+      <div class="shortcut-row">
+        <span class="shortcut-action">Switch tabs</span>
+        <div class="shortcut-keys"><span class="key">Ctrl+1</span><span class="key">…</span><span class="key">5</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Command palette</span>
+        <div class="shortcut-keys"><span class="key">Ctrl+K</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Quick actions</span>
+        <div class="shortcut-keys"><span class="key">></span> <span class="key">in palette</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Refresh data</span>
+        <div class="shortcut-keys"><span class="key">Alt+R</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Toggle sidebar</span>
+        <div class="shortcut-keys"><span class="key">Ctrl+B</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Shortcut help</span>
+        <div class="shortcut-keys"><span class="key">?</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Close modal</span>
+        <div class="shortcut-keys"><span class="key">Esc</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-action">Search anything</span>
+        <div class="shortcut-keys"><span class="key">/</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT THIS IS -->
+  <section>
+    <div class="section-label">Context</div>
+    <div class="section-title">What You're Testing</div>
+    <div class="section-desc">This is an early internal pilot — you're among the first people to use this outside of the development team.</div>
+
+    <div class="tab-card" style="margin-bottom: 16px;">
+      <div class="tab-body">
+        <strong>Your sandbox is pre-loaded</strong> with realistic consulting data — 25 consultants with skills, active projects, staffing assignments, and open needs. Feel free to edit, add, or delete anything. It's your space to explore.
+      </div>
+    </div>
+
+    <div class="tab-card" style="margin-bottom: 16px;">
+      <div class="tab-body">
+        <strong>Your feedback shapes the product.</strong> As you explore, note what feels intuitive, what's confusing, and what's missing. We'll be collecting structured feedback through the app's testing portal soon.
+      </div>
+    </div>
+
+    <div class="tab-card">
+      <div class="tab-body">
+        <strong>Found a bug?</strong> That's helpful too. Screenshot it and send it over — or just describe what happened and where.
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="footer">
+  <p>Staffing Intelligence — Built by Varun Prabhakar<br>
+  Questions? Reach out anytime.</p>
+</div>
+
+</body>
+</html>
