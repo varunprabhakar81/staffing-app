@@ -233,7 +233,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=158`, `styles.css?v=67`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=149`, `styles.css?v=65`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -250,9 +250,6 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **StaffingDatePicker end date quick-picks are relative to start date** — not relative to today. Start date quick-picks are relative to today. Do not make both relative to today.
 - **StaffingDatePicker start date default** — `max(project start date, today)`, snapped to the next Saturday. No static default.
 - **Command palette searches allSkillSets** — not primary skill. Industry and country data requires a lazy preload from `/api/consultants` (not available at page load). Do not assume it's synchronously available.
-- **Inline confirm modal (_icmDoConfirm) must snapshot _icmCallback before calling _closeConfirm()** — `_closeConfirm()` nulls `_icmCallback`; executing the callback after closing will silently no-op. Always: `const cb = _icmCallback; _closeConfirm(); cb?.()`.
-- **generateLink writes to user_metadata, not app_metadata** — always follow `generateLink` with `updateUserById` to promote `tenant_id` and `role` into `app_metadata`. RLS and tenant listing both depend on `app_metadata`.
-- **Need action buttons use capture-phase event delegation on the table element** — do not use inline `onclick` on buttons inside need rows. The row click handler (toggleNeedExpansion) runs in bubble phase and intercepts button clicks; capture phase fires first and prevents this.
 
 ---
 
@@ -293,9 +290,6 @@ Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
 - #183 — Contextual tooltips
 - #184 — Admin getting-started checklist
 - #182 — In-app onboarding tour
-- #220 — needs-21: Bulk assign UI — no row-select mechanism (enhancement, medium)
-- #221 — heatmap-09: Quick Fill date input needs StaffingDatePicker (enhancement, low)
-- #222 — settings-c-08: Deactivate consultant uses browser confirm() (enhancement, low)
 
 Completed in Pilot:
 - #195 — Per-tenant sandboxes + personalization ✓
@@ -313,11 +307,6 @@ Completed in Pilot:
 - #209 — Overview mini donut — removed ✓
 - #211 — Date picker redesign — week-snapping custom picker ✓
 - #212 — Testing lifecycle: retest workflow + admin review dashboard ✓
-- #215 — Bulk add need validation (UAT bug) ✓
-- #216 — Close Need buttons — ✓ Met and ✗ Abandon (UAT bug) ✓
-- #217 — Deactivate user shows 'User is banned' (UAT bug) ✓
-- #218 — Invite metadata promotion via updateUserById (UAT bug) ✓
-- #219 — Donut tooltip collision with open needs count (UAT bug) ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
@@ -326,4 +315,3 @@ Gate: at least 3 unsolicited feature requests from pilot users.
 - #118 — Audit log
 - #172 — Client hierarchy
 - #193 Ph2 — Project heatmap interactive editing (deferred from Pilot)
-- #203 — Configure custom SMTP for branded emails
