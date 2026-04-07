@@ -42,18 +42,18 @@
   {
     "id": "auth-06",
     "area": "Authentication",
-    "title": "Set password via invite token — promotes role metadata",
+    "title": "Set Password page — valid invite token shows welcome form",
     "roles": ["admin"],
-    "steps": "Open an invite link (generated in Settings → Users). The link should go to set-password.html with token type 'invite'. Enter a new password and confirm. Submit.",
-    "expected": "Page shows 'Set Your Password' heading. After submit, user is redirected to the app. Role and tenant metadata are applied. Sidebar shows correct role badge."
+    "steps": "Generate an invite link in Settings → Users. Open the invite URL (format: /set-password.html?invite=<uuid>) in an incognito browser window.",
+    "expected": "Page shows 'Welcome to Staffing Intelligence' heading, tenant name, role, and the invited email (non-editable). Password and Confirm Password fields are present. 'Set Password & Sign In' button is visible."
   },
   {
     "id": "auth-07",
     "area": "Authentication",
-    "title": "Set password via recovery token — password reset only",
+    "title": "Set Password page — successful submission redirects to login",
     "roles": ["admin"],
-    "steps": "Trigger a password reset for a user. Open the reset link (set-password.html with token type 'recovery'). Enter a new password and confirm. Submit.",
-    "expected": "Page shows 'Reset Your Password' heading (not 'Set Your Password'). After submit, user can log in with the new password. Role metadata is not altered."
+    "steps": "On the set-password.html page with a valid invite token, enter a matching password (8+ characters) in both fields. Click 'Set Password & Sign In'.",
+    "expected": "Shows 'Password set! Redirecting to login…' message. Automatically redirects to login.html within 2 seconds. User can then log in with the new password."
   },
   {
     "id": "overview-01",
@@ -546,10 +546,10 @@
   {
     "id": "settings-u-03",
     "area": "Settings: Users",
-    "title": "Invite user generates an invite link, no password field",
+    "title": "Invite user — modal shows copyable link with 7-day TTL",
     "roles": ["admin"],
-    "steps": "In Settings → Users, click Invite User. Fill in full name, email, and a role. Click Send Invite.",
-    "expected": "An invite link is generated and displayed. No password field is present on the invite form. The new user appears in the list with a 'Pending' status."
+    "steps": "In Settings → Users, click Invite User. Fill in full name, email, and a role. Click Generate Invite Link.",
+    "expected": "Success modal shows a green checkmark, 'Invite Created' heading, the invited email, a copyable invite URL, and 'valid for 7 days' note. 'Copy Invite Link' button works. Clicking Done closes the modal and refreshes the user list."
   },
   {
     "id": "settings-u-04",
@@ -578,10 +578,50 @@
   {
     "id": "settings-u-07",
     "area": "Settings: Users",
-    "title": "Resend invite for pending user",
+    "title": "Pending badge based on last sign-in (never signed in = Pending)",
+    "roles": ["admin"],
+    "steps": "In Settings → Users, invite a new user but do not complete the set-password flow. View the user list.",
+    "expected": "The newly invited user shows a 'Pending' badge (orange/yellow). Users who have logged in at least once show an 'Active' badge (green)."
+  },
+  {
+    "id": "settings-u-08",
+    "area": "Settings: Users",
+    "title": "Resend Invite — pending user gets a new link",
     "roles": ["admin"],
     "steps": "In Settings → Users, find a user with 'Pending' status. Click Resend Invite.",
-    "expected": "A new invite link is generated and displayed. The user's pending status remains."
+    "expected": "Modal opens showing 'Invite Link Regenerated' with a new copyable invite URL valid for 7 days. The old invite link is no longer valid."
+  },
+  {
+    "id": "settings-u-09",
+    "area": "Settings: Users",
+    "title": "Reset Password — active user gets a password reset link",
+    "roles": ["admin"],
+    "steps": "In Settings → Users, find an Active user. Click Reset Password.",
+    "expected": "Modal opens showing 'Password Reset Link Created' with a copyable URL. Sharing this URL with the user lets them set a new password via set-password.html."
+  },
+  {
+    "id": "settings-u-10",
+    "area": "Settings: Users",
+    "title": "Invite user — duplicate active email shows error",
+    "roles": ["admin"],
+    "steps": "In Settings → Users, try to invite an email address that already belongs to an active user (last_sign_in_at not null).",
+    "expected": "Error message shown: 'User is already active. Use Reset Password instead.' No duplicate user is created."
+  },
+  {
+    "id": "settings-u-11",
+    "area": "Settings: Users",
+    "title": "Set Password page — validation errors shown inline",
+    "roles": ["admin"],
+    "steps": "Open a valid invite URL. First try submitting with passwords that do not match. Then try a password shorter than 8 characters.",
+    "expected": "Mismatched passwords shows 'Passwords do not match.' Short password shows 'Password must be at least 8 characters.' Form does not submit in either case."
+  },
+  {
+    "id": "settings-u-12",
+    "area": "Settings: Users",
+    "title": "Set Password page — expired or invalid token shows error",
+    "roles": ["admin"],
+    "steps": "Navigate to /set-password.html with no token (?invite= missing), or with a fake UUID. Also test revisiting an already-used invite URL after password was set.",
+    "expected": "Page shows an error heading ('Link Expired' or 'Invalid Link') with a message and a mailto:vaprabhakar@deloitte.com link. No password form is shown."
   },
   {
     "id": "rbac-01",
