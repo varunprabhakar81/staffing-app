@@ -424,6 +424,14 @@
     }
     .tp-fb-panel-body textarea:focus { border-color: var(--accent); }
     .tp-fb-panel-body textarea:read-only { opacity: 0.6; cursor: default; }
+    .tp-fb-panel-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+    .tp-fb-save-btn {
+      padding: 5px 14px; font-size: 12px; font-weight: 600; border-radius: 5px;
+      border: none; background: var(--accent); color: #fff; cursor: pointer; font-family: var(--font);
+    }
+    .tp-fb-save-btn:hover { background: #22b584; }
+    .tp-fb-save-btn:disabled { opacity: 0.5; cursor: default; }
+    .tp-fb-saved-note { font-size: 12px; color: var(--pass); }
     .tp-fb-submitted-note { font-size: 11px; color: var(--pass); margin-top: 7px; flex-shrink: 0; }
 
     /* ── Admin detail: general feedback block ── */
@@ -746,6 +754,10 @@
             <div class="tp-fb-panel-sub">Anything about the app — bugs, ideas, impressions</div>
             <div class="tp-fb-panel-body">
               <textarea id="generalFeedbackTextarea" rows="5" placeholder="Optional — share anything that didn't fit a specific test…"></textarea>
+              <div class="tp-fb-panel-footer" id="feedbackPanelFooter">
+                <span class="tp-fb-saved-note hidden" id="feedbackSavedNote">✓ Saved</span>
+                <button class="tp-fb-save-btn" id="feedbackSaveBtn">Save</button>
+              </div>
               <div class="tp-fb-submitted-note hidden" id="feedbackSubmittedNote">Your feedback has been submitted.</div>
             </div>
           </div>
@@ -1063,7 +1075,20 @@ function confirm(title, msg, okLabel, okClass, cb) {
   });
 
   document.getElementById('feedbackClose').addEventListener('click', () => {
+    saveGeneralFeedback(); // ensure save on close (also fires from blur, harmless duplicate)
     document.getElementById('feedbackPanel').classList.remove('open');
+  });
+
+  document.getElementById('feedbackSaveBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('feedbackSaveBtn');
+    btn.disabled = true;
+    await saveGeneralFeedback();
+    btn.disabled = false;
+    const note = document.getElementById('feedbackSavedNote');
+    if (note) {
+      note.classList.remove('hidden');
+      setTimeout(() => note.classList.add('hidden'), 2000);
+    }
   });
 })();
 
@@ -1196,6 +1221,7 @@ function openFeedbackPanel() {
     panel.style.left = left + 'px';
   }
   panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderGeneralFeedback();
 }
 
 // ── My Summary panel ──────────────────────────────────────────────────────
@@ -1562,14 +1588,18 @@ function renderGeneralFeedback() {
   if (!ta) return;
   const val = myResults['general-feedback']?.notes || '';
   ta.value = val;
+  const footer = document.getElementById('feedbackPanelFooter');
+  const saveBtn = document.getElementById('feedbackSaveBtn');
   if (isSubmitted) {
     ta.readOnly = true;
-    if (badge) badge.classList.remove('hidden');
-    if (note)  note.classList.remove('hidden');
+    if (badge)   badge.classList.remove('hidden');
+    if (note)    note.classList.remove('hidden');
+    if (footer)  footer.classList.add('hidden');
   } else {
     ta.readOnly = false;
-    if (badge) badge.classList.add('hidden');
-    if (note)  note.classList.add('hidden');
+    if (badge)   badge.classList.add('hidden');
+    if (note)    note.classList.add('hidden');
+    if (footer)  footer.classList.remove('hidden');
     ta.removeEventListener('blur', saveGeneralFeedback);
     ta.addEventListener('blur', saveGeneralFeedback);
   }
