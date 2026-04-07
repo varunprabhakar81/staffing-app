@@ -21,36 +21,50 @@ Gate to V3: at least 3 unsolicited feature requests from pilot users.
 | Nick Kolbow | nkolbow@deloitte.com | Summit LLC | admin |
 | Surendra Kumar | surendkumar@deloitte.com | Meridian Consulting | resource_manager |
 
-### Pilot milestone (open issues — prioritized)
+### Pilot milestone (open issues — restacked)
+
+**Tier 1: Bugs + blockers (Session 39 — do first)**
 | Priority | Issue | Description | Effort |
 |----------|-------|-------------|--------|
-| 1 | — | Finish UAT Round 1: Cross-cutting (8), RBAC (22), Sandbox Reset (5), Tenant Isolation (5) | Medium |
-| 2 | — | Post-UAT failure report → batch fix → retest | Medium |
-| 3 | #243 | Settings: Change Password section for all users | Medium |
+| 1 | #243 | Settings: Change Password section for all users | Medium |
+| 2 | #240 | Open Needs: Unknown donut segment — needs without client/project | Medium |
+| 3 | #241 | Settings: Consultant location autocomplete — incomplete city list | Small |
 | 4 | #239 | Overview: Available Capacity KPI — only <45h, sorted by availability | Medium |
-| 5 | #240 | Open Needs: Unknown donut segment — needs without client/project | Medium |
+| 5 | #231 | Testing portal: retest requires double-press to pass | Small |
+
+**Tier 2: First impression (Session 39 — if time allows)**
+| Priority | Issue | Description | Effort |
+|----------|-------|-------------|--------|
 | 6 | #204 | Main app header redesign | Medium |
 | 7 | #238 | Command palette: Consultant result → Resource Allocation row | Medium |
 | 8 | #237 | Command palette: Search open needs + rename Projects label | Medium |
-| 9 | #193 Ph1 | Project heatmap — read-only with consultant cross-link | Medium |
-| 10 | #242 | Overview: Wow layer — sparklines, trends, animations | Medium |
-| 11 | #241 | Settings: Consultant location autocomplete — incomplete city list | Medium |
-| 12 | #210 Ph3 | Command palette: Contextual page filters | Medium |
-| 13 | #208 | Skill set categories rethink — structured grouping | Medium-Large |
-| 14 | #231 | Testing portal: retest requires double-press to pass | Medium |
-| 15 | #233 | Testing portal: optional notes on passed test cases | Medium |
-| 16 | #230 | Closed needs section (met + abandoned) on Open Needs tab | Medium |
+
+**Tier 3: UAT completion (Session 40)**
+| Priority | Issue | Description | Effort |
+|----------|-------|-------------|--------|
+| 9 | — | Finish UAT Round 1: Cross-cutting (8), RBAC (22), Sandbox Reset (5), Tenant Isolation (5) | Medium |
+| 10 | — | Post-UAT failure report → batch fix → retest | Medium |
+
+**Tier 4: Depth + polish (backlog)**
+| Priority | Issue | Description | Effort |
+|----------|-------|-------------|--------|
+| 11 | #242 | Overview: Wow layer — sparklines, trends, animations | Medium |
+| 12 | #193 Ph1 | Project heatmap — read-only with consultant cross-link | Medium |
+| 13 | #210 Ph3 | Command palette: Contextual page filters | Medium |
+| 14 | #230 | Closed needs section (met + abandoned) on Open Needs tab | Medium |
+| 15 | #208 | Skill set categories rethink — structured grouping | Medium-Large |
+| 16 | #233 | Testing portal: optional notes on passed test cases | Medium |
 | 17 | #236 | Testing portal: visual screenshots for navigation paths | Medium |
-| 18 | #183 | Contextual tooltips | Small |
-| 19 | #184 | Admin getting-started checklist | Medium |
-| 20 | #182 | In-app onboarding tour | Medium |
-| 21 | #220 | Bulk assign UI — row-select mechanism | Medium |
-| 22 | #235 | Overview: Reintroduce project utilization KPI | Low |
-| 23 | #229 | Bulk add need: inline-on-blur validation | Low |
-| 24 | #221 | Quick Fill date input → StaffingDatePicker | Low |
-| 25 | #222 | Deactivate consultant → in-app confirm | Low |
-| 26 | #234 | Testing portal: progress bar filter | Low |
-| 27 | #232 | Audit trail for cancelled invites/closed needs | Low |
+| 18 | #234 | Testing portal: progress bar filter | Low |
+| 19 | #220 | Bulk assign UI — row-select mechanism | Medium |
+| 20 | #235 | Overview: Reintroduce project utilization KPI | Low |
+| 21 | #229 | Bulk add need: inline-on-blur validation | Low |
+| 22 | #221 | Quick Fill date input → StaffingDatePicker | Low |
+| 23 | #222 | Deactivate consultant → in-app confirm | Low |
+| 24 | #232 | Audit trail for cancelled invites/closed needs | Low |
+| 25 | #183 | Contextual tooltips | Small |
+| 26 | #184 | Admin getting-started checklist | Medium |
+| 27 | #182 | In-app onboarding tour | Medium |
 
 ### Completed this session
 - #213 — Tester onboarding: 4 users across 4 tenants ✓
@@ -186,14 +200,27 @@ Gate to V3: at least 3 unsolicited feature requests from pilot users.
 
 ## Where to Pick Up (Session 39)
 
-1. Finish UAT Round 1 — Cross-cutting (8), RBAC (22), Sandbox Reset (5), Tenant Isolation (5)
-2. Post-UAT failure report → batch fix → retest
-3. #243 — Change Password section (pilot users need this)
-4. #239 — Available Capacity KPI fix (pilot feedback)
-5. #240 — Unknown donut segment fix (pilot feedback)
-6. #204 — Main app header redesign
-7. Collect and triage ongoing pilot tester feedback
-8. Overview wow layer (#242) when bandwidth allows
+### Immediate — work on these first:
+
+**1. #243 — Change Password section**
+Testers have temp passwords and no self-service way to change them. Add a Change Password form in Settings visible to all roles. Fields: Current Password, New Password, Confirm. Server endpoint: POST /api/auth/change-password (verify current via signInWithPassword, then updateUserById).
+
+**2. #240 — Unknown donut segment**
+Meridian tenant has open needs showing as "Unknown" in the donut chart. Investigate: are these needs without a project_id, or projects without a client_id? Fix the data if it's a seed issue, fix the code if it's a null-handling gap. Donut filter must work for every segment.
+
+**3. #241 — Location autocomplete**
+Typing "Det" in the consultant Location field doesn't suggest "Detroit". Check where the autocomplete list comes from (hardcoded? countries table? external?). Either expand the list or switch to free-text with optional suggestions.
+
+**4. #239 — Available Capacity KPI**
+The Available Capacity card should only show consultants booked less than 45 hours (actually available). Sort by most available first within each level. Drilldown should show the same filtered + sorted view.
+
+**5. #231 — Testing portal retest double-press**
+Retesting a previously failed test case requires two clicks on Pass. Likely a state issue from the retest workflow in #212. Should be a single click.
+
+### After Tier 1 is done:
+6. #204 — Header redesign
+7. #238 — Command palette consultant → RA row navigation
+8. #237 — Command palette search needs + rename "Projects" label
 
 ---
 
