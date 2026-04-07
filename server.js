@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const crypto               = require('crypto');
 const express              = require('express');
 const cors                 = require('cors');
 const cookieParser         = require('cookie-parser');
@@ -190,41 +191,74 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-// POST /api/auth/set-password — invitee sets password + promotes user_metadata to app_metadata
+// POST /api/auth/validate-invite — validate our own invite token (no auth required)
+app.post('/api/auth/validate-invite', async (req, res) => {
+  const { token } = req.body || {};
+  if (!token) return res.json({ valid: false, reason: 'No token provided' });
+
+  try {
+    const { data: { users } } = await serviceClient.auth.admin.listUsers({ perPage: 1000 });
+    const user = users.find(u => u.app_metadata?.invite_token === token);
+
+    if (!user) return res.json({ valid: false, reason: 'Invalid invite link' });
+
+    const expires = new Date(user.app_metadata.invite_expires);
+    if (Date.now() > expires.getTime()) {
+      return res.json({ valid: false, reason: 'This invite link has expired. Please contact your admin for a new one.' });
+    }
+
+    const { data: tenant } = await serviceClient
+      .from('tenants')
+      .select('name')
+      .eq('id', user.app_metadata.tenant_id)
+      .single();
+
+    res.json({
+      valid: true,
+      email: user.email,
+      tenantName: tenant?.name || 'your organization',
+      role: user.app_metadata.role
+    });
+  } catch (err) {
+    console.error('validate-invite error:', err);
+    res.status(500).json({ valid: false, reason: 'An unexpected error occurred.' });
+  }
+});
+
+// POST /api/auth/set-password — set password using our own invite token (no auth required)
 app.post('/api/auth/set-password', async (req, res) => {
-  const { access_token, password } = req.body || {};
-  if (!access_token || !password) {
-    return res.status(400).json({ error: 'access_token and password are required.' });
+  const { token, password } = req.body || {};
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Token and password are required.' });
   }
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters.' });
   }
 
   try {
-    // Use a throwaway client to validate the invite token. Calling getUser(jwt) on the
-    // shared serviceClient mutates its internal session state and corrupts subsequent
-    // admin calls — isolate the validation to a short-lived client instead.
-    const validationClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    const { data: { users } } = await serviceClient.auth.admin.listUsers({ perPage: 1000 });
+    const user = users.find(u => u.app_metadata?.invite_token === token);
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid invite link. Please contact your admin for a new one.' });
+    }
+
+    const expires = new Date(user.app_metadata.invite_expires);
+    if (Date.now() > expires.getTime()) {
+      return res.status(400).json({ error: 'This invite link has expired. Please contact your admin for a new one.' });
+    }
+
+    // Clear invite token (single-use) and set password
+    const newMetadata = { ...user.app_metadata };
+    delete newMetadata.invite_token;
+    delete newMetadata.invite_expires;
+
+    const { error } = await serviceClient.auth.admin.updateUserById(user.id, {
+      password,
+      app_metadata: newMetadata
     });
-    const { data: { user }, error: getUserError } = await validationClient.auth.getUser(access_token);
-    if (getUserError || !user) {
-      return res.status(401).json({ error: 'Invalid or expired invite link. Please contact your admin for a new one.' });
-    }
 
-    const { error: pwError } = await serviceClient.auth.admin.updateUserById(user.id, { password });
-    if (pwError) return res.status(400).json({ error: pwError.message });
-
-    const meta = user.user_metadata || {};
-    if (meta.role && meta.tenant_id) {
-      await serviceClient.auth.admin.updateUserById(user.id, {
-        app_metadata: {
-          role:         meta.role,
-          tenant_id:    meta.tenant_id,
-          display_name: meta.display_name || user.email
-        }
-      });
-    }
+    if (error) return res.status(500).json({ error: error.message });
 
     res.json({ ok: true });
   } catch (err) {
@@ -1621,7 +1655,7 @@ app.get('/api/admin/users', requireAuth, requireRole('admin'), async (req, res) 
   }
 });
 
-// POST /api/admin/users/invite — generate invite link (no temp password)
+// POST /api/admin/users/invite — create user + own invite token (7-day TTL)
 app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (req, res) => {
   const { email, role, display_name } = req.body || {};
   if (!email || !role) {
@@ -1631,31 +1665,53 @@ app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (re
     return res.status(400).json({ error: `role must be one of: ${VALID_ROLES.join(', ')}` });
   }
 
-  try {
-    const { data: linkData, error } = await serviceClient.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: {
-        data: { role, tenant_id: tId(req), display_name: display_name || email },
-        redirectTo: `${process.env.RAILWAY_URL || 'http://localhost:3000'}/set-password.html`
-      }
-    });
-    if (error) return res.status(400).json({ error: error.message });
+  const tenantId = tId(req);
+  const inviteToken   = crypto.randomUUID();
+  const inviteExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // generateLink puts options.data into user_metadata, not app_metadata.
-    // Promote role + tenant_id into app_metadata now so the listing filter picks up this user.
-    const newUserId = linkData.user?.id;
-    if (newUserId) {
-      await serviceClient.auth.admin.updateUserById(newUserId, {
-        app_metadata: { role, tenant_id: tId(req) }
+  try {
+    const { data: { users } } = await serviceClient.auth.admin.listUsers({ perPage: 1000 });
+    const existingUser = users.find(u => u.email === email);
+
+    if (existingUser) {
+      const existingTenant = existingUser.app_metadata?.tenant_id;
+      if (existingTenant && existingTenant !== tenantId) {
+        return res.status(400).json({ error: 'User belongs to a different tenant' });
+      }
+      if (existingUser.last_sign_in_at) {
+        return res.status(400).json({ error: 'User is already active. Use Reset Password instead.' });
+      }
+      // Update token for pending user
+      await serviceClient.auth.admin.updateUserById(existingUser.id, {
+        app_metadata: {
+          ...existingUser.app_metadata,
+          role,
+          tenant_id: tenantId,
+          testing_role: 'tester',
+          invite_token:   inviteToken,
+          invite_expires: inviteExpires
+        }
       });
+    } else {
+      const { error } = await serviceClient.auth.admin.createUser({
+        email,
+        email_confirm: true,
+        app_metadata: {
+          role,
+          tenant_id: tenantId,
+          testing_role: 'tester',
+          display_name: display_name || email,
+          invite_token:   inviteToken,
+          invite_expires: inviteExpires
+        }
+      });
+      if (error) return res.status(500).json({ error: error.message });
     }
 
-    res.status(201).json({
-      success: true,
-      invite_url: linkData.properties.action_link,
-      email
-    });
+    const baseUrl  = process.env.RAILWAY_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const inviteUrl = `${baseUrl}/set-password.html?invite=${inviteToken}`;
+
+    res.status(201).json({ success: true, inviteUrl, invite_url: inviteUrl, email });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1722,7 +1778,7 @@ app.patch('/api/admin/users/:id/reactivate', requireAuth, requireRole('admin'), 
   }
 });
 
-// POST /api/admin/users/:id/resend-invite — regenerate invite link for a pending user
+// POST /api/admin/users/:id/resend-invite — regenerate invite token for a pending user
 app.post('/api/admin/users/:id/resend-invite', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { data: userData, error: fetchErr } = await serviceClient.auth.admin.getUserById(req.params.id);
@@ -1734,16 +1790,49 @@ app.post('/api/admin/users/:id/resend-invite', requireAuth, requireRole('admin')
       return res.status(400).json({ error: 'User has already logged in — cannot resend invite' });
     }
 
-    const { data: linkData, error } = await serviceClient.auth.admin.generateLink({
-      type: 'invite',
-      email: user.email,
-      options: {
-        data: user.user_metadata || {},
-        redirectTo: `${process.env.RAILWAY_URL || 'http://localhost:3000'}/set-password.html`,
-      },
+    const inviteToken   = crypto.randomUUID();
+    const inviteExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    await serviceClient.auth.admin.updateUserById(user.id, {
+      app_metadata: {
+        ...user.app_metadata,
+        invite_token:   inviteToken,
+        invite_expires: inviteExpires
+      }
     });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true, invite_url: linkData.properties.action_link });
+
+    const baseUrl  = process.env.RAILWAY_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const inviteUrl = `${baseUrl}/set-password.html?invite=${inviteToken}`;
+
+    res.json({ success: true, invite_url: inviteUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/users/:id/reset-password — admin-initiated password reset (active users)
+app.post('/api/admin/users/:id/reset-password', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const { data: userData, error: fetchErr } = await serviceClient.auth.admin.getUserById(req.params.id);
+    if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+    if (!userData?.user) return res.status(404).json({ error: 'User not found' });
+
+    const user = userData.user;
+    const resetToken   = crypto.randomUUID();
+    const resetExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    await serviceClient.auth.admin.updateUserById(user.id, {
+      app_metadata: {
+        ...user.app_metadata,
+        invite_token:   resetToken,
+        invite_expires: resetExpires
+      }
+    });
+
+    const baseUrl  = process.env.RAILWAY_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const resetUrl  = `${baseUrl}/set-password.html?invite=${resetToken}`;
+
+    res.json({ success: true, resetUrl, email: user.email });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
