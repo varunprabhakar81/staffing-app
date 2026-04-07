@@ -3697,18 +3697,40 @@ function switchSettingsPanel(panel) {
   }
   if (panel === 'users' && currentUserRole === 'admin') loadUsers();
   if (panel === 'consultants' && _hmCanEdit()) loadConsultantsPanel();
+  if (panel === 'account') _initChpListeners();
 }
 
 // ── Change Password ────────────────────────────────────────────────
-async function submitChangePassword() {
-  const currentPassword = document.getElementById('chpCurrentPassword').value;
-  const newPassword     = document.getElementById('chpNewPassword').value;
-  const confirmPassword = document.getElementById('chpConfirmPassword').value;
-  const errEl           = document.getElementById('chpError');
-  const btn             = document.getElementById('chpSubmitBtn');
+let _chpListenersInit = false;
+function _initChpListeners() {
+  if (_chpListenersInit) return;
+  _chpListenersInit = true;
+  ['chpCurrentPassword', 'chpNewPassword', 'chpConfirmPassword'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitChangePassword();
+    });
+  });
+}
 
+async function submitChangePassword() {
+  const inputs = [
+    document.getElementById('chpCurrentPassword'),
+    document.getElementById('chpNewPassword'),
+    document.getElementById('chpConfirmPassword'),
+  ];
+  const errEl = document.getElementById('chpError');
+  const btn   = document.getElementById('chpSubmitBtn');
+
+  // Reset error div to red (in case it was green from a previous success)
   errEl.style.display = 'none';
   errEl.textContent = '';
+  errEl.style.color        = '#F87171';
+  errEl.style.background   = 'rgba(248,113,113,0.08)';
+  errEl.style.borderColor  = 'rgba(248,113,113,0.2)';
+
+  const currentPassword = inputs[0].value;
+  const newPassword     = inputs[1].value;
+  const confirmPassword = inputs[2].value;
 
   if (!currentPassword || !newPassword || !confirmPassword) {
     errEl.textContent = 'All fields are required.';
@@ -3729,6 +3751,7 @@ async function submitChangePassword() {
   btn.disabled = true;
   btn.textContent = 'Updating…';
 
+  let succeeded = false;
   try {
     const res = await apiFetch('/api/auth/change-password', {
       method: 'POST',
@@ -3737,10 +3760,29 @@ async function submitChangePassword() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      document.getElementById('chpCurrentPassword').value = '';
-      document.getElementById('chpNewPassword').value = '';
-      document.getElementById('chpConfirmPassword').value = '';
-      showToast('Password updated successfully.', 'success');
+      succeeded = true;
+      // Clear + lock all fields
+      inputs.forEach(el => { el.value = ''; el.disabled = true; el.style.opacity = '0.5'; });
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.textContent = 'Update Password';
+      // Inline success message (green, same div as errors)
+      errEl.style.color       = '#1D9E75';
+      errEl.style.background  = 'rgba(29,158,117,0.08)';
+      errEl.style.borderColor = 'rgba(29,158,117,0.2)';
+      errEl.textContent = 'Password updated successfully.';
+      errEl.style.display = 'block';
+      // Re-enable after 4s
+      setTimeout(() => {
+        inputs.forEach(el => { el.disabled = false; el.style.opacity = ''; });
+        btn.disabled = false;
+        btn.style.opacity = '';
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        errEl.style.color       = '#F87171';
+        errEl.style.background  = 'rgba(248,113,113,0.08)';
+        errEl.style.borderColor = 'rgba(248,113,113,0.2)';
+      }, 4000);
       return;
     }
     errEl.textContent = data.error || 'Failed to update password.';
@@ -3749,8 +3791,10 @@ async function submitChangePassword() {
     errEl.textContent = 'Network error. Please try again.';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false;
-    btn.textContent = 'Update Password';
+    if (!succeeded) {
+      btn.disabled = false;
+      btn.textContent = 'Update Password';
+    }
   }
 }
 
