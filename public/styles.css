@@ -1293,30 +1293,18 @@ body {
   margin-top: 4px;
 }
 
-/* ── Row 2: two-column grid ─────────────────────────────────────── */
+/* ── Row 2: 2×2 CSS grid ─────────────────────────────────────────── */
 .ov-row2 {
   display: grid;
-  grid-template-columns: 58% 42%;
-  gap: 10px;
-  align-items: stretch;
-  margin-top: 10px;
+  grid-template-columns: 58% 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
   flex: 1;
   min-height: 0;
 }
 
-.ov-left-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
-
-.ov-right-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
+.ov-left-col { display: none; }
+.ov-right-col { display: none; }
 
 /* Panel base */
 .ov-panel {
@@ -1327,47 +1315,42 @@ body {
   display: flex;
   flex-direction: column;
 }
-/* Level panel expands to fill left column and clips content to its border-radius */
-.ov-level-panel { overflow: hidden; flex: 1; min-height: 0; }
+/* All 4 panels are direct grid children — fill their cell */
+.ov-level-panel   { overflow: hidden; min-height: 0; }
+.ov-cliff-panel   { min-height: 0; display: flex; flex-direction: column; }
+.ov-urgency-panel { min-height: 0; display: flex; flex-direction: column; }
+.ov-needs-panel   { min-height: 0; display: flex; flex-direction: column; }
 
-/* Urgency panel (left column, below Upcoming Availability) */
-.ov-urgency-panel { flex-shrink: 0; }
-.ov-urgency-list { display: flex; flex-direction: column; gap: 8px; }
+/* Urgency list fills panel and distributes rows evenly */
+.ov-urgency-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  justify-content: space-evenly;
+}
 .ov-urgency-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 0;
+  gap: 12px;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .ov-urgency-row:last-child { border-bottom: none; }
 .ov-urgency-count {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
-  min-width: 28px;
+  min-width: 36px;
   text-align: right;
   line-height: 1;
 }
-.ov-urgency-count.urgent { color: #DA291C; }
-.ov-urgency-count.soon   { color: #E8A317; }
+.ov-urgency-count.urgent  { color: #DA291C; }
+.ov-urgency-count.soon    { color: #E8A317; }
 .ov-urgency-count.planned { color: #00A3E0; }
-.ov-urgency-count.zero   { color: #4a5568; }
-.ov-urgency-detail { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.ov-urgency-label { font-size: 12px; font-weight: 600; color: #CDD9F5; }
-.ov-urgency-sub   { font-size: 11px; color: #8892B0; }
-
-.ov-cliff-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-.ov-needs-panel {
-  height: auto;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
+.ov-urgency-count.zero    { color: #4a5568; }
+.ov-urgency-detail { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.ov-urgency-label { font-size: 14px; font-weight: 600; color: #CDD9F5; }
+.ov-urgency-sub   { font-size: 12px; color: #8892B0; }
 
 .ov-panel-header {
   display: flex;
@@ -1407,19 +1390,19 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 10px;
+  padding: 5px 10px;
   border-radius: 6px;
-  min-height: 26px;
+  min-height: 38px;
 }
 .ov-level-name {
-  font-size: 11px;
+  font-size: 13px;
   color: #FFFFFF;
   white-space: nowrap;
   min-width: 134px;
   flex-shrink: 0;
 }
 .ov-level-count {
-  font-size: 11px;
+  font-size: 13px;
   color: #8892B0;
   white-space: nowrap;
   min-width: 26px;
@@ -1427,7 +1410,7 @@ body {
 }
 .ov-level-bar-track {
   flex: 1;
-  height: 5px;
+  height: 8px;
   background: #2E3250;
   border-radius: 4px;
   overflow: hidden;
@@ -1438,7 +1421,7 @@ body {
   transition: width 0.5s ease;
 }
 .ov-level-pct {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   min-width: 36px;
@@ -1521,28 +1504,30 @@ body {
   scrollbar-color: #2E3250 transparent;
 }
 .ov-needs-list {
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: #2E3250 #0F1117;
 }
 .ov-cliff-item {
   flex-shrink: 0;
-  padding: 8px 0 8px 10px;
+  padding: 10px 0 10px 12px;
   border-bottom: 1px solid #2E3250;
   border-left: 3px solid transparent;
 }
 .ov-cliff-item:last-child { border-bottom: none; }
 .ov-cliff-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: #FFFFFF;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 .ov-cliff-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: #8892B0;
-  margin-top: 1px;
-  line-height: 1.1;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 .ov-cliff-detail {
   display: flex;

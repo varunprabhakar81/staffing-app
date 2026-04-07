@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=71">
+  <link rel="stylesheet" href="styles.css?v=72">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -287,59 +287,52 @@
 
       </div>
 
-      <!-- Row 2: Level Breakdown (left) + Rolling Off + Overallocated Resources (right) -->
+      <!-- 2x2 panel grid: Availability / Rolling Off / Urgency / Overallocated -->
       <div class="ov-row2">
 
-        <!-- Left column: Upcoming Availability + Open Needs by Urgency -->
-        <div class="ov-left-col">
-
-          <div class="ov-panel ov-level-panel">
-            <div class="ov-panel-header">
-              <span class="ov-panel-title">Upcoming Availability</span>
-            </div>
-            <div id="ovLevelBreakdown" class="ov-level-list">
-              <div class="ov-empty">Loading…</div>
-            </div>
+        <!-- (1,1) Upcoming Availability -->
+        <div class="ov-panel ov-level-panel">
+          <div class="ov-panel-header">
+            <span class="ov-panel-title">Upcoming Availability</span>
           </div>
-
-          <div class="ov-panel ov-urgency-panel">
-            <div class="ov-panel-header">
-              <span class="ov-panel-title" id="ovUrgencyTitle">🎯 Open Needs by Urgency</span>
-              <a class="ov-panel-link" onclick="navigateTo('needs')">→ View Open Needs</a>
-            </div>
-            <div id="ovNeedsUrgency" class="ov-urgency-list">
-              <div class="ov-empty">Loading…</div>
-            </div>
+          <div id="ovLevelBreakdown" class="ov-level-list">
+            <div class="ov-empty">Loading…</div>
           </div>
-
         </div>
 
-        <!-- Right: two stacked panels -->
-        <div class="ov-right-col">
-
-          <!-- Rolling Off Soon -->
-          <div class="ov-panel ov-cliff-panel">
-            <div class="ov-panel-header">
-              <span class="ov-panel-title">📅 Rolling Off Soon</span>
-              <a class="ov-panel-link" onclick="navigateTo('staffing')">→ View Resource Allocation</a>
-            </div>
-            <div id="ovRollingOff" class="ov-cliff-list">
-              <div class="ov-empty">Loading…</div>
-            </div>
+        <!-- (1,2) Rolling Off Soon -->
+        <div class="ov-panel ov-cliff-panel">
+          <div class="ov-panel-header">
+            <span class="ov-panel-title">📅 Rolling Off Soon</span>
+            <a class="ov-panel-link" onclick="navigateTo('staffing')">→ View Resource Allocation</a>
           </div>
-
-          <!-- Overallocated Resources -->
-          <div class="ov-panel ov-needs-panel">
-            <div class="ov-panel-header">
-              <span class="ov-panel-title">⚠ Overallocated Resources</span>
-              <a class="ov-panel-link" onclick="navigateTo('staffing')">→ View Resource Allocation</a>
-            </div>
-            <div id="ovNeedsAttention" class="ov-needs-list">
-              <div class="ov-empty">Loading…</div>
-            </div>
+          <div id="ovRollingOff" class="ov-cliff-list">
+            <div class="ov-empty">Loading…</div>
           </div>
-
         </div>
+
+        <!-- (2,1) Open Needs by Urgency -->
+        <div class="ov-panel ov-urgency-panel">
+          <div class="ov-panel-header">
+            <span class="ov-panel-title" id="ovUrgencyTitle">🎯 Open Needs by Urgency</span>
+            <a class="ov-panel-link" onclick="navigateTo('needs')">→ View Open Needs</a>
+          </div>
+          <div id="ovNeedsUrgency" class="ov-urgency-list">
+            <div class="ov-empty">Loading…</div>
+          </div>
+        </div>
+
+        <!-- (2,2) Overallocated Resources -->
+        <div class="ov-panel ov-needs-panel">
+          <div class="ov-panel-header">
+            <span class="ov-panel-title">⚠ Overallocated Resources</span>
+            <a class="ov-panel-link" onclick="navigateTo('staffing')">→ View Resource Allocation</a>
+          </div>
+          <div id="ovNeedsAttention" class="ov-needs-list">
+            <div class="ov-empty">Loading…</div>
+          </div>
+        </div>
+
       </div>
 
 
