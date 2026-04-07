@@ -220,7 +220,6 @@ node server.js
 - **Sessions**: In-memory (MemoryStore) — lost on server restart in dev; acceptable for Railway single-instance
 - **Session docs**: At the end of each session, create `docs/session-XX/` containing `HANDOFF_vXX.md` (new handoff) and a snapshot copy of `CLAUDE.md`. The root `CLAUDE.md` is the live version read at session start; `docs/session-XX/CLAUDE.md` is the point-in-time archive.
 - **No `git add -A` on Varun's Windows machine** — stage files by name only (e.g. `git add CLAUDE.md docs/session-XX/...`). `git add -A` on Windows can stage OS artifacts (Thumbs.db, desktop.ini) or lock files into the commit history.
-- **Custom invite tokens (not Supabase generateLink)** — Invites use crypto.randomUUID() stored in app_metadata.invite_token with 7-day TTL. POST /api/auth/validate-invite checks token. POST /api/auth/set-password sets password and clears token. generateLink is fully removed. Do not reintroduce Supabase invite/recovery tokens.
 
 ---
 
@@ -234,7 +233,7 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **Recommendations engine: candidates must match level + any skill (`allSkillSets.includes`)** — Availability calculated as average available hours within the need's start-to-end date window only (not full 12-week rolling window). Included if avgAvailable > 0. Capped at `hoursNeeded` in response. Sorted by `availableHours` desc. Badge: green ≥100%, yellow 50-99%, coral <50%. Do not reintroduce a hard per-week qualifying gate or minimum availability threshold.
 - **parseDateStr 2-digit year fix** — `if yr < 100 → yr += 2000`. Prevents date parsing failures.
 - **acceptMatch() is async** — writes to Supabase before updating UI. Date range guard: never write 0h rows outside engagement start/end dates.
-- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=166`, `styles.css?v=72`.
+- **Cache busters must be incremented on every deploy with frontend changes** — `app.js` and `styles.css` both carry `?v=N` query strings in `index.html`. Current: `app.js?v=158`, `styles.css?v=67`.
 - **/api/dashboard and /api/heatmap use serviceClient** — not user JWT. Required after RLS tightening. Do not revert.
 - **Drilldown modals open expanded by default** — all consultant group sections open on load + Expand/Collapse All button above rows, left-aligned.
 - **Enter key navigation in heatmap** — while loop skips consultants with no project sub-rows. Polling pattern (setInterval 50ms, 20 attempts) for post-render DOM queries.
@@ -245,13 +244,14 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 - **No global staffingData — every route fetches fresh via tId(req)** — `readStaffingData(null, serviceClient, tId(req))` is called per-request. Never cache staffing data in a module-level variable. The only cache is `recoCacheMap` (per-tenant Map keyed by `tenantId`, 60s TTL). If you see `let staffingData` at module level, delete it — it was removed in Session 31 and must not return.
 - **tId(req) for all tenant-scoped calls** — `const tId = req => req.session?.tenant_id || process.env.TENANT_ID`. All Supabase reads and writes must use `tId(req)`, never `process.env.TENANT_ID` directly inside a route handler.
 - **testing_role gates testing portal access** — testing_role in app_metadata: test_admin (full access), tester (own results), null (no access). Sidebar link and /testing.html both check this. Do not use business roles (admin/RM/PM) for testing access control.
-- **Invite tokens owned by us, not Supabase** — crypto.randomUUID() in app_metadata, 7-day expiry, single-use. Validated via POST /api/auth/validate-invite. Password set via POST /api/auth/set-password which clears the token. Pending badge based on last_sign_in_at (not confirmed_at). Do not use generateLink or Supabase invite/recovery tokens.
-- **Overview uses 2x2 CSS grid** — .ov-row2 has grid-template-rows: 1fr 1fr. All 4 panels equal height. Do not reintroduce flex:1 stretching on individual panels.
+- **generateLink for invites, not inviteUserByEmail** — Pilot uses generateLink to produce invite URLs. Admin copies link and shares via Teams. No SMTP dependency. inviteUserByEmail deferred to V3 (#203).
+- **set-password.html handles both invite and recovery** — Token type invite triggers Set Your Password plus metadata promotion. Token type recovery triggers Reset Your Password plus password update only. Do not break either path.
 - **test_results uses UNIQUE(tenant_id, test_case_id, user_id)** — Upsert pattern. One result per user per test. submitted_at column for lock/unlock flow. general-feedback is a special test_case_id for free-form feedback.
 - **StaffingDatePicker end date quick-picks are relative to start date** — not relative to today. Start date quick-picks are relative to today. Do not make both relative to today.
 - **StaffingDatePicker start date default** — `max(project start date, today)`, snapped to the next Saturday. No static default.
 - **Command palette searches allSkillSets** — not primary skill. Industry and country data requires a lazy preload from `/api/consultants` (not available at page load). Do not assume it's synchronously available.
 - **Inline confirm modal (_icmDoConfirm) must snapshot _icmCallback before calling _closeConfirm()** — `_closeConfirm()` nulls `_icmCallback`; executing the callback after closing will silently no-op. Always: `const cb = _icmCallback; _closeConfirm(); cb?.()`.
+- **generateLink writes to user_metadata, not app_metadata** — always follow `generateLink` with `updateUserById` to promote `tenant_id` and `role` into `app_metadata`. RLS and tenant listing both depend on `app_metadata`.
 - **Need action buttons use capture-phase event delegation on the table element** — do not use inline `onclick` on buttons inside need rows. The row click handler (toggleNeedExpansion) runs in bubble phase and intercepts button clicks; capture phase fires first and prevents this.
 
 ---
@@ -286,6 +286,8 @@ These decisions were made deliberately to fix hard-to-debug bugs. Do not revert 
 Gate: do NOT start V3 until 2-4 weeks of pilot feedback collected.
 - #210 — Command palette (Phase 1+2 shipped; Phases 3–5 remain)
 - #193 Ph1 — Project heatmap (read-only + consultant cross-link)
+- #213 — Tester onboarding — Tim (Acme), Shreyas (BigCo), Nick (Summit)
+- #214 — Overview tab UX/UI audit
 - #204 — Main app header redesign
 - #208 — Skill set categories rethink
 - #183 — Contextual tooltips
@@ -316,8 +318,6 @@ Completed in Pilot:
 - #217 — Deactivate user shows 'User is banned' (UAT bug) ✓
 - #218 — Invite metadata promotion via updateUserById (UAT bug) ✓
 - #219 — Donut tooltip collision with open needs count (UAT bug) ✓
-- #213 — Tester onboarding (4 users, 4 tenants) ✓
-- #214 — Overview tab UX/UI audit + redesign ✓
 
 ### V3 — First external customer (after Pilot)
 Gate: at least 3 unsolicited feature requests from pilot users.
