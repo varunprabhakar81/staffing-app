@@ -1775,7 +1775,7 @@ function renderCoverageChart(openNeeds) {
 
   // Build client → count map for donut segments
   const clientCounts = {};
-  for (const r of roles) { const c = r.client || 'Unknown'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
+  for (const r of roles) { const c = r.client || 'Unassigned'; clientCounts[c] = (clientCounts[c] || 0) + 1; }
   const clientEntries = Object.entries(clientCounts);
   const clientColors  = clientEntries.map((_, i) => NEEDS_CLIENT_COLORS[i % NEEDS_CLIENT_COLORS.length]);
 
