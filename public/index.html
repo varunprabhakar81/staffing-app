@@ -495,6 +495,7 @@
           <button class="settings-subnav-item" id="settingsNavConsultants" data-panel="consultants" onclick="switchSettingsPanel('consultants')">Consultants</button>
           <button class="settings-subnav-item" id="settingsNavUsers" data-panel="users" onclick="switchSettingsPanel('users')">Users</button>
           <button class="settings-subnav-item" id="settingsNavSandbox" data-panel="sandbox" onclick="switchSettingsPanel('sandbox')">Sandbox</button>
+          <button class="settings-subnav-item" id="settingsNavAccount" data-panel="account" onclick="switchSettingsPanel('account')">Account</button>
         </nav>
 
         <!-- Settings content area -->
@@ -589,6 +590,42 @@
                 onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
                 Reset sandbox
               </button>
+            </div>
+          </div>
+
+          <!-- Account panel (all roles) -->
+          <div id="settingsPanelAccount" class="hidden">
+            <div style="background:#1A1D27;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);padding:1.5rem;max-width:480px">
+              <h2 style="font-size:20px;font-weight:500;color:var(--color-text-primary);margin:0 0 8px">Change Password</h2>
+              <p style="font-size:13px;color:#8892B0;margin:0 0 24px;line-height:1.6">Update your account password. You'll need your current password to confirm.</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Current Password</label>
+                  <input type="password" id="chpCurrentPassword" placeholder="Enter current password" autocomplete="current-password"
+                    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--color-text-primary);font-family:inherit;outline:none;transition:border-color .15s"
+                    onfocus="this.style.borderColor='#5B5BD6'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">New Password</label>
+                  <input type="password" id="chpNewPassword" placeholder="Min. 8 characters" autocomplete="new-password"
+                    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--color-text-primary);font-family:inherit;outline:none;transition:border-color .15s"
+                    onfocus="this.style.borderColor='#5B5BD6'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">Confirm New Password</label>
+                  <input type="password" id="chpConfirmPassword" placeholder="Repeat new password" autocomplete="new-password"
+                    style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--color-text-primary);font-family:inherit;outline:none;transition:border-color .15s"
+                    onfocus="this.style.borderColor='#5B5BD6'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+                </div>
+                <div id="chpError" style="display:none;font-size:13px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,0.08);border-radius:6px;border:1px solid rgba(248,113,113,0.2)"></div>
+                <div>
+                  <button id="chpSubmitBtn" onclick="submitChangePassword()"
+                    style="padding:9px 20px;background:#5B5BD6;color:#FFFFFF;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s"
+                    onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+                    Update Password
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1323,6 +1360,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=166"></script>
+  <script src="app.js?v=167"></script>
 </body>
 </html>

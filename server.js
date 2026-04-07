@@ -267,6 +267,33 @@ app.post('/api/auth/set-password', async (req, res) => {
   }
 });
 
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Both fields are required.' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+  }
+  const email  = req.session.user?.email;
+  const userId = req.session.user?.id;
+  if (!email || !userId) {
+    return res.status(401).json({ error: 'Session invalid. Please log in again.' });
+  }
+  try {
+    const { error: signInError } = await supabaseAuth.auth.signInWithPassword({ email, password: currentPassword });
+    if (signInError) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+    const { error: updateError } = await serviceClient.auth.admin.updateUserById(userId, { password: newPassword });
+    if (updateError) return res.status(500).json({ error: updateError.message });
+    res.json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    console.error('change-password error:', err);
+    res.status(500).json({ error: 'An unexpected error occurred.' });
+  }
+});
+
 // Apply requireAuth to all /api/* routes defined after this point
 app.use('/api', requireAuth);
 

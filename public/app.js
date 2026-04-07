@@ -71,7 +71,7 @@ document.querySelectorAll('.nav-item:not(.nav-item--disabled)').forEach(btn => {
     }
     // Reload active panel each time Settings tab is opened
     if (tab === 'settings') {
-      const defaultPanel = 'consultants';
+      const defaultPanel = (currentUserRole === 'admin' || currentUserRole === 'resource_manager') ? 'consultants' : 'account';
       switchSettingsPanel(_settingsActivePanel || defaultPanel);
     }
   });
@@ -3690,13 +3690,68 @@ function switchSettingsPanel(panel) {
   document.querySelectorAll('.settings-subnav-item').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.panel === panel);
   });
-  const panelMap = { users: 'settingsPanelUsers', consultants: 'settingsPanelConsultants', sandbox: 'settingsPanelSandbox' };
+  const panelMap = { users: 'settingsPanelUsers', consultants: 'settingsPanelConsultants', sandbox: 'settingsPanelSandbox', account: 'settingsPanelAccount' };
   for (const [key, id] of Object.entries(panelMap)) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('hidden', key !== panel);
   }
   if (panel === 'users' && currentUserRole === 'admin') loadUsers();
   if (panel === 'consultants' && _hmCanEdit()) loadConsultantsPanel();
+}
+
+// ── Change Password ────────────────────────────────────────────────
+async function submitChangePassword() {
+  const currentPassword = document.getElementById('chpCurrentPassword').value;
+  const newPassword     = document.getElementById('chpNewPassword').value;
+  const confirmPassword = document.getElementById('chpConfirmPassword').value;
+  const errEl           = document.getElementById('chpError');
+  const btn             = document.getElementById('chpSubmitBtn');
+
+  errEl.style.display = 'none';
+  errEl.textContent = '';
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    errEl.textContent = 'All fields are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (newPassword.length < 8) {
+    errEl.textContent = 'New password must be at least 8 characters.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Updating…';
+
+  try {
+    const res = await apiFetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Failed to update password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('chpCurrentPassword').value = '';
+    document.getElementById('chpNewPassword').value = '';
+    document.getElementById('chpConfirmPassword').value = '';
+    showToast('Password updated successfully.', 'success');
+  } catch (err) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Update Password';
+  }
 }
 
 // ── Sandbox reset ─────────────────────────────────────────────────
@@ -6825,14 +6880,25 @@ function initDatePickers() {
     if (el) el.style.display = 'none';
   };
 
-  if (role === 'executive')       { hideTab('needs'); hideTab('settings'); } // staffing: read-only access granted
-  if (role === 'project_manager') { hideTab('settings'); }
-  // resource_manager: settings tab visible (Consultants panel), but User Management is hidden
-  // admin: no tabs hidden
+  if (role === 'executive')       { hideTab('needs'); } // Settings visible — Account tab available to all roles
+  // project_manager, resource_manager, admin: no tabs hidden (settings visible to all)
+
+  // Hide Settings sub-nav items based on role (before any early returns)
+  if (role !== 'admin' && role !== 'resource_manager') {
+    const cNav = document.getElementById('settingsNavConsultants');
+    if (cNav) cNav.style.display = 'none';
+  }
+  if (role !== 'admin') {
+    const uNav = document.getElementById('settingsNavUsers');
+    if (uNav) uNav.style.display = 'none';
+    const sNav = document.getElementById('settingsNavSandbox');
+    if (sNav) sNav.style.display = 'none';
+  }
 
   // Consultant: sees only their own staffing row — skip full dashboard load
   if (role === 'consultant') {
-    hideTab('overview'); hideTab('needs'); hideTab('ask'); hideTab('settings');
+    hideTab('overview'); hideTab('needs'); hideTab('ask');
+    // Settings remains visible for Account / Change Password
     apiFetch('/api/heatmap')
       .then(r => r.json())
       .then(heatmap => {
@@ -6855,14 +6921,6 @@ function initDatePickers() {
   if (role === 'admin' || role === 'resource_manager' || role === 'project_manager') {
     const btn = document.getElementById('createNeedBtn');
     if (btn) btn.classList.remove('hidden');
-  }
-
-  // Hide Users and Sandbox nav items for non-admin roles
-  if (role !== 'admin') {
-    const usersNavBtn = document.getElementById('settingsNavUsers');
-    if (usersNavBtn) usersNavBtn.style.display = 'none';
-    const sandboxNavBtn = document.getElementById('settingsNavSandbox');
-    if (sandboxNavBtn) sandboxNavBtn.style.display = 'none';
   }
 
   loadDashboard();
