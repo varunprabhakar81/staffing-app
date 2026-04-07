@@ -624,6 +624,142 @@
     "expected": "Page shows an error heading ('Link Expired' or 'Invalid Link') with a message and a mailto:vaprabhakar@deloitte.com link. No password form is shown."
   },
   {
+    "id": "chp-01",
+    "area": "Change Password",
+    "title": "Admin sees all 4 Settings sub-nav items and defaults to Consultants",
+    "roles": ["admin"],
+    "steps": "Log in as admin. Navigate to Settings tab.",
+    "expected": "Settings sub-nav shows 4 items: Consultants, Users, Sandbox, Account. Consultants panel is active by default."
+  },
+  {
+    "id": "chp-02",
+    "area": "Change Password",
+    "title": "Project Manager sees only Account sub-nav, defaults to Account",
+    "roles": ["project_manager"],
+    "steps": "Log in as pm_test@test.com. Navigate to Settings tab.",
+    "expected": "Settings sub-nav shows only Account. Consultants, Users, and Sandbox are not visible. Account panel is active by default showing the Change Password form."
+  },
+  {
+    "id": "chp-03",
+    "area": "Change Password",
+    "title": "Executive sees only Account sub-nav, defaults to Account",
+    "roles": ["executive"],
+    "steps": "Log in as exec_test@test.com. Navigate to Settings tab.",
+    "expected": "Settings sub-nav shows only Account. Consultants, Users, and Sandbox are not visible. Account panel is active by default showing the Change Password form."
+  },
+  {
+    "id": "chp-04",
+    "area": "Change Password",
+    "title": "Resource Manager sees Consultants + Account, Users/Sandbox hidden",
+    "roles": ["resource_manager"],
+    "steps": "Log in as rm_test@test.com. Navigate to Settings tab.",
+    "expected": "Settings sub-nav shows Consultants and Account only. Users and Sandbox are not visible. Consultants panel is active by default."
+  },
+  {
+    "id": "chp-05",
+    "area": "Change Password",
+    "title": "Account panel renders Change Password form",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Log in with any role. Navigate to Settings → Account.",
+    "expected": "Account panel shows a 'Change Password' heading, 3 password fields (Current Password, New Password, Confirm New Password), and an 'Update Password' button."
+  },
+  {
+    "id": "chp-06",
+    "area": "Change Password",
+    "title": "Empty fields show inline validation error",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Click Update Password without filling in any fields.",
+    "expected": "Inline error message appears: 'All fields are required.' No API call is made. Fields remain empty."
+  },
+  {
+    "id": "chp-07",
+    "area": "Change Password",
+    "title": "New password under 8 characters shows validation error",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Fill in Current Password, enter 'abc' as New Password and Confirm Password. Click Update Password.",
+    "expected": "Inline error: 'New password must be at least 8 characters.' No API call made."
+  },
+  {
+    "id": "chp-08",
+    "area": "Change Password",
+    "title": "Mismatched New and Confirm passwords shows error",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Enter a valid current password, enter 'Password1!' as New Password and 'Password2!' as Confirm Password. Click Update Password.",
+    "expected": "Inline error: 'Passwords do not match.' No API call made."
+  },
+  {
+    "id": "chp-09",
+    "area": "Change Password",
+    "title": "Wrong current password returns inline error, no session disruption",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Enter an incorrect current password with a valid new password (8+ chars, matching confirm). Click Update Password.",
+    "expected": "Inline error: 'Current password is incorrect.' No redirect to login. Session stays active. Other parts of the app still work."
+  },
+  {
+    "id": "chp-10",
+    "area": "Change Password",
+    "title": "Correct current password + valid new password succeeds",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Enter your actual current password, a new valid password (8+ chars), and matching confirm. Click Update Password.",
+    "expected": "All 3 fields are cleared. Fields and button become disabled with 0.5 opacity. A green inline message shows: 'Password updated successfully.' After ~4 seconds, the form re-enables and the message disappears."
+  },
+  {
+    "id": "chp-11",
+    "area": "Change Password",
+    "title": "Log in with new password after successful change",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "After successfully changing password (chp-10), log out. Log back in using the new password.",
+    "expected": "Login succeeds with the new password. Old password no longer works."
+  },
+  {
+    "id": "chp-12",
+    "area": "Change Password",
+    "title": "Double-click Update Password button sends only one API call",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Fill in all fields correctly. Double-click Update Password quickly.",
+    "expected": "Button disables after first click. Only one API call is made. No duplicate password-change requests."
+  },
+  {
+    "id": "chp-13",
+    "area": "Change Password",
+    "title": "Account panel persists across tab switches",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Switch to Overview tab. Switch back to Settings.",
+    "expected": "Settings opens on the Account panel (not Consultants or Users). The remembered panel state is preserved."
+  },
+  {
+    "id": "chp-14",
+    "area": "Change Password",
+    "title": "Enter key in Current Password field submits the form",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Fill in all 3 password fields. Press Enter while focused on the Current Password field.",
+    "expected": "Form submits as if Update Password was clicked. Validation runs, API call is made."
+  },
+  {
+    "id": "chp-15",
+    "area": "Change Password",
+    "title": "Enter key in Confirm Password field submits the form",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Navigate to Settings → Account. Fill in all 3 password fields. Press Enter while focused on the Confirm Password field.",
+    "expected": "Form submits as if Update Password was clicked. Validation runs, API call is made."
+  },
+  {
+    "id": "chp-16",
+    "area": "Change Password",
+    "title": "After success, inputs and button are disabled for ~4 seconds",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Submit a successful password change. Immediately try to type in any of the 3 fields or click Update Password.",
+    "expected": "All 3 inputs and the button are disabled (visually dimmed, 50% opacity). Cannot type or submit during the 4-second success window."
+  },
+  {
+    "id": "chp-17",
+    "area": "Change Password",
+    "title": "After 4 seconds, form re-enables and is ready for another change",
+    "roles": ["admin", "resource_manager", "project_manager", "executive"],
+    "steps": "Submit a successful password change. Wait approximately 4 seconds.",
+    "expected": "All 3 inputs and the button become enabled again. The green success message disappears. The form is ready to accept another password change."
+  },
+  {
     "id": "rbac-01",
     "area": "RBAC",
     "title": "Admin — full access: edit heatmap, close needs, manage users",
