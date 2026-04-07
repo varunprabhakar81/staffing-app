@@ -1642,6 +1642,15 @@ app.post('/api/admin/users/invite', requireAuth, requireRole('admin'), async (re
     });
     if (error) return res.status(400).json({ error: error.message });
 
+    // generateLink puts options.data into user_metadata, not app_metadata.
+    // Promote role + tenant_id into app_metadata now so the listing filter picks up this user.
+    const newUserId = linkData.user?.id;
+    if (newUserId) {
+      await serviceClient.auth.admin.updateUserById(newUserId, {
+        app_metadata: { role, tenant_id: tId(req) }
+      });
+    }
+
     res.status(201).json({
       success: true,
       invite_url: linkData.properties.action_link,

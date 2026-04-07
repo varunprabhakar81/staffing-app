@@ -966,28 +966,28 @@ body {
 
 /* Col 1: Project */
 .coverage-table th:nth-child(1),
-.coverage-table td:nth-child(1) { width: 20%; }
+.coverage-table td:nth-child(1) { width: 17%; }
 /* Col 2: Skill */
 .coverage-table th:nth-child(2),
-.coverage-table td:nth-child(2) { width: 16%; }
+.coverage-table td:nth-child(2) { width: 14%; }
 /* Col 3: Level */
 .coverage-table th:nth-child(3),
-.coverage-table td:nth-child(3) { width: 12%; }
+.coverage-table td:nth-child(3) { width: 10%; }
 /* Col 4: Hrs/Wk */
 .coverage-table th:nth-child(4),
-.coverage-table td:nth-child(4) { width: 8%; }
+.coverage-table td:nth-child(4) { width: 7%; }
 /* Col 5: Start */
 .coverage-table th:nth-child(5),
-.coverage-table td:nth-child(5) { width: 9%; }
+.coverage-table td:nth-child(5) { width: 8%; }
 /* Col 6: End */
 .coverage-table th:nth-child(6),
-.coverage-table td:nth-child(6) { width: 9%; }
+.coverage-table td:nth-child(6) { width: 8%; }
 /* Col 7: Urgency */
 .coverage-table th:nth-child(7),
-.coverage-table td:nth-child(7) { width: 14%; }
-/* Col 8: Actions — width controlled by .col-actions class, not here */
+.coverage-table td:nth-child(7) { width: 11%; }
+/* Col 8: Actions — explicit width here (table-layout:fixed ignores .col-actions on tbody tds) */
 .coverage-table th:nth-child(8),
-.coverage-table td:nth-child(8) { text-align: right; }
+.coverage-table td:nth-child(8) { width: 25%; text-align: right; }
 
 .coverage-table .col-project,
 .coverage-table th:nth-child(1) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3342,6 +3342,7 @@ td[data-cell-type="emp-total"]:hover {
   padding-right: 12px !important;
   white-space: nowrap;
 }
+.need-close-abandon-btn,
 .need-abandon-btn,
 .need-edit-btn,
 .need-close-met-btn {
@@ -3358,9 +3359,10 @@ td[data-cell-type="emp-total"]:hover {
   transition: color 0.15s, border-color 0.15s;
 }
 .need-edit-btn { margin-right: 5px; }
+.need-close-abandon-btn:hover,
 .need-abandon-btn:hover {
-  color: #FCA5A5;
-  border-color: rgba(252,165,165,0.35);
+  color: #EF4444;
+  border-color: rgba(239,68,68,0.35);
 }
 .need-edit-btn:hover {
   color: #A8C7FA;

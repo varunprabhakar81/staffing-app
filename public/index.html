@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="styles.css?v=66">
+  <link rel="stylesheet" href="styles.css?v=67">
   <style>
 .cn-ms-wrapper {
   position: relative;
@@ -1065,6 +1065,9 @@
 
   <div id="cn-step2-project-label" style="display:none;font-size:13px;font-weight:500;color:#A8C7FA;margin-bottom:14px;padding:8px 12px;background:rgba(168,199,250,.06);border:1px solid rgba(168,199,250,.12);border-radius:8px"></div>
 
+  <div id="cn-step2-error" class="hidden"
+    style="font-size:12px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:7px;margin-bottom:12px"></div>
+
   <!-- Shared: Dates only (skills moved to per-row) -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
     <div>
@@ -1103,9 +1106,6 @@
     style="background:none;border:none;color:#A8C7FA;font-size:12px;cursor:pointer;padding:0;font-family:inherit;display:flex;align-items:center;gap:4px;margin-bottom:8px">
     ＋ Add another need
   </button>
-
-  <div id="cn-step2-error" class="hidden"
-    style="font-size:12px;color:#F87171;padding:8px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:7px;margin-bottom:4px"></div>
 
       </div>
 
@@ -1268,6 +1268,24 @@
     </div>
   </div>
 
-  <script src="app.js?v=151"></script>
+  <!-- Inline confirmation modal (shared by closeNeedAsMet + abandonNeed) -->
+  <div id="inline-confirm-modal" class="hidden"
+    onclick="if(event.target===this)_closeConfirm()"
+    style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:510;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+    <div onclick="event.stopPropagation()"
+      style="background:#1A1D27;border:1px solid rgba(255,255,255,.08);border-radius:14px;width:100%;max-width:380px;padding:24px 28px;box-shadow:0 24px 64px rgba(0,0,0,.5);font-family:Inter,sans-serif">
+      <div id="icm-title" style="font-size:15px;font-weight:600;color:#E2E8F0;margin-bottom:8px"></div>
+      <div id="icm-body" style="font-size:13px;color:#8892B0;line-height:1.5;margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" onclick="_closeConfirm()"
+          style="padding:8px 18px;background:transparent;color:#8892B0;border:1px solid rgba(255,255,255,.1);border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit"
+          onmouseover="this.style.color='#E2E8F0'" onmouseout="this.style.color='#8892B0'">Cancel</button>
+        <button type="button" id="icm-confirm" onclick="_icmDoConfirm()"
+          style="padding:8px 18px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=159"></script>
 </body>
 </html>

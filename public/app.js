@@ -103,7 +103,7 @@ document.addEventListener('keydown', e => {
 
 document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-  if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); closeInviteModal(); return; }
+  if (e.key === 'Escape') { closeCmdPalette(); closeDrilldown(); closeShortcutGuide(); closeAddProjectModal(); closeConsultantProfileEditor(); closeBulkAssignModal(); closeInviteModal(); _closeConfirm(); return; }
   if (e.ctrlKey || e.metaKey) {
     if (e.altKey && e.key === 'r') { e.preventDefault(); loadDashboard(); return; }
     if (e.key === '1') { e.preventDefault(); navigateTo('overview');  return; }
@@ -1908,10 +1908,10 @@ function renderCoverageChart(openNeeds) {
         ? `<button class="need-edit-btn" data-needid="${_esc(r._needId)}" onclick="openEditNeedModal(this.dataset.needid,event)">Edit</button>`
         : '';
       const closeMetBtn = (_hmCanEdit() && r._needId)
-        ? `<button class="need-close-met-btn" data-needid="${_esc(r._needId)}" onclick="closeNeedAsMet(this.dataset.needid,event)" title="Close as Met — need has been filled">✓ Met</button>`
+        ? `<button class="need-close-met-btn" data-needid="${_esc(r._needId)}" title="Close as Met — need has been filled">✓ Met</button>`
         : '';
       const abandonBtn = (_hmCanEdit() && r._needId)
-        ? `<button class="need-abandon-btn" data-needid="${_esc(r._needId)}" onclick="abandonNeed(this.dataset.needid,event)" title="Close as Abandoned — need is no longer required">Abandon</button>`
+        ? `<button class="need-close-abandon-btn" data-needid="${_esc(r._needId)}" title="Close as Abandoned — need is no longer required">✗ Abandon</button>`
         : '';
       const assignBtn = (_hmCanEdit() && r._needId)
         ? `<button class="need-assign-btn" data-needid="${_esc(r._needId)}" onclick="openBulkAssignModal(this.dataset.needid,event)">&#128101; Assign</button>`
@@ -1953,6 +1953,22 @@ function renderCoverageChart(openNeeds) {
       <tbody>${rows}</tbody>
     </table>
   `;
+
+  // Delegated capture-phase listener for action buttons — fires before <tr> inline onclick
+  if (tableEl._needsActionHandler) {
+    tableEl.removeEventListener('click', tableEl._needsActionHandler, true);
+  }
+  tableEl._needsActionHandler = function(event) {
+    const metBtn = event.target.closest('.need-close-met-btn');
+    const abandonBtn = event.target.closest('.need-close-abandon-btn');
+    if (!metBtn && !abandonBtn) return;
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    const needId = (metBtn || abandonBtn).dataset.needid;
+    if (metBtn) closeNeedAsMet(needId);
+    else abandonNeed(needId);
+  };
+  tableEl.addEventListener('click', tableEl._needsActionHandler, true);
 }
 
 // Helper: open skill set modal from a pill element, passing optional need context
@@ -2056,6 +2072,7 @@ function toggleAllNeedsClients() {
 // ── AI Recommendations: Expandable Row Logic ─────────────────────
 
 function toggleNeedExpansion(roleIdx, event) {
+  console.log('toggleNeedExpansion CALLED', arguments);
   if (event) event.stopPropagation();
   const row  = document.getElementById(`need-exp-${roleIdx}`);
   const chev = document.getElementById(`need-chev-${roleIdx}`);
@@ -2215,44 +2232,79 @@ function clearNeedsPending() {
   _needs.expanded.forEach(idx => renderNeedMatchPanel(idx));
 }
 
-async function abandonNeed(needId, event) {
-  if (event) event.stopPropagation();
-  if (!confirm('Abandon this need? It will be removed from the pipeline.')) return;
-  try {
-    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ reason: 'abandoned' }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    showToast('Need abandoned', 'success');
-    loadDashboard();
-  } catch (e) {
-    showToast(`Failed to abandon need: ${e.message}`, 'error');
-  }
+let _icmCallback = null;
+function showInlineConfirm({ title, message, confirmText, confirmStyle, onConfirm }) {
+  _icmCallback = onConfirm;
+  document.getElementById('icm-title').textContent = title;
+  document.getElementById('icm-body').textContent  = message;
+  const btn = document.getElementById('icm-confirm');
+  btn.textContent  = confirmText;
+  btn.style.cssText = confirmStyle;
+  document.getElementById('inline-confirm-modal').classList.remove('hidden');
+}
+function _icmDoConfirm() {
+  const cb = _icmCallback;
+  _closeConfirm();
+  if (cb) cb();
+}
+function _closeConfirm() {
+  document.getElementById('inline-confirm-modal').classList.add('hidden');
+  _icmCallback = null;
 }
 
-async function closeNeedAsMet(needId, event) {
+function abandonNeed(needId, event) {
+  console.log('abandonNeed CALLED', arguments);
   if (event) event.stopPropagation();
-  if (!confirm('Close this need as Met? It will be marked as fulfilled and removed from the pipeline.')) return;
-  try {
-    const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ reason: 'met' }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || `HTTP ${res.status}`);
-    }
-    showToast('Need closed as Met', 'success');
-    loadDashboard();
-  } catch (e) {
-    showToast(`Failed to close need: ${e.message}`, 'error');
-  }
+  showInlineConfirm({
+    title:        'Abandon Need',
+    message:      'Close this need as Abandoned? It will be removed from the pipeline.',
+    confirmText:  'Abandon',
+    confirmStyle: 'padding:8px 18px;background:#EF4444;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit',
+    onConfirm: async () => {
+      try {
+        const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ reason: 'abandoned' }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        showToast('Need abandoned', 'success');
+        loadDashboard();
+      } catch (e) {
+        showToast(`Failed to abandon need: ${e.message}`, 'error');
+      }
+    },
+  });
+}
+
+function closeNeedAsMet(needId, event) {
+  if (event) event.stopPropagation();
+  showInlineConfirm({
+    title:        'Close as Met',
+    message:      'Close this need as Met? It will be marked as fulfilled and removed from the pipeline.',
+    confirmText:  'Close as Met',
+    confirmStyle: 'padding:8px 18px;background:#22C55E;color:#0F1117;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit',
+    onConfirm: async () => {
+      try {
+        const res = await apiFetch(`/api/needs/${encodeURIComponent(needId)}/close`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ reason: 'met' }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        showToast('Need closed as Met', 'success');
+        loadDashboard();
+      } catch (e) {
+        showToast(`Failed to close need: ${e.message}`, 'error');
+      }
+    },
+  });
 }
 
 async function saveAllAssignments(overrideChanges) {
@@ -5274,7 +5326,6 @@ async function _cnSubmit() {
   const showErr = (msg, highlightRowEl) => {
     errEl.textContent = msg;
     errEl.classList.remove('hidden');
-    errEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     if (highlightRowEl) {
       const sel = highlightRowEl.querySelector('[data-field="level"]');
       if (sel) {
@@ -5301,10 +5352,9 @@ async function _cnSubmit() {
     }
   }
 
-  // Collect and validate rows
+  // Collect and validate rows — every row must have a level (no silent skipping)
   const rows = [];
   const rowEls = document.querySelectorAll('#cn-rows > div');
-  let rowNum = 0;
   for (let i = 0; i < rowEls.length; i++) {
     const level = rowEls[i].querySelector('[data-field="level"]').value;
     const hours = rowEls[i].querySelector('[data-field="hours"]').value;
@@ -5312,11 +5362,7 @@ async function _cnSubmit() {
     const skillSetIds = [...rowEls[i].querySelectorAll('[data-field="skill-panel"] .cp-skill-tag.selected')]
       .map(t => t.dataset.ssId);
 
-    // Skip completely empty rows silently
-    if (!level && skillSetIds.length === 0 && (!hours || Number(hours) === 0)) continue;
-
-    rowNum++;
-    // Level is required; skills, hours, and qty are optional
+    const rowNum = i + 1;
     if (!level) { showErr(`Row ${rowNum}: Level is required.`, rowEls[i]); return; }
     if (hours && (Number(hours) < 1 || Number(hours) > 45)) {
       showErr(`Row ${rowNum}: Hours per week must be between 1 and 45.`, rowEls[i]); return;
@@ -5336,6 +5382,7 @@ async function _cnSubmit() {
     let created = 0;
     for (const row of rows) {
       for (let q = 0; q < row.qty; q++) {
+        console.log('POST REQUEST FIRING for row level=', row.level, 'qty iteration', q + 1, 'of', row.qty);
         const res = await apiFetch('/api/needs', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },

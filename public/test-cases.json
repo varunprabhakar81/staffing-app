@@ -122,10 +122,10 @@
   {
     "id": "overview-09",
     "area": "Overview",
-    "title": "Drilldown modals open expanded by default",
+    "title": "Drilldown modals — expand/collapse works correctly",
     "roles": ["admin", "resource_manager", "executive"],
-    "steps": "Click any KPI card that opens a drilldown modal. Observe the initial state of grouped sections inside.",
-    "expected": "All consultant group sections inside the drilldown are expanded (visible) by default. An Expand/Collapse All button is present above the rows."
+    "steps": "Click any KPI card that opens a drilldown modal. Observe initial state, then use the Expand/Collapse All button and individual section toggles.",
+    "expected": "All consultant group sections open expanded by default (by design). An Expand/Collapse All button is present above the rows. Clicking it collapses all sections; clicking again expands all. Individual section headers also toggle their own section."
   },
   {
     "id": "heatmap-01",
@@ -364,7 +364,7 @@
     "area": "Open Needs",
     "title": "Close need as met",
     "roles": ["admin", "resource_manager"],
-    "steps": "Click Close on an open need. Select 'Met' as the reason. Confirm.",
+    "steps": "On an open need row, click the '✓ Met' button (visible to admin and resource_manager only). An in-app confirmation modal appears. Click 'Close as Met' to confirm.",
     "expected": "Need disappears from the open needs list. Donut chart updates to reflect the reduced count."
   },
   {
@@ -372,8 +372,8 @@
     "area": "Open Needs",
     "title": "Close need as abandoned",
     "roles": ["admin", "resource_manager"],
-    "steps": "Click Close on an open need. Select 'Abandoned' as the reason. Confirm.",
-    "expected": "Need disappears from the open needs list."
+    "steps": "On an open need row, click the '✗ Abandon' button (visible to admin and resource_manager only). An in-app confirmation modal appears. Click 'Abandon' to confirm.",
+    "expected": "Need disappears from the open needs list. Donut chart updates to reflect the reduced count."
   },
   {
     "id": "needs-20",
@@ -402,10 +402,10 @@
   {
     "id": "needs-23",
     "area": "Open Needs",
-    "title": "Skill matching uses full skill set, not primary only",
+    "title": "Skill matching uses full skill set (allSkillSets)",
     "roles": ["admin", "resource_manager"],
-    "steps": "Find a need that requires a skill that some consultants hold as a secondary (non-primary) skill. Open candidates for that need.",
-    "expected": "Consultants who have the skill anywhere in their full skill set appear as candidates, not only those whose primary skill matches."
+    "steps": "Find a need that requires a specific skill. Open candidates for that need and observe which consultants appear.",
+    "expected": "Consultants who have the required skill anywhere in their full skill set (allSkillSets array) appear as candidates. There is no concept of primary vs. secondary skill — all skills are equal for matching purposes."
   },
   {
     "id": "claude-01",
