@@ -3736,15 +3736,15 @@ async function submitChangePassword() {
       body: JSON.stringify({ currentPassword, newPassword }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      errEl.textContent = data.error || 'Failed to update password.';
-      errEl.style.display = 'block';
+    if (res.ok) {
+      document.getElementById('chpCurrentPassword').value = '';
+      document.getElementById('chpNewPassword').value = '';
+      document.getElementById('chpConfirmPassword').value = '';
+      showToast('Password updated successfully.', 'success');
       return;
     }
-    document.getElementById('chpCurrentPassword').value = '';
-    document.getElementById('chpNewPassword').value = '';
-    document.getElementById('chpConfirmPassword').value = '';
-    showToast('Password updated successfully.', 'success');
+    errEl.textContent = data.error || 'Failed to update password.';
+    errEl.style.display = 'block';
   } catch (err) {
     errEl.textContent = 'Network error. Please try again.';
     errEl.style.display = 'block';

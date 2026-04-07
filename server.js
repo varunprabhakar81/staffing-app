@@ -286,9 +286,7 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
     if (signInError || !signInData?.user) {
       return res.status(401).json({ error: 'Current password is incorrect.' });
     }
-    console.log('change-password: userId=', userId, 'serviceClient defined=', !!serviceClient);
-    const { data: updateData, error: updateError } = await serviceClient.auth.admin.updateUserById(userId, { password: newPassword });
-    console.log('updateUserById result:', { userId, updateData: updateData?.user?.id, updateError });
+    const { error: updateError } = await serviceClient.auth.admin.updateUserById(userId, { password: newPassword });
     if (updateError) return res.status(500).json({ error: updateError.message });
     res.json({ message: 'Password updated successfully.' });
   } catch (err) {
